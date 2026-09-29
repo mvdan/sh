@@ -3528,37 +3528,41 @@ done <<< 2`,
 		"a\nb\n",
 	},
 	// list expansions of associative arrays
-	{`declare -A A; echo "${#A[@]}" "${#A[*]}"`, "1 1\n #IGNORE list expansions differ from bash"},
-	{`declare -A A=([a]=1 [b]=2 [c]=3); echo ${#A[@]} ${#A[*]}`, "1 1\n #IGNORE list expansions differ from bash"},
-	{`declare -A A=([a]=x); printf "<%s>" "${A[@]@U}" "${!A[@]}"; echo`, "<x><a>\n #IGNORE list expansions differ from bash"},
+	{`declare -A A; echo "${#A[@]}" "${#A[*]}"`, "0 0\n"},
+	{`declare -A A=([a]=1 [b]=2 [c]=3); echo ${#A[@]} ${#A[*]}`, "3 3\n"},
+	{
+		`declare -A A=([b]=2 [a]=1); echo "${!A[@]}" "${A[@]}" ${!A[*]} ${A[*]}`,
+		"a b 1 2 a b 1 2\n #IGNORE bash orders the elements by hash",
+	},
+	{`declare -A A=([a]=x); printf "<%s>" "${A[@]@U}" "${!A[@]}"; echo`, "<X><a>\n"},
 
 	// list expansions within a longer quoted string
-	{`a=(1 2); printf "<%s>" "x${a[@]}y"; echo`, "<x1 2y>\n #IGNORE list expansions differ from bash"},
+	{`a=(1 2); printf "<%s>" "x${a[@]}y"; echo`, "<x1><2y>\n"},
 	{`a=(1 2); printf "<%s>" "x${a[*]}y"; echo`, "<x1 2y>\n"},
 	{`a=(); printf "<%s>" "x${a[@]}y"; echo`, "<xy>\n"},
-	{`a=("" ""); printf "<%s>" "${a[@]}b" "-${a[@]}"; echo`, "< b><- >\n #IGNORE list expansions differ from bash"},
-	{`a=(1 2); b=(3 4); printf "<%s>" "a${a[@]}b${b[@]}c" "${a[@]}${b[@]}"; echo`, "<a1 2b3 4c><1 23 4>\n #IGNORE list expansions differ from bash"},
-	{`set -- 1 2; printf "<%s>" "x$@y" "x${@}y" "x$*y"; echo`, "<x1 2y><x1 2y><x1 2y>\n #IGNORE list expansions differ from bash"},
+	{`a=("" ""); printf "<%s>" "${a[@]}b" "-${a[@]}"; echo`, "<><b><-><>\n"},
+	{`a=(1 2); b=(3 4); printf "<%s>" "a${a[@]}b${b[@]}c" "${a[@]}${b[@]}"; echo`, "<a1><2b3><4c><1><23><4>\n"},
+	{`set -- 1 2; printf "<%s>" "x$@y" "x${@}y" "x$*y"; echo`, "<x1><2y><x1><2y><x1 2y>\n"},
 	{`set --; printf "<%s>" "x$@y" "$@" "x$@"; echo`, "<xy><x>\n"},
 	// A quoted string holding an empty list and no literal text produces
 	// no field when it expands to nothing.
-	{`a=(); x=; set --; set -- "${a[@]}${a[@]}" "$@$x" "${a[*]}$@" "$@$(true)"; echo $#`, "4\n #IGNORE empty lists produce a field"},
+	{`a=(); x=; set --; set -- "${a[@]}${a[@]}" "$@$x" "${a[*]}$@" "$@$(true)"; echo $#`, "0\n"},
 	{`a=(); e=(''); x=; set --; set -- """$@" "$@"'' "${e[@]}$x" "${a[*]}$x" "$@x"; echo $#`, "5\n"},
 
 	// operators testing a list as a whole
-	{`a=(); printf "<%s>" "${a[@]:+alt}"; echo; printf "<%s>" "${a[@]-d}"; echo; set --; printf "<%s>" "${@-d}"; echo`, "<>\n<>\n<>\n #IGNORE list expansions differ from bash"},
-	{`a=(1 2); printf "<%s>" "${a[@]:+alt}"; echo; printf "<%s>" "${a[@]-d}" "${a[@]:-d}"; echo`, "<1><2>\n<1><2><1><2>\n #IGNORE list expansions differ from bash"},
-	{`a=(""); printf "<%s>" "${a[@]-d}" "${a[@]:-d}" "${a[@]:+s}" "${a[@]+s}"; echo`, "<><><><>\n #IGNORE list expansions differ from bash"},
-	{`a=("" ""); printf "<%s>" "${a[@]:+s}" "${a[*]:+s}"; echo`, "<><>< >\n #IGNORE list expansions differ from bash"},
-	{`declare -a a; printf "<%s>" "${a[@]-d}" "${a[@]+s}"; echo`, "<d><>\n #IGNORE list expansions differ from bash"},
-	{`a=(); echo ${a[@]-d} ${a[*]:-e}; set --; echo ${@-f} ${*:-g}`, "e\ng\n #IGNORE list expansions differ from bash"},
+	{`a=(); printf "<%s>" "${a[@]:+alt}"; echo; printf "<%s>" "${a[@]-d}"; echo; set --; printf "<%s>" "${@-d}"; echo`, "<>\n<d>\n<d>\n"},
+	{`a=(1 2); printf "<%s>" "${a[@]:+alt}"; echo; printf "<%s>" "${a[@]-d}" "${a[@]:-d}"; echo`, "<alt>\n<1><2><1><2>\n"},
+	{`a=(""); printf "<%s>" "${a[@]-d}" "${a[@]:-d}" "${a[@]:+s}" "${a[@]+s}"; echo`, "<><d><><s>\n"},
+	{`a=("" ""); printf "<%s>" "${a[@]:+s}" "${a[*]:+s}"; echo`, "<s><s>\n"},
+	{`declare -a a; printf "<%s>" "${a[@]-d}" "${a[@]+s}"; echo`, "<d>\n"},
+	{`a=(); echo ${a[@]-d} ${a[*]:-e}; set --; echo ${@-f} ${*:-g}`, "d e\nf g\n"},
 	{
 		`a=(); echo "${a[@]:?err}"; echo after`,
-		"\nafter\n #JUSTERR",
+		"a: err\nexit status 1 #JUSTERR",
 	},
 
 	// operators transforming each element of a list
-	{`a=(ab cd); printf "<%s>" "${a[@]@U}" "${a[@]@u}" "${a[@]@L}" "${a[@]@E}"; echo`, "<ab><cd><ab><cd><ab><cd><ab><cd>\n #IGNORE list expansions differ from bash"},
+	{`a=(ab cd); printf "<%s>" "${a[@]@U}" "${a[@]@u}" "${a[@]@L}" "${a[@]@E}"; echo`, "<AB><CD><Ab><Cd><ab><cd><ab><cd>\n"},
 	{`a=(a b); printf "<%s>" "${a[@]@Q}"; echo`, "<a><b>\n #IGNORE bash quotes the values"},
 
 	// weird assignments

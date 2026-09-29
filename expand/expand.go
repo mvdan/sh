@@ -9,7 +9,6 @@ import (
 	"io"
 	"io/fs"
 	"iter"
-	"maps"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -806,33 +805,66 @@ func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 			}
 			curField = append(curField, fp)
 		case *syntax.DblQuoted:
-			if len(wp.Parts) == 1 {
-				pe, _ := wp.Parts[0].(*syntax.ParamExp)
-				elems, err := e.quotedElemFields(pe)
+			if !slices.ContainsFunc(wp.Parts, func(part syntax.WordPart) bool {
+				pe, ok := part.(*syntax.ParamExp)
+				return ok && mayExpandList(pe)
+			}) {
+				allowEmpty = true
+				wfield, err := e.wordField(wp.Parts, quoteDouble)
 				if err != nil {
 					return nil, err
 				}
-				if elems != nil {
-					for i, elem := range elems {
-						if i > 0 {
-							flush()
-						}
-						curField = append(curField, fieldPart{
-							quote: quoteDouble,
-							val:   elem,
-						})
+				for _, part := range wfield {
+					part.quote = quoteDouble
+					curField = append(curField, part)
+				}
+				break
+			}
+			// A list expansion like "${a[@]}" produces one field per
+			// element, and zero fields when the list is empty.
+			// Within a longer string like "x${a[@]}y", the other parts
+			// join the first and last elements. Like in Bash, the string
+			// produces an empty field unless it holds such a list and
+			// expands to nothing, so that "$@$x" produces no fields when
+			// there are no parameters and x is empty.
+			start := len(curField)
+			list, listElems := false, false
+			for _, part := range wp.Parts {
+				if pe, ok := part.(*syntax.ParamExp); ok {
+					elems, star, err := e.quotedElemFields(pe)
+					if err != nil {
+						return nil, err
 					}
-					continue
+					if elems != nil {
+						if !star {
+							list = true
+							listElems = listElems || len(elems) > 0
+						}
+						for i, elem := range elems {
+							if i > 0 {
+								flush()
+							}
+							curField = append(curField, fieldPart{
+								quote: quoteDouble,
+								val:   elem,
+							})
+						}
+						continue
+					}
+				}
+				wfield, err := e.wordField([]syntax.WordPart{part}, quoteDouble)
+				if err != nil {
+					return nil, err
+				}
+				for _, part := range wfield {
+					part.quote = quoteDouble
+					curField = append(curField, part)
 				}
 			}
-			allowEmpty = true
-			wfield, err := e.wordField(wp.Parts, quoteDouble)
-			if err != nil {
-				return nil, err
-			}
-			for _, part := range wfield {
-				part.quote = quoteDouble
-				curField = append(curField, part)
+			if list && !listElems && !slices.ContainsFunc(curField[start:], func(part fieldPart) bool { return part.val != "" }) {
+				curField = curField[:start] // the empty parts produce no field
+			} else {
+				allowEmpty = true
 			}
 		case *syntax.ParamExp:
 			if elems, ok := e.unquotedElemFields(wp); ok {
@@ -910,7 +942,7 @@ func (e *expander) listElems(pe *syntax.ParamExp) (elems []string, star, ok bool
 		case Indexed:
 			return e.sliceElems(pe, vr.List, vr.Indexes, false), lit == "*", true
 		case Associative:
-			return slices.Sorted(maps.Values(vr.Map)), lit == "*", true
+			return vr.assocVals(), lit == "*", true
 		}
 	}
 	return nil, false, false
@@ -919,7 +951,7 @@ func (e *expander) listElems(pe *syntax.ParamExp) (elems []string, star, ok bool
 // unquotedElemFields returns the elements of an unquoted "*" or "@" list
 // expansion like $* or ${foo[@]}; ok is false for any other expansion.
 func (e *expander) unquotedElemFields(pe *syntax.ParamExp) ([]string, bool) {
-	if pe.Excl || pe.Length || pe.Width || pe.IsSet || pe.Repl != nil || pe.Exp != nil {
+	if !mayExpandList(pe) || pe.Excl || pe.Length || pe.Width || pe.IsSet || pe.Repl != nil || pe.Exp != nil {
 		return nil, false
 	}
 	elems, _, ok := e.listElems(pe)
@@ -928,46 +960,76 @@ func (e *expander) unquotedElemFields(pe *syntax.ParamExp) ([]string, bool) {
 
 // quotedElemFields returns the list of elements resulting from a quoted
 // parameter expansion that should be treated especially, like "${foo[@]}".
-// The result is nil for any other parameter expansion.
-func (e *expander) quotedElemFields(pe *syntax.ParamExp) ([]string, error) {
-	if pe == nil || pe.Param == nil || pe.Length || pe.Width || pe.IsSet {
-		return nil, nil
+// The result is nil for any other parameter expansion. The "*" forms like
+// "${foo[*]}" join the elements into a single one and report star.
+func (e *expander) quotedElemFields(pe *syntax.ParamExp) (elems []string, star bool, err error) {
+	if pe == nil || !mayExpandList(pe) || pe.Length || pe.Width || pe.IsSet {
+		return nil, false, nil
 	}
 	name := pe.Param.Value
 	if pe.Excl {
 		switch pe.Names {
 		case syntax.NamesPrefixWords: // "${!prefix@}"
-			return e.namesByPrefix(pe.Param.Value), nil
+			return e.namesByPrefix(pe.Param.Value), false, nil
 		case syntax.NamesPrefix: // "${!prefix*}"
-			return nil, nil
+			return nil, false, nil
 		}
 		switch nodeLit(pe.Index) {
 		case "@": // "${!name[@]}"
 			switch vr := e.Env.Get(name); vr.Kind {
 			case Indexed:
-				return vr.indexedKeys(), nil
+				return vr.indexedKeys(), false, nil
 			case Associative:
-				return slices.Collect(maps.Keys(vr.Map)), nil
+				return vr.assocKeys(), false, nil
 			}
 		}
-		return nil, nil
+		return nil, false, nil
 	}
 	if nodeLit(pe.Index) == "@" && !overridingUnset(pe) && !e.Env.Get(name).IsSet() {
 		// An unset "${name[@]}" produces zero fields, like an empty array.
-		return []string{}, nil
+		return []string{}, false, nil
 	}
-	if elems, star, ok := e.listElems(pe); ok {
-		// Operators like "${foo[@]#prefix}" apply to each element.
-		elems, err := e.perElemOps(pe, elems)
-		if err != nil {
-			return nil, err
-		}
-		if star {
-			return []string{e.ifsJoin(elems)}, nil
-		}
-		return elems, nil
+	elems, star, ok := e.listElems(pe)
+	if !ok {
+		return nil, false, nil
 	}
-	return nil, nil
+	if elems == nil {
+		elems = []string{} // an empty list still produces zero fields
+	}
+	var arg string
+	if pe.Exp != nil {
+		if arg, err = e.literal(pe.Exp.Word); err != nil {
+			return nil, false, err
+		}
+		switch op := pe.Exp.Op; op {
+		case syntax.AlternateUnset, syntax.AlternateUnsetOrNull,
+			syntax.DefaultUnset, syntax.DefaultUnsetOrNull,
+			syntax.ErrorUnset, syntax.ErrorUnsetOrNull:
+			// These operators test the list as a whole: it is set when
+			// it has any elements, and null when they join into an
+			// empty string, which only the operators with a colon test.
+			null := false
+			switch op {
+			case syntax.AlternateUnsetOrNull, syntax.DefaultUnsetOrNull, syntax.ErrorUnsetOrNull:
+				null = e.joinElems(elems, star) == ""
+			}
+			switch testParamOp(op, len(elems) > 0, null) {
+			case testArg:
+				return []string{arg}, false, nil
+			case testFail:
+				return nil, false, UnsetParameterError{Node: pe, Message: arg}
+			}
+		}
+	}
+	// Operators like "${foo[@]#prefix}" apply to each element.
+	elems, err = e.perElemOps(pe, arg, elems)
+	if err != nil {
+		return nil, false, err
+	}
+	if star {
+		return []string{e.ifsJoin(elems)}, true, nil
+	}
+	return elems, false, nil
 }
 
 // sliceElems applies ${var:offset:length} slicing to a list of elements.

@@ -31,6 +31,78 @@ func (e *expander) assocKey(idx syntax.ArithmExpr) (string, error) {
 	return e.literal(arithm.Word(idx))
 }
 
+// listIndex reports whether an index is "@" or "*", expanding a list.
+func listIndex(index syntax.ArithmExpr) bool {
+	switch nodeLit(index) {
+	case "@", "*":
+		return true
+	}
+	return false
+}
+
+// mayExpandList reports whether an expansion may produce a list, such as
+// $@, ${a[*]}, or an indirect expansion like ${!n} which refers to one.
+func mayExpandList(pe *syntax.ParamExp) bool {
+	if pe.Param == nil {
+		return false
+	}
+	switch pe.Param.Value {
+	case "@", "*":
+		return true
+	}
+	return pe.Excl || listIndex(pe.Index)
+}
+
+// joinElems joins the elements of a list expansion: with the first IFS
+// character for the "*" forms, and with a space otherwise.
+func (e *expander) joinElems(elems []string, star bool) string {
+	if star {
+		return e.ifsJoin(elems)
+	}
+	return strings.Join(elems, " ")
+}
+
+// testResult is the outcome of an operator like ${x-y}; see [testParamOp].
+type testResult uint8
+
+const (
+	testKeep testResult = iota // the parameter's own value is used
+	testArg                    // the operator's word is used instead
+	testFail                   // the expansion fails with the operator's word
+)
+
+// testParamOp applies one of the operators which test whether a parameter
+// is set or null, such as ${x-y}, ${x:+y}, or ${x:?y}.
+func testParamOp(op syntax.ParExpOperator, set, null bool) testResult {
+	switch op {
+	case syntax.AlternateUnset:
+		if set {
+			return testArg
+		}
+	case syntax.AlternateUnsetOrNull:
+		if !null {
+			return testArg
+		}
+	case syntax.DefaultUnset:
+		if !set {
+			return testArg
+		}
+	case syntax.DefaultUnsetOrNull:
+		if null {
+			return testArg
+		}
+	case syntax.ErrorUnset:
+		if !set {
+			return testFail
+		}
+	case syntax.ErrorUnsetOrNull:
+		if null {
+			return testFail
+		}
+	}
+	return testKeep
+}
+
 // UnsetParameterError is returned when a parameter expansion encounters an
 // unset variable and [Config.NoUnset] has been set.
 type UnsetParameterError struct {
@@ -74,12 +146,8 @@ func (e *expander) paramExp(pe *syntax.ParamExp) (string, error) {
 	}
 	// "*" expansions like ${*}, ${arr[*]}, or ${!prefix*} join their
 	// elements with the first IFS character; others use a space.
-	join := func(elems []string) string {
-		if nodeLit(index) == "*" || pe.Names == syntax.NamesPrefix {
-			return e.ifsJoin(elems)
-		}
-		return strings.Join(elems, " ")
-	}
+	star := nodeLit(index) == "*" || pe.Names == syntax.NamesPrefix
+	join := func(elems []string) string { return e.joinElems(elems, star) }
 	var vr Variable
 	switch name {
 	case "LINENO":
@@ -118,45 +186,31 @@ func (e *expander) paramExp(pe *syntax.ParamExp) (string, error) {
 		}
 	}
 
-	var (
-		str   string
-		elems []string
-
-		indexAllElements bool // true if var has been accessed with * or @ index
-		callVarInd       = true
-		set              = vr.IsSet()
-	)
-
-	switch nodeLit(index) {
-	case "@", "*":
-		switch vr.Kind {
-		case Unknown:
-			elems = nil
-			indexAllElements = true
-		case Indexed:
-			indexAllElements = true
-			callVarInd = false
-			elems = e.sliceElems(pe, vr.List, vr.Indexes, name == "@" || name == "*")
-			str = join(elems)
-		}
-	}
-	if callVarInd {
+	var str string
+	var set bool
+	elems, _, isList := e.listElems(pe)
+	if isList {
+		str = join(elems)
+		// Like Bash, a list is set when it has any elements,
+		// so that ${a[@]-x} works on an empty array.
+		set = len(elems) > 0
+	} else {
 		var err error
 		str, set, err = e.varInd(vr, index)
 		if err != nil {
 			return "", err
 		}
-	}
-	if !indexAllElements {
-		elems = []string{str}
+		if !listIndex(index) || vr.Kind != Unknown {
+			// Other than an unset "${x[@]}", which is an empty list,
+			// the single value is the only element.
+			elems = []string{str}
+		}
 	}
 
 	switch {
 	case pe.Length:
 		n := len(elems)
-		switch nodeLit(index) {
-		case "@", "*":
-		default:
+		if !listIndex(index) {
 			n = utf8.RuneCountInString(str)
 		}
 		str = strconv.Itoa(n)
@@ -170,7 +224,7 @@ func (e *expander) paramExp(pe *syntax.ParamExp) (string, error) {
 		case pe.Index != nil && vr.Kind == Indexed:
 			strs = vr.indexedKeys()
 		case pe.Index != nil && vr.Kind == Associative:
-			strs = slices.Sorted(maps.Keys(vr.Map))
+			strs = vr.assocKeys()
 		case !vr.IsSet():
 			return "", fmt.Errorf("invalid indirect expansion")
 		case str == "":
@@ -185,7 +239,7 @@ func (e *expander) paramExp(pe *syntax.ParamExp) (string, error) {
 	case pe.IsSet:
 		return "", fmt.Errorf("unsupported")
 	case pe.Slice != nil:
-		if callVarInd {
+		if !isList {
 			// The offset and length are in characters, not bytes.
 			rs := []rune(str)
 			slicePos := func(n int) int {
@@ -219,31 +273,13 @@ func (e *expander) paramExp(pe *syntax.ParamExp) (string, error) {
 			return "", err
 		}
 		switch op := pe.Exp.Op; op {
-		case syntax.AlternateUnsetOrNull:
-			if str == "" {
-				break
-			}
-			fallthrough
-		case syntax.AlternateUnset:
-			if set {
+		case syntax.AlternateUnset, syntax.AlternateUnsetOrNull,
+			syntax.DefaultUnset, syntax.DefaultUnsetOrNull,
+			syntax.ErrorUnset, syntax.ErrorUnsetOrNull:
+			switch testParamOp(op, set, str == "") {
+			case testArg:
 				str = arg
-			}
-		case syntax.DefaultUnset:
-			if set {
-				break
-			}
-			fallthrough
-		case syntax.DefaultUnsetOrNull:
-			if str == "" {
-				str = arg
-			}
-		case syntax.ErrorUnset:
-			if set {
-				break
-			}
-			fallthrough
-		case syntax.ErrorUnsetOrNull:
-			if str == "" {
+			case testFail:
 				return "", UnsetParameterError{
 					Node:    pe,
 					Message: arg,
@@ -268,21 +304,13 @@ func (e *expander) paramExp(pe *syntax.ParamExp) (string, error) {
 			syntax.LowerFirst, syntax.LowerAll:
 			str = join(e.caseConvElems(op, arg, elems))
 		case syntax.OtherParamOps:
+			if s, ok, err := transformOp(arg, str); err != nil {
+				return "", err
+			} else if ok {
+				str = s
+				break
+			}
 			switch arg {
-			case "Q":
-				str, err = syntax.Quote(str, syntax.LangBash)
-				if err != nil {
-					return "", err
-				}
-			case "E":
-				tail := str
-				var rns []rune
-				for tail != "" {
-					var rn rune
-					rn, _, tail, _ = strconv.UnquoteChar(tail, 0)
-					rns = append(rns, rn)
-				}
-				str = string(rns)
 			case "a":
 				// ${var@a} returns variable attribute flags.
 				// We use orig (before nameref resolve) for the attributes.
@@ -305,18 +333,6 @@ func (e *expander) paramExp(pe *syntax.ParamExp) (string, error) {
 				default:
 					str = fmt.Sprintf("declare -%s %s=%s", flags, name, quoted)
 				}
-			case "P":
-				// TODO: implement prompt expansion (\u, \h, \w, etc.).
-			case "U":
-				str = strings.ToUpper(str)
-			case "u":
-				rs := []rune(str)
-				if len(rs) > 0 {
-					rs[0] = unicode.ToUpper(rs[0])
-					str = string(rs)
-				}
-			case "L":
-				str = strings.ToLower(str)
 			case "K", "k":
 				// TODO: implement, like @A but listing keys for assoc arrays.
 			case "#": // mksh's hash of the value
@@ -364,16 +380,13 @@ func removePattern(str, pat string, fromEnd, shortest bool) string {
 // variable's list of elements.
 
 // perElemOps applies pattern removal, replacement, or case conversion to
-// each element, leaving them unchanged for any whole-expansion operator.
-func (e *expander) perElemOps(pe *syntax.ParamExp, elems []string) ([]string, error) {
+// each element, given the expanded operand of pe.Exp if any, leaving them
+// unchanged for any whole-expansion operator.
+func (e *expander) perElemOps(pe *syntax.ParamExp, arg string, elems []string) ([]string, error) {
 	switch {
 	case pe.Repl != nil:
 		return e.replaceElems(pe.Repl, elems)
 	case pe.Exp != nil:
-		arg, err := e.literal(pe.Exp.Word)
-		if err != nil {
-			return nil, err
-		}
 		switch op := pe.Exp.Op; op {
 		case syntax.RemSmallPrefix, syntax.RemLargePrefix,
 			syntax.RemSmallSuffix, syntax.RemLargeSuffix:
@@ -381,9 +394,55 @@ func (e *expander) perElemOps(pe *syntax.ParamExp, elems []string) ([]string, er
 		case syntax.UpperFirst, syntax.UpperAll,
 			syntax.LowerFirst, syntax.LowerAll:
 			return e.caseConvElems(op, arg, elems), nil
+		case syntax.OtherParamOps:
+			if _, ok, _ := transformOp(arg, ""); !ok {
+				return elems, nil // the operator describes the variable
+			}
+			out := make([]string, len(elems))
+			for i, elem := range elems {
+				var err error
+				if out[i], _, err = transformOp(arg, elem); err != nil {
+					return nil, err
+				}
+			}
+			return out, nil
 		}
 	}
 	return elems, nil
+}
+
+// transformOp applies a ${var@op} operator which transforms the value,
+// such as Q or U. ok is false for the operators which describe the
+// variable instead, such as a or A.
+func transformOp(op, str string) (_ string, ok bool, _ error) {
+	switch op {
+	case "Q":
+		quoted, err := syntax.Quote(str, syntax.LangBash)
+		return quoted, true, err
+	case "E":
+		tail := str
+		var rns []rune
+		for tail != "" {
+			var rn rune
+			rn, _, tail, _ = strconv.UnquoteChar(tail, 0)
+			rns = append(rns, rn)
+		}
+		return string(rns), true, nil
+	case "P":
+		// TODO: implement prompt expansion (\u, \h, \w, etc.).
+		return str, true, nil
+	case "U":
+		return strings.ToUpper(str), true, nil
+	case "u":
+		rs := []rune(str)
+		if len(rs) > 0 {
+			rs[0] = unicode.ToUpper(rs[0])
+		}
+		return string(rs), true, nil
+	case "L":
+		return strings.ToLower(str), true, nil
+	}
+	return str, false, nil
 }
 
 // replaceElems applies a ${var/pattern/repl} replacement to each element.
@@ -490,8 +549,7 @@ func (e *expander) varInd(vr Variable, idx syntax.ArithmExpr) (string, bool, err
 			return vr.Str, vr.IsSet(), nil
 		}
 	case Indexed:
-		switch nodeLit(idx) {
-		case "*", "@":
+		if listIndex(idx) {
 			return strings.Join(vr.List, " "), vr.IsSet(), nil
 		}
 		i, err := e.arithm(idx)
@@ -506,14 +564,6 @@ func (e *expander) varInd(vr Variable, idx syntax.ArithmExpr) (string, bool, err
 			return str, true, nil
 		}
 	case Associative:
-		switch lit := nodeLit(idx); lit {
-		case "@", "*":
-			strs := slices.Sorted(maps.Values(vr.Map))
-			if lit == "*" {
-				return e.ifsJoin(strs), vr.IsSet(), nil
-			}
-			return strings.Join(strs, " "), vr.IsSet(), nil
-		}
 		val, err := e.assocKey(idx)
 		if err != nil {
 			return "", false, err
@@ -532,11 +582,9 @@ func (e *expander) assignElem(name string, vr Variable, idx syntax.ArithmExpr, v
 	if !ok {
 		return fmt.Errorf("environment is read-only")
 	}
-	arrayWise := false
-	switch nodeLit(idx) {
-	case "@", "*":
+	arrayWise := listIndex(idx)
+	if arrayWise {
 		// ${a[@]=val} assigns the element at index zero.
-		arrayWise = true
 		idx = nil
 	}
 	if idx == nil && !arrayWise && vr.Kind != Indexed && vr.Kind != Associative {

@@ -5,6 +5,7 @@ package expand
 
 import (
 	"cmp"
+	"maps"
 	"runtime"
 	"slices"
 	"strconv"
@@ -184,6 +185,23 @@ func (v Variable) indexedKeys() []string {
 		}
 	}
 	return keys
+}
+
+// assocKeys returns the keys of an associative array, sorted, so that
+// expansions like "${!a[@]}" and "${a[@]}" pair up.
+func (v Variable) assocKeys() []string {
+	return slices.Sorted(maps.Keys(v.Map))
+}
+
+// assocVals returns the values of an associative array, in the order of
+// [Variable.assocKeys].
+func (v Variable) assocVals() []string {
+	keys := v.assocKeys()
+	vals := make([]string, len(keys))
+	for i, key := range keys {
+		vals[i] = v.Map[key]
+	}
+	return vals
 }
 
 // maxNameRefDepth defines the maximum number of times to follow references when
