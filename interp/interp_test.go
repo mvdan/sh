@@ -5436,6 +5436,12 @@ func TestRunnerRunConfirm(t *testing.T) {
 		// case-sensitive, which isn't how Windows works.
 		t.Skip("bash on Windows emulates Unix-y behavior")
 	}
+	if runtime.GOOS == "darwin" {
+		// Homebrew's bash uses a shared readline whose tilde expansion
+		// ignores HOME assignments, and macOS's stdio retains output
+		// which failed to write to closed file descriptors.
+		t.Skip("bash on macOS diverges from bash on Linux")
+	}
 	for _, c := range runTests {
 		t.Run("", func(t *testing.T) {
 			if strings.Contains(c.want, " #IGNORE") {
