@@ -4609,6 +4609,20 @@ done <<< 2`,
 		"read -r a b <<< '1\\\t2'; echo $a; echo $b;",
 		"1\\\n2\n",
 	},
+	// The last command of a pipeline runs in the current shell, unlike in Bash.
+	{"n=0; printf 'a\\nb\\n' | while read l; do n=$((n+1)); done; echo $n", "2\n #IGNORE the last command of a pipeline runs in the current shell"},
+	{"n=0; shopt -s lastpipe; printf 'a\\nb\\n' | while read l; do n=$((n+1)); done; echo $n", "shopt: unsupported option \"lastpipe\"\n2\n #IGNORE the last command of a pipeline runs in the current shell"},
+	{"echo | exit 3; echo after $?", "exit status 3 #IGNORE the last command of a pipeline runs in the current shell"},
+	{"shopt -s lastpipe; echo | exit 3; echo after", "shopt: unsupported option \"lastpipe\"\nexit status 3 #IGNORE the last command of a pipeline runs in the current shell"},
+	{"echo foo | read; echo \"[$REPLY]\"; shopt -s lastpipe; echo foo | read; echo \"[$REPLY]\"", "[foo]\nshopt: unsupported option \"lastpipe\"\n[foo]\n #IGNORE the last command of a pipeline runs in the current shell"},
+	{"f() { echo | x=1; echo \"[$x]\"; }; f; echo \"[$x]\"", "[1]\n[1]\n #IGNORE the last command of a pipeline runs in the current shell"},
+	{"f() { echo | return 3; echo after; }; f; echo st=$?", "st=3\n #IGNORE the last command of a pipeline runs in the current shell"},
+	// A simple command keeps the enclosing loop, ending only its subshell.
+	{`for i in 1 2; do true | break; break | cat; true | true | continue; echo $i; done`, " #IGNORE the last command of a pipeline runs in the current shell"},
+	// Background jobs started by the last command are not the shell's.
+	{`true & p=$!; echo | { false & }; [ "$p" = "$!" ] && echo same; wait $!; echo st=$?`, "st=1\n #IGNORE the last command of a pipeline runs in the current shell"},
+	{"f() { (return 3); echo after; }; f; echo st=$?", "return: can only be done from a func or sourced script\nafter\nst=0\n #IGNORE the last command of a pipeline runs in the current shell"},
+	{"set -o pipefail; echo | false; echo $?; false | echo; echo $?", "1\n\n1\n"},
 	{
 		"echo line\\\ncontinuation | while read a; do echo $a; done",
 		"linecontinuation\n",
