@@ -25,7 +25,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
-    - uses: actions/checkout@v7
+    - uses: namespacelabs/nscloud-checkout-action@v9
     # Namespace's macOS runners leave TMPDIR unset, so Go falls back to /tmp,
     # where new files belong to the wheel group and chmod g+s fails.
     - if: matrix.os == 'namespace-profile-macos'
@@ -34,6 +34,9 @@ jobs:
       with:
         go-version: ${{ matrix.go-version }}
         cache: false
+    - uses: namespacelabs/nscloud-cache-action@v1
+      with:
+        cache: go
 
     - run: go test ./...
     - run: cd x && go test ./...
@@ -67,7 +70,7 @@ jobs:
     runs-on: namespace-profile-linux
     timeout-minutes: 10
     steps:
-    - uses: actions/checkout@v5
+    - uses: namespacelabs/nscloud-checkout-action@v9
     - name: Test as root, without cgo, and with busybox
       run: docker run -v="$PWD:/pwd" -w=/pwd --user=1000 -e=GOCACHE=/tmp -e=CGO_ENABLED=0 golang:1.27.0-alpine go test ./...
 
@@ -105,7 +108,7 @@ jobs:
       # Get "https://proxy.golang.org/...": local error: tls: unexpected message
       # Get "https://proxy.golang.org/...": x509: certificate signed by unknown authority
     steps:
-    - uses: actions/checkout@v5
+    - uses: namespacelabs/nscloud-checkout-action@v9
       with:
         fetch-depth: 0 # also fetch tags for 'git describe'
     - uses: docker/setup-qemu-action@v3
