@@ -1099,6 +1099,29 @@ var fileTests = []fileTestCase{
 		}),
 	),
 	fileTest(
+		[]string{"foo <<ÉOF\nbar\nÉOF"},
+		langFile(&Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   Hdoc,
+				Word: litWord("ÉOF"),
+				Hdoc: litWord("bar\n"),
+			}},
+		}),
+	),
+	fileTest(
+		[]string{"foo <<ÉOF\nÉOF"},
+		// A closing word starting with a non-ASCII character is not matched.
+		langErr2("1:5: unclosed here-document `ÉOF`"),
+		flipConfirm2(langResolvedVariants),
+	),
+	fileTest(
+		[]string{"foo <<'ÉOF'\nbar\nÉOF"},
+		// A closing word starting with a non-ASCII character is not matched.
+		langErr2("1:5: unclosed here-document `ÉOF`"),
+		flipConfirm2(langResolvedVariants),
+	),
+	fileTest(
 		[]string{"a <<EOF\nfoo$bar\nEOF"},
 		langFile(&Stmt{
 			Cmd: litCall("a"),
