@@ -1045,6 +1045,15 @@ func (e *expander) quotedElemFields(pe *syntax.ParamExp, p param) (elems []strin
 			case testFail:
 				return nil, false, UnsetParameterError{Node: pe, Message: arg}
 			}
+		case syntax.OtherParamOps:
+			if _, ok, _ := transformOp(arg, ""); !ok {
+				if arg != "a" {
+					// Operators like @A describe the variable as one word.
+					return nil, false, nil
+				}
+				// @a gives the attributes once per element.
+				elems = slices.Repeat([]string{p.orig.Flags()}, len(elems))
+			}
 		}
 	}
 	// Operators like "${foo[@]#prefix}" apply to each element.

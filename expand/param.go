@@ -501,9 +501,7 @@ func (e *expander) perElemOps(pe *syntax.ParamExp, arg string, elems []string) (
 			syntax.LowerFirst, syntax.LowerAll:
 			return e.caseConvElems(op, arg, elems), nil
 		case syntax.OtherParamOps:
-			if _, ok, _ := transformOp(arg, ""); !ok {
-				return elems, nil // the operator describes the variable
-			}
+			// The caller handles the operators which do not transform.
 			out := make([]string, len(elems))
 			for i, elem := range elems {
 				var err error
