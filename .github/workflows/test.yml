@@ -111,6 +111,8 @@ jobs:
     - uses: namespacelabs/nscloud-checkout-action@v9
       with:
         fetch-depth: 0 # also fetch tags for 'git describe'
+        # The Docker build copies .git, so it can't rely on the runner's git mirror.
+        dissociate: true
     - uses: docker/setup-qemu-action@v3
     - uses: docker/setup-buildx-action@v3
       with:
