@@ -2704,6 +2704,43 @@ var runTests = []runTest{
 		"a=b b=a; echo $(($a))",
 		"0\n #IGNORE bash prints a warning",
 	},
+	// A variable's value is not evaluated as an arithmetic expression, unlike in Bash.
+	{"a='1+2'; echo $((a*2)) $((a))", "0 0\n #IGNORE arithmetic does not evaluate values as expressions"},
+	{"x=' 5 '; echo $((x+1)); y='b+1'; b=2; echo $((y))", "6\n0\n #IGNORE arithmetic does not evaluate values as expressions"},
+	{"x='1+2'; ((x++)); echo $x; y='1+2'; let y++; echo $y", "1\n1\n #IGNORE arithmetic does not evaluate values as expressions"},
+	{"x=b; b=c; c=7; echo $((x))", "7\n"},
+	{"a=; echo $((a+1)); unset u; echo $((u+1))", "1\n1\n"},
+	{"x='2#101'; echo $((x)); x='0x1f'; echo $((x+1)); x=-3; echo $((x)) $((-x))", "5\n32\n-3 3\n"},
+	{"let 'a = 5 + 4'; echo $a", "\n #IGNORE arithmetic does not evaluate values as expressions"},
+	// A value is not subject to expansions like $y or $(cmd), except
+	// within an array subscript.
+	{"x='$(echo 42)'; (echo $((x))) 2>/dev/null; echo $?", "0\n0\n #IGNORE the expansion is performed"},
+	{"x='$(echo 42)'; (echo $(($x))) 2>/dev/null; echo $?", "0\n0\n #IGNORE the expansion is performed"},
+	{"y=3; x='$y'; (echo $((x))) 2>/dev/null; echo $?", "0\n0\n #IGNORE the expansion is performed"},
+	{"(let 'x=$(echo 3)') 2>/dev/null; echo $?", "1\n"},
+	{"a=(1 2); x='a[$(echo 1)]'; echo $((x))", "0\n #IGNORE the subscript is not expanded"},
+	// Values which are not numbers are silently zero, unlike in Bash.
+	{
+		"echo $((08)); echo after",
+		"0\nafter\n #JUSTERR",
+	},
+	{
+		"x=1a; echo $((x+1)); echo after",
+		"1\nafter\n #JUSTERR",
+	},
+	{
+		"x='3 4'; echo $((x+1)); echo after",
+		"1\nafter\n #JUSTERR",
+	},
+	{
+		"a=a; echo $((a+1)); echo after",
+		"1\nafter\n #JUSTERR",
+	},
+	{
+		"x=08; ((x)); echo after $?; let y=x+1; echo after $?",
+		"after 1\nafter 0\n #JUSTERR",
+	},
+	{"exec 2>/dev/null; let a=1/0 b=1; echo $? ${b-unset}", "0 1\n #IGNORE let carries on after an error"},
 	{
 		"let x=3; let 3/0; ((3/0)); echo $((x/y)); let x/=0",
 		"division by zero\ndivision by zero\ndivision by zero\ndivision by zero\nexit status 1 #JUSTERR",
@@ -4162,6 +4199,18 @@ done <<< 2`,
 	{
 		"readonly i; let i=3; echo after",
 		"i: readonly variable\nafter\n #JUSTERR",
+	},
+	{
+		"((z=${q:?boom})); echo after",
+		"q: boom\nexit status 1 #JUSTERR",
+	},
+	{
+		"set -u; let x=$y+1; echo after",
+		"y: unbound variable\nexit status 1 #JUSTERR",
+	},
+	{
+		"q=1bad; for ((i=${!q}; i<1; i++)); do :; done; echo after",
+		"1bad: invalid variable name\nexit status 1 #JUSTERR",
 	},
 	{
 		"readonly i=0; declare i=2; echo st=$?",
