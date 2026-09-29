@@ -574,6 +574,17 @@ var runTests = []runTest{
 		"3 3 3 3\n",
 	},
 	{"set -- a bc; echo ${#@} ${#*} $#", "2 2 2\n"},
+	// Positional parameters beyond $9 are always empty, unlike in Bash.
+	{"set -- 1 2 3 4 5 6 7 8 9 10 11; echo ${10} ${11} ${!#} $#", "11\n #IGNORE positional parameters beyond 9 are empty"},
+	{`set -- 1 2 3 4 5 6 7 8 9 10 11; echo "${10:-d}" ${10-d} ${12-d} ${#10} ${10:1}`, "d d d 0\n #IGNORE positional parameters beyond 9 are empty"},
+	{
+		"set --; echo ${1=x}; echo after",
+		"x\nafter\n #JUSTERR",
+	},
+	{
+		"echo ${@=x}; echo after",
+		"x\nafter\n #JUSTERR",
+	},
 	{
 		"echo ${!a}; echo more",
 		"a: invalid indirect expansion\nexit status 1 #JUSTERR",
