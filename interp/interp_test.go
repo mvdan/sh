@@ -3107,6 +3107,15 @@ set +o pipefail
 	// Each prefix assignment sees the earlier ones.
 	{"x=old; f() { echo $x $y; }; x=new y=$x f", "new new\n"},
 	{"x=old; f() { echo $x; }; x=new x+=! f; echo $x", "new!\nold\n"},
+	// Bash gives a new local the value of a temporary variable of the same
+	// name. We start it empty, a known divergence which is not worth
+	// implementing.
+	{"f() { x=1 g; }; g() { local x; declare -p x; echo \"[$x]\"; }; f", "declare -x x\n[]\n #IGNORE a new local starts empty; not worth implementing"},
+	{"x=0; f() { x=1 g; }; g() { local x; x=5; }; f; echo $x", "0\n"},
+	{"f() { x=1 g; }; g() { local x=2; $ENV_PROG | grep '^x='; }; f", "x=2\n"},
+	// A local under a temporary environment holding a variable of the
+	// same name modifies that variable, starting empty unlike in Bash.
+	{`x=0; f() { x=1 eval 'local x; echo "[$x]"; local x=2; echo "[$x]"'; echo "[$x]"; }; f; echo "[$x]"`, "[]\n[2]\n[0]\n[0]\n #IGNORE a new local starts empty; not worth implementing"},
 	{
 		"readonly r=1; r=2 echo hi; echo st=$?",
 		"r: readonly variable\nhi\nst=0\n #JUSTERR",
