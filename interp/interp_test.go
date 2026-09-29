@@ -1954,6 +1954,10 @@ var runTests = []runTest{
 		"foo\nbar\n",
 	},
 	{
+		"exec 2>/dev/null\nx=`cat <<EOF`\necho \"[$x]\"",
+		" #IGNORE the heredoc should end at the closing backquote",
+	},
+	{
 		"cat <<EOF\nfoo\\\"bar\\baz\nEOF",
 		"foo\\\"bar\\baz\n",
 	},
