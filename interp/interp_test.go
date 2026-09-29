@@ -576,7 +576,7 @@ var runTests = []runTest{
 	{"set -- a bc; echo ${#@} ${#*} $#", "2 2 2\n"},
 	{
 		"echo ${!a}; echo more",
-		"invalid indirect expansion\nexit status 1 #JUSTERR",
+		"a: invalid indirect expansion\nexit status 1 #JUSTERR",
 	},
 	{
 		"a=b; echo ${!a}; b=c; echo ${!a}",
@@ -3898,35 +3898,44 @@ done <<< 2`,
 		"x y x y\n",
 	},
 	// Operators apply to the parameter named by an indirect expansion.
-	{`n=x; echo "${!n:-d}"; x=abc; echo "${!n#a}" "${!n^^}" "${!n/b/X}" "${!n:1}" "${!n:+y}"`, "\nabc abc abc abc abc\n #IGNORE indirect expansions ignore operators"},
-	{`n=x; x=abc; echo "${!n@Q}" "${!n@U}"`, "abc abc\n #IGNORE bash quotes the value"},
-	{`n=x; echo ${!n=z}; echo $x`, "\n\n #IGNORE indirect expansions ignore operators"},
-	{`set -u; n=u; echo "${!n:-d}"`, "\n #IGNORE indirect expansions ignore operators"},
+	{`n=x; echo "${!n:-d}"; x=abc; echo "${!n#a}" "${!n^^}" "${!n/b/X}" "${!n:1}" "${!n:+y}"`, "d\nbc ABC aXc bc y\n"},
+	{`n=x; x=abc; echo "${!n@Q}" "${!n@U}"`, "abc ABC\n #IGNORE bash quotes the value"},
+	{`n=x; echo ${!n=z}; echo $x`, "z\nz\n"},
+	{`set -u; n=u; echo "${!n:-d}"`, "d\n"},
 	{
 		`x=abc; n=x; echo "${!n:?err}"; unset x; echo "${!n:?err}"`,
-		"abc\n\n #JUSTERR",
+		"abc\nn: err\nexit status 1 #JUSTERR",
 	},
 	{
 		`unset n; echo "${!n:-d}"; echo after`,
-		"invalid indirect expansion\nexit status 1 #JUSTERR",
+		"n: invalid indirect expansion\nexit status 1 #JUSTERR",
 	},
 	{
 		`n=""; echo "${!n}"; echo after`,
-		"\nafter\n #JUSTERR",
+		": invalid variable name\nexit status 1 #JUSTERR",
 	},
 	{
 		`n="a b"; echo "${!n}"; echo after`,
-		"\nafter\n #JUSTERR",
+		"a b: invalid variable name\nexit status 1 #JUSTERR",
 	},
 	// An indirect expansion may name an array element or a list.
-	{`a=(p q); n="a[1]"; echo "${!n}"; n="a[@]"; printf "<%s>" "${!n}" "${!n@U}"; echo`, "\n<><>\n #IGNORE indirect expansions ignore operators"},
-	{`declare -A A=([k]=v); n="A[k]"; echo "${!n}"; n="A[@]"; echo "${!n}"`, "\n\n #IGNORE indirect expansions ignore operators"},
-	{`set -- s t; n=@; printf "<%s>" "${!n}"; echo; n="*"; printf "<%s>" "${!n}"; echo; n=2; echo "${!n}"`, "<s>\n<s>\nt\n #IGNORE indirect expansions ignore operators"},
-	{`set --; echo "[${!1}]" "[${!@}]"`, "invalid indirect expansion\nexit status 1 #IGNORE indirect expansions ignore operators"},
-	{`x=1; n=x; echo "${!n[@]}" "${!n[0]}"`, "1 1\n #IGNORE indirect expansions ignore operators"},
-	{`n=x; declare -n x=y; y=v; echo "${!n}"`, "\n #IGNORE indirect expansions ignore operators"},
+	{`a=(p q); n="a[1]"; echo "${!n}"; n="a[@]"; printf "<%s>" "${!n}" "${!n@U}"; echo`, "q\n<p><q><P><Q>\n"},
+	{`declare -A A=([k]=v); n="A[k]"; echo "${!n}"; n="A[@]"; echo "${!n}"`, "v\nv\n"},
+	{`set -- s t; n=@; printf "<%s>" "${!n}"; echo; n="*"; printf "<%s>" "${!n}"; echo; n=2; echo "${!n}"`, "<s><t>\n<s t>\nt\n"},
+	{`set --; echo "[${!1}]" "[${!@}]"`, "[] []\n"},
+	{`x=1; n=x; echo "${!n[@]}" "${!n[0]}"`, "0 1\n"},
+	{`n=x; declare -n x=y; y=v; echo "${!n}"`, "v\n"},
 	{`declare -n r=y; y=v; echo "${!r}" "${!r:-d}"`, "y y\n"},
-	{`n=LINENO; echo ${!n}`, "\n #IGNORE indirect expansions ignore operators"},
+	{`n=LINENO; echo ${!n}`, "1\n"},
+	// The subscript of an indirect expansion is an associative key or an
+	// arithmetic expression, depending on the array.
+	{`declare -A a=(["foo bar"]=1); n="a[foo bar]"; echo "${!n}"; b=(x y); n="b[1+1-1]"; echo "${!n}"; n="b[@]"; echo "${!n}"`, "1\ny\nx y\n"},
+	{
+		`b=(x y); n="b[1+]"; echo "${!n}"; echo after`,
+		"b[1+]: bad array subscript\nexit status 1 #JUSTERR",
+	},
+	// The subscript of an indirect expansion is evaluated once.
+	{`a=(x y); x=1; y=2; i=0; echo ${!a[i++]} $i; printf "<%s>" "${!a[i++]}"; echo " $i"; j=0; echo "${!a[j++]:-d}" $j`, "1 1\n<2> 2\n1 1\n"},
 
 	// read-only vars
 	{"declare -r foo=bar; echo $foo", "bar\n"},

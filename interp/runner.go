@@ -191,18 +191,13 @@ func (r *Runner) expandErr(err error) {
 	if err == nil {
 		return
 	}
-	errMsg := err.Error()
-	fmt.Fprintln(r.stderr, errMsg)
+	fmt.Fprintln(r.stderr, err)
 	_, unsetParam := errors.AsType[expand.UnsetParameterError](err)
+	_, fatal := errors.AsType[internal.FatalError](err)
 	switch {
-	case unsetParam, errMsg == "invalid indirect expansion":
-		// TODO: These errors are treated as fatal by bash.
-		// Make the error type reflect that.
-		r.exit.code = 1
-		r.exit.exiting = true
-	case errors.Is(err, errReadOnly):
-		// Like in Bash, an expansion which assigns to a read-only
-		// variable, such as ${i=3} or $((i=3)), exits the shell.
+	case unsetParam, fatal, errors.Is(err, errReadOnly):
+		// Like in Bash, these exit the shell, including an expansion
+		// which assigns to a read-only variable, like ${i=3} or $((i=3)).
 		r.exit.code = 1
 		r.exit.exiting = true
 	}

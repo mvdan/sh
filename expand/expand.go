@@ -126,9 +126,9 @@ type expander struct {
 	fieldAlloc  [4]fieldPart
 	fieldsAlloc [4][]fieldPart
 
-	// A pointer to a parameter expansion node, if we're inside one.
-	// Necessary for ${LINENO}.
-	curParam *syntax.ParamExp
+	// arithmRecursion counts the variables whose values are being
+	// evaluated as nested arithmetic expressions; see [expander.arithmValue].
+	arithmRecursion int
 
 	// depth counts the levels of recursion in the expansion,
 	// reported to [Config.CmdSubst] via [internal.NestingWriter].
@@ -640,9 +640,8 @@ func (e *expander) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 			s := wp.Value
 			if i == 0 && ql == quoteNone {
 				if prefix, rest := e.expandUser(s, len(wps) > 1); prefix != "" {
-					// TODO: return two separate fieldParts,
-					// like in wordFields?
-					s = prefix + rest
+					field = append(field, fieldPart{val: prefix})
+					s = rest
 				}
 			}
 			if (ql == quoteDouble || ql == quoteHeredoc) && strings.Contains(s, "\\") {
@@ -675,13 +674,9 @@ func (e *expander) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 			}
 			field = append(field, fp)
 		case *syntax.DblQuoted:
-			wfield, err := e.wordField(wp.Parts, quoteDouble)
-			if err != nil {
+			var err error
+			if field, err = e.appendDblQuoted(field, wp.Parts); err != nil {
 				return nil, err
-			}
-			for _, part := range wfield {
-				part.quote = quoteDouble
-				field = append(field, part)
 			}
 		case *syntax.ParamExp:
 			val, err := e.paramExp(wp)
@@ -805,21 +800,6 @@ func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 			}
 			curField = append(curField, fp)
 		case *syntax.DblQuoted:
-			if !slices.ContainsFunc(wp.Parts, func(part syntax.WordPart) bool {
-				pe, ok := part.(*syntax.ParamExp)
-				return ok && mayExpandList(pe)
-			}) {
-				allowEmpty = true
-				wfield, err := e.wordField(wp.Parts, quoteDouble)
-				if err != nil {
-					return nil, err
-				}
-				for _, part := range wfield {
-					part.quote = quoteDouble
-					curField = append(curField, part)
-				}
-				break
-			}
 			// A list expansion like "${a[@]}" produces one field per
 			// element, and zero fields when the list is empty.
 			// Within a longer string like "x${a[@]}y", the other parts
@@ -829,37 +809,44 @@ func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 			// there are no parameters and x is empty.
 			start := len(curField)
 			list, listElems := false, false
-			for _, part := range wp.Parts {
-				if pe, ok := part.(*syntax.ParamExp); ok {
-					elems, star, err := e.quotedElemFields(pe)
-					if err != nil {
+			for j, part := range wp.Parts {
+				pe, ok := part.(*syntax.ParamExp)
+				if !ok {
+					var err error
+					if curField, err = e.appendDblQuoted(curField, wp.Parts[j:j+1]); err != nil {
 						return nil, err
 					}
-					if elems != nil {
-						if !star {
-							list = true
-							listElems = listElems || len(elems) > 0
-						}
-						for i, elem := range elems {
-							if i > 0 {
-								flush()
-							}
-							curField = append(curField, fieldPart{
-								quote: quoteDouble,
-								val:   elem,
-							})
-						}
-						continue
-					}
+					continue
 				}
-				wfield, err := e.wordField([]syntax.WordPart{part}, quoteDouble)
+				p, err := e.resolveParam(pe)
 				if err != nil {
 					return nil, err
 				}
-				for _, part := range wfield {
-					part.quote = quoteDouble
-					curField = append(curField, part)
+				elems, star, err := e.quotedElemFields(pe, p)
+				if err != nil {
+					return nil, err
 				}
+				if elems != nil {
+					if !star {
+						list = true
+						listElems = listElems || len(elems) > 0
+					}
+					for k, elem := range elems {
+						if k > 0 {
+							flush()
+						}
+						curField = append(curField, fieldPart{
+							quote: quoteDouble,
+							val:   elem,
+						})
+					}
+					continue
+				}
+				val, err := e.paramExpResolved(pe, p)
+				if err != nil {
+					return nil, err
+				}
+				curField = append(curField, fieldPart{quote: quoteDouble, val: val})
 			}
 			if list && !listElems && !slices.ContainsFunc(curField[start:], func(part fieldPart) bool { return part.val != "" }) {
 				curField = curField[:start] // the empty parts produce no field
@@ -867,7 +854,11 @@ func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 				allowEmpty = true
 			}
 		case *syntax.ParamExp:
-			if elems, ok := e.unquotedElemFields(wp); ok {
+			p, err := e.resolveParam(wp)
+			if err != nil {
+				return nil, err
+			}
+			if elems, ok := e.unquotedElemFields(wp, p); ok {
 				// Unquoted "*" or "@" expansions produce one field per
 				// element; joining and re-splitting them would lose
 				// fields when IFS is empty.
@@ -879,7 +870,7 @@ func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 				}
 				continue
 			}
-			val, err := e.paramExp(wp)
+			val, err := e.paramExpResolved(wp, p)
 			if err != nil {
 				return nil, err
 			}
@@ -928,17 +919,14 @@ func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 // listElems returns the elements of a "*" or "@" expansion of a list, like
 // $@ or ${arr[*]}, with star set for the "*" forms which join into a single
 // field when quoted. ok is false for any other parameter expansion.
-func (e *expander) listElems(pe *syntax.ParamExp) (elems []string, star, ok bool) {
-	if pe.Param == nil { // e.g. zsh's ${}; paramExp rejects it
-		return nil, false, false
-	}
-	switch name := pe.Param.Value; name {
+func (e *expander) listElems(pe *syntax.ParamExp, p param) (elems []string, star, ok bool) {
+	switch p.name {
 	case "*", "@":
-		return e.sliceElems(pe, e.Env.Get(name).List, nil, true), name == "*", true
+		return e.sliceElems(pe, p.vr.List, nil, true), p.name == "*", true
 	}
-	switch lit := nodeLit(pe.Index); lit {
+	switch lit := nodeLit(p.index); lit {
 	case "@", "*":
-		switch vr := e.Env.Get(pe.Param.Value); vr.Kind {
+		switch vr := p.vr; vr.Kind {
 		case Indexed:
 			return e.sliceElems(pe, vr.List, vr.Indexes, false), lit == "*", true
 		case Associative:
@@ -948,26 +936,43 @@ func (e *expander) listElems(pe *syntax.ParamExp) (elems []string, star, ok bool
 	return nil, false, false
 }
 
+// appendDblQuoted appends the field parts of a double-quoted string.
+func (e *expander) appendDblQuoted(field []fieldPart, wps []syntax.WordPart) ([]fieldPart, error) {
+	wfield, err := e.wordField(wps, quoteDouble)
+	if err != nil {
+		return nil, err
+	}
+	for _, part := range wfield {
+		part.quote = quoteDouble
+		field = append(field, part)
+	}
+	return field, nil
+}
+
 // unquotedElemFields returns the elements of an unquoted "*" or "@" list
-// expansion like $* or ${foo[@]}; ok is false for any other expansion.
-func (e *expander) unquotedElemFields(pe *syntax.ParamExp) ([]string, bool) {
-	if !mayExpandList(pe) || pe.Excl || pe.Length || pe.Width || pe.IsSet || pe.Repl != nil || pe.Exp != nil {
+// expansion like $* or ${foo[@]}, given its resolved parameter;
+// ok is false for any other expansion.
+func (e *expander) unquotedElemFields(pe *syntax.ParamExp, p param) (elems []string, ok bool) {
+	if !mayExpandList(pe) || pe.Length || pe.Width || pe.IsSet || pe.Repl != nil || pe.Exp != nil {
 		return nil, false
 	}
-	elems, _, ok := e.listElems(pe)
+	if namesExp(pe) {
+		return nil, false
+	}
+	elems, _, ok = e.listElems(pe, p)
 	return elems, ok
 }
 
 // quotedElemFields returns the list of elements resulting from a quoted
-// parameter expansion that should be treated especially, like "${foo[@]}".
-// The result is nil for any other parameter expansion. The "*" forms like
-// "${foo[*]}" join the elements into a single one and report star.
-func (e *expander) quotedElemFields(pe *syntax.ParamExp) (elems []string, star bool, err error) {
-	if pe == nil || !mayExpandList(pe) || pe.Length || pe.Width || pe.IsSet {
+// parameter expansion that should be treated especially, like "${foo[@]}",
+// given its resolved parameter. The result is nil for any other parameter
+// expansion. The "*" forms like "${foo[*]}" join the elements into a single
+// one and report star.
+func (e *expander) quotedElemFields(pe *syntax.ParamExp, p param) (elems []string, star bool, err error) {
+	if !mayExpandList(pe) || pe.Length || pe.Width || pe.IsSet {
 		return nil, false, nil
 	}
-	name := pe.Param.Value
-	if pe.Excl {
+	if namesExp(pe) {
 		switch pe.Names {
 		case syntax.NamesPrefixWords: // "${!prefix@}"
 			return e.namesByPrefix(pe.Param.Value), false, nil
@@ -976,7 +981,7 @@ func (e *expander) quotedElemFields(pe *syntax.ParamExp) (elems []string, star b
 		}
 		switch nodeLit(pe.Index) {
 		case "@": // "${!name[@]}"
-			switch vr := e.Env.Get(name); vr.Kind {
+			switch vr := p.vr; vr.Kind {
 			case Indexed:
 				return vr.indexedKeys(), false, nil
 			case Associative:
@@ -985,11 +990,11 @@ func (e *expander) quotedElemFields(pe *syntax.ParamExp) (elems []string, star b
 		}
 		return nil, false, nil
 	}
-	if nodeLit(pe.Index) == "@" && !overridingUnset(pe) && !e.Env.Get(name).IsSet() {
+	if nodeLit(p.index) == "@" && !overridingUnset(pe) && !p.vr.IsSet() {
 		// An unset "${name[@]}" produces zero fields, like an empty array.
 		return []string{}, false, nil
 	}
-	elems, star, ok := e.listElems(pe)
+	elems, star, ok := e.listElems(pe, p)
 	if !ok {
 		return nil, false, nil
 	}

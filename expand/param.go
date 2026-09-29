@@ -103,6 +103,135 @@ func testParamOp(op syntax.ParExpOperator, set, null bool) testResult {
 	return testKeep
 }
 
+// param describes the parameter which an expansion refers to.
+type param struct {
+	name  string
+	index syntax.ArithmExpr // [i], or a "@" or "*" word for $@ and $*
+	vr    Variable          // with any nameref followed
+	orig  Variable          // before following any nameref, for ${var@a}
+}
+
+// indirectExp reports whether an expansion like ${!name} refers to the
+// parameter named by the value of name. ${!prefix*} lists names and
+// ${!name[@]} lists keys instead; see [namesExp].
+func indirectExp(pe *syntax.ParamExp) bool {
+	return pe.Excl && pe.Names == 0 && !listIndex(pe.Index)
+}
+
+// namesExp reports whether an expansion lists names like ${!prefix*}, or
+// keys like ${!name[@]}.
+func namesExp(pe *syntax.ParamExp) bool {
+	return pe.Excl && (pe.Names != 0 || listIndex(pe.Index))
+}
+
+// resolveParam finds the parameter which an expansion refers to. For an
+// indirect expansion like ${!n}, that is the parameter named by the value
+// of n, which may be a list like @ or a subscripted name like a[1], so
+// that any operators apply to that parameter.
+func (e *expander) resolveParam(pe *syntax.ParamExp) (param, error) {
+	if pe.Param == nil { // e.g. zsh's ${}
+		return param{}, fmt.Errorf("unsupported")
+	}
+	p := e.lookupParam(pe, pe.Param.Value, pe.Index)
+	if !indirectExp(pe) {
+		return p, nil
+	}
+	if p.orig.Kind == NameRef {
+		// ${!ref} on a nameref expands to the name it refers to.
+		p.vr = Variable{Set: true, Kind: String, Str: p.orig.Str}
+		p.index = nil
+		return p, nil
+	}
+	str, set, err := e.varInd(p.vr, p.index)
+	if err != nil {
+		return p, err
+	}
+	if !set || str == "" {
+		if specialParam(pe.Param.Value) {
+			// Like Bash, ${!@} or ${!1} with no parameters expand to nothing.
+			return param{}, nil
+		}
+		if !set {
+			return p, fatalf("%s: invalid indirect expansion", pe.Param.Value)
+		}
+	}
+	name, sub := str, ""
+	if i := strings.IndexByte(str, '['); i > 0 && strings.HasSuffix(str, "]") {
+		name, sub = str[:i], str[i+1:len(str)-1]
+	}
+	if !syntax.ValidName(name) && !specialParam(name) {
+		return p, fatalf("%s: invalid variable name", str)
+	}
+	var index syntax.ArithmExpr
+	switch {
+	case sub == "":
+	case sub == "@":
+		index = indexAt
+	case sub == "*":
+		index = indexStar
+	default:
+		if _, vr := e.Env.Get(name).Resolve(e.Env); vr.Kind == Associative {
+			// The key of an associative array is taken as-is.
+			index = &syntax.Word{Parts: []syntax.WordPart{&syntax.SglQuoted{Value: sub}}}
+			break
+		}
+		index, err = syntax.NewParser().Arithmetic(strings.NewReader(sub))
+		if err != nil {
+			return p, fatalf("%s: bad array subscript", str)
+		}
+	}
+	return e.lookupParam(pe, name, index), nil
+}
+
+// fatalf formats an error which exits the shell; see [internal.FatalError].
+func fatalf(format string, args ...any) error {
+	return internal.FatalError{Err: fmt.Errorf(format, args...)}
+}
+
+// specialParam reports whether name is a positional or special parameter,
+// such as 3, @, or ?.
+func specialParam(name string) bool {
+	if name == "" {
+		return false
+	}
+	if strings.Trim(name, "0123456789") == "" {
+		return true
+	}
+	return len(name) == 1 && strings.ContainsRune("@*#?-$!", rune(name[0]))
+}
+
+// The index words which $@ and $* behave like, for [expander.lookupParam].
+var (
+	indexAt   = &syntax.Word{Parts: []syntax.WordPart{&syntax.Lit{Value: "@"}}}
+	indexStar = &syntax.Word{Parts: []syntax.WordPart{&syntax.Lit{Value: "*"}}}
+)
+
+// lookupParam implements [expander.resolveParam] for a parameter name.
+func (e *expander) lookupParam(pe *syntax.ParamExp, name string, index syntax.ArithmExpr) param {
+	p := param{name: name, index: index}
+	switch name {
+	case "":
+		return p
+	case "@":
+		p.index = indexAt
+	case "*":
+		p.index = indexStar
+	case "LINENO":
+		// This is the only parameter expansion that the environment
+		// interface cannot satisfy.
+		line := uint64(pe.Pos().Line())
+		p.vr = Variable{Set: true, Kind: String, Str: strconv.FormatUint(line, 10)}
+	}
+	if p.vr.Kind == Unknown {
+		p.vr = e.Env.Get(name)
+	}
+	p.orig = p.vr
+	if n, v := p.vr.Resolve(e.Env); n != "" {
+		p.name, p.vr = n, v
+	}
+	return p
+}
+
 // UnsetParameterError is returned when a parameter expansion encounters an
 // unset variable and [Config.NoUnset] has been set.
 type UnsetParameterError struct {
@@ -129,39 +258,23 @@ func overridingUnset(pe *syntax.ParamExp) bool {
 }
 
 func (e *expander) paramExp(pe *syntax.ParamExp) (string, error) {
-	oldParam := e.curParam
-	e.curParam = pe
-	defer func() { e.curParam = oldParam }()
+	p, err := e.resolveParam(pe)
+	if err != nil {
+		return "", err
+	}
+	return e.paramExpResolved(pe, p)
+}
 
-	if pe.Param == nil { // e.g. zsh's ${}
-		return "", fmt.Errorf("unsupported")
-	}
-	name := pe.Param.Value
-	index := pe.Index
-	switch name {
-	case "@", "*":
-		index = &syntax.Word{Parts: []syntax.WordPart{
-			&syntax.Lit{Value: name},
-		}}
-	}
+// paramExpResolved implements [expander.paramExp] once the parameter has
+// been resolved, so that a caller which already resolved it, such as
+// [expander.wordFields], does not evaluate any subscript again.
+func (e *expander) paramExpResolved(pe *syntax.ParamExp, p param) (string, error) {
+	var err error
+	name, index, vr, orig := p.name, p.index, p.vr, p.orig
 	// "*" expansions like ${*}, ${arr[*]}, or ${!prefix*} join their
 	// elements with the first IFS character; others use a space.
 	star := nodeLit(index) == "*" || pe.Names == syntax.NamesPrefix
 	join := func(elems []string) string { return e.joinElems(elems, star) }
-	var vr Variable
-	switch name {
-	case "LINENO":
-		// This is the only parameter expansion that the environment
-		// interface cannot satisfy.
-		line := uint64(e.curParam.Pos().Line())
-		vr = Variable{Set: true, Kind: String, Str: strconv.FormatUint(line, 10)}
-	default:
-		vr = e.Env.Get(name)
-	}
-	orig := vr
-	if n, v := vr.Resolve(e.Env); n != "" {
-		name, vr = n, v
-	}
 	if e.NoUnset && !vr.IsSet() && !overridingUnset(pe) {
 		return "", UnsetParameterError{
 			Node:    pe,
@@ -171,7 +284,6 @@ func (e *expander) paramExp(pe *syntax.ParamExp) (string, error) {
 
 	var sliceOffset, sliceLen int
 	if pe.Slice != nil {
-		var err error
 		if pe.Slice.Offset != nil {
 			sliceOffset, err = e.arithm(pe.Slice.Offset)
 			if err != nil {
@@ -188,14 +300,13 @@ func (e *expander) paramExp(pe *syntax.ParamExp) (string, error) {
 
 	var str string
 	var set bool
-	elems, _, isList := e.listElems(pe)
+	elems, _, isList := e.listElems(pe, p)
 	if isList {
 		str = join(elems)
 		// Like Bash, a list is set when it has any elements,
 		// so that ${a[@]-x} works on an empty array.
 		set = len(elems) > 0
 	} else {
-		var err error
 		str, set, err = e.varInd(vr, index)
 		if err != nil {
 			return "", err
@@ -214,24 +325,17 @@ func (e *expander) paramExp(pe *syntax.ParamExp) (string, error) {
 			n = utf8.RuneCountInString(str)
 		}
 		str = strconv.Itoa(n)
-	case pe.Excl:
+	case namesExp(pe):
 		var strs []string
 		switch {
 		case pe.Names != 0:
 			strs = e.namesByPrefix(pe.Param.Value)
-		case orig.Kind == NameRef:
-			strs = append(strs, orig.Str)
-		case pe.Index != nil && vr.Kind == Indexed:
+		case vr.Kind == Indexed:
 			strs = vr.indexedKeys()
-		case pe.Index != nil && vr.Kind == Associative:
+		case vr.Kind == Associative:
 			strs = vr.assocKeys()
-		case !vr.IsSet():
-			return "", fmt.Errorf("invalid indirect expansion")
-		case str == "":
-			return "", nil
-		default:
-			vr = e.Env.Get(str)
-			strs = append(strs, vr.String())
+		case vr.IsSet():
+			strs = []string{"0"}
 		}
 		str = join(strs)
 	case pe.Width:
@@ -541,6 +645,9 @@ func (e *expander) varInd(vr Variable, idx syntax.ArithmExpr) (string, bool, err
 	}
 	switch vr.Kind {
 	case String:
+		if listIndex(idx) {
+			return vr.Str, vr.IsSet(), nil
+		}
 		n, err := e.arithm(idx)
 		if err != nil {
 			return "", false, err
