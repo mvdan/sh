@@ -62,9 +62,6 @@ jobs:
         image: registry:2
         ports:
           - 5000:5000
-        # this is needed because we restart the docker daemon for experimental
-        # support
-        options: "--restart always"
     env:
       # Export environment variables for all stages.
       DOCKER_USER: ${{ secrets.DOCKER_USER }}
@@ -91,16 +88,6 @@ jobs:
     - uses: actions/checkout@v5
       with:
         fetch-depth: 0 # also fetch tags for 'git describe'
-    # Enable docker daemon experimental support (for 'pull --platform').
-    - name: Enable experimental support
-      run: |
-        config='/etc/docker/daemon.json'
-        if [[ -e "$config" ]]; then
-          sudo sed -i -e 's/{/{ "experimental": true, /' "$config"
-        else
-          echo '{ "experimental": true }' | sudo tee "$config"
-        fi
-        sudo systemctl restart docker
     - uses: docker/setup-qemu-action@v3
     - uses: docker/setup-buildx-action@v3
       with:
