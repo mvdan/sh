@@ -1381,6 +1381,12 @@ func (p *Parser) wordPart() WordPart {
 			p.tok = _EOF
 			p.quoteErr(cs.Pos(), bckQuote)
 		}
+		// Like other shells, end heredocs whose bodies did not start
+		// before the closing backquote, unlike with "$(".
+		for _, r := range p.heredocs[p.buriedHdocs:] {
+			p.unclosedHdoc(r)
+		}
+		p.heredocs = p.heredocs[:p.buriedHdocs]
 		p.postNested(old)
 		p.openBquotes--
 		if old.quote == dblQuotes {

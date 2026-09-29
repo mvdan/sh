@@ -1793,17 +1793,19 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"`foo <<EOF`\nbar\nEOF"},
-		// The heredoc should end at the closing backquote.
-		printsAs("$(foo <<EOF)\nbar\nEOF"),
-		langFile(cmdSubst(&Stmt{
-			Cmd: litCall("foo"),
-			Redirs: []*Redirect{{
-				Op:   Hdoc,
-				Word: litWord("EOF"),
-				Hdoc: litWord("bar\n"),
-			}},
-		})),
-		flipConfirm2(LangMirBSDKorn),
+		printsAs("$(\n\tfoo <<EOF\nEOF\n)\nbar\nEOF"),
+		langFile([]*Stmt{
+			stmt(call(word(cmdSubst(&Stmt{
+				Cmd: litCall("foo"),
+				Redirs: []*Redirect{{
+					Op:   Hdoc,
+					Word: litWord("EOF"),
+				}},
+			})))),
+			litStmt("bar"),
+			litStmt("EOF"),
+		}),
+		langErr2("1:6: unclosed here-document `EOF`", LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{
