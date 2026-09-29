@@ -926,6 +926,10 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 			if as.Naked {
 				switch {
+				case valType == "-n":
+					// A nameref without a target yet; assigning to it
+					// sets the target.
+					vr.Kind, vr.Str = expand.NameRef, ""
 				case valType == "-a" || valType == "-A":
 					var err error
 					if vr, err = r.convertKind(name, vr, valType); err != nil {
@@ -945,7 +949,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 					continue
 				}
 			}
-			if vr.Kind == expand.NameRef {
+			if vr.Kind == expand.NameRef && vr.Str != "" {
 				switch {
 				case vr.Str == name:
 					r.errf("declare: %s: nameref variable self references not allowed\n", name)

@@ -4094,11 +4094,11 @@ done <<< 2`,
 	{`n=x; declare -n x=y; y=v; echo "${!n}"`, "v\n"},
 	{`declare -n r=y; y=v; echo "${!r}" "${!r:-d}"`, "y y\n"},
 	{`n=LINENO; echo ${!n}`, "1\n"},
-	// A nameref declared without a target is a plain string, unlike in Bash.
-	{`declare -n ref; ref=x; x=5; echo "${!ref} $ref"; declare -p ref`, "5 x\ndeclare -- ref=\"x\"\n #IGNORE a naked declare -n creates a string"},
-	{`f() { local -n ref; ref=$1; ref=9; }; f x; echo "[$x]"`, "[]\n #IGNORE a naked declare -n creates a string"},
+	// A nameref declared without a target gets one from its first assignment.
+	{`declare -n ref; ref=x; x=5; echo "${!ref} $ref"; declare -p ref`, "x 5\ndeclare -n ref=\"x\"\n"},
+	{`f() { local -n ref; ref=$1; ref=9; }; f x; echo "[$x]"`, "[9]\n"},
 	// Like an assignment, read and getopts set its target.
-	{`x=0; declare -n r; read r <<< x; r=5; echo $x; declare -n q; getopts a q -a; declare -p q`, "0\ndeclare -- q=\"a\"\n #IGNORE a naked declare -n creates a string"},
+	{`x=0; declare -n r; read r <<< x; r=5; echo $x; declare -n q; getopts a q -a; declare -p q`, "5\ndeclare -n q=\"a\"\n"},
 	// The subscript of an indirect expansion is an associative key or an
 	// arithmetic expression, depending on the array.
 	{`declare -A a=(["foo bar"]=1); n="a[foo bar]"; echo "${!n}"; b=(x y); n="b[1+1-1]"; echo "${!n}"; n="b[@]"; echo "${!n}"`, "1\ny\nx y\n"},

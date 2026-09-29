@@ -424,8 +424,15 @@ func (r *Runner) resolveName(name string) (string, expand.Variable) {
 // setVarString sets a variable's value to a string, keeping its attributes
 // such as whether it is exported. Errors are handled like in [Runner.varErr].
 func (r *Runner) setVarString(name, value string) error {
-	name, prev := r.resolveName(name)
-	return r.setVar(name, expand.Variable{Set: true, Exported: prev.Exported, Kind: expand.String, Str: value})
+	vr := r.lookupVar(name)
+	if vr.Kind == expand.NameRef && vr.Str == "" {
+		// Like an assignment, this sets the target of a nameref without one.
+		return r.setNameRef(name, vr, value)
+	}
+	if n, v := vr.Resolve(r.writeEnv); n != "" {
+		name, vr = n, v
+	}
+	return r.setVar(name, expand.Variable{Set: true, Exported: vr.Exported, Kind: expand.String, Str: value})
 }
 
 // setNameRef sets the variable which the nameref vr refers to, keeping its
@@ -621,6 +628,11 @@ func (r *Runner) assignVal(name string, prev expand.Variable, as *syntax.Assign,
 	str := ""
 	if as.Value != nil {
 		str = r.literal(as.Value)
+	}
+	if prev.Kind == expand.NameRef && prev.Str == "" {
+		// Assigning to a nameref without a target, like `declare -n r; r=x`,
+		// sets the target.
+		valType = "-n"
 	}
 	if valType != "-n" {
 		// Assigning to a nameref assigns to the variable it refers to,
