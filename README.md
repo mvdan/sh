@@ -44,6 +44,8 @@ prioritized issues, or direct support in your company's chat app.
 One-time tiers offer a call about one of my projects
 or a Go consulting or mentorship session.
 
+[![CI powered by Namespace](https://namespace.so/oss/badge.svg)](https://namespace.so/github-actions/?utm_source=oss&utm_campaign=sh)
+
 ### Contributing
 
 Bug reports and feature requests should be filed as detailed issues,
