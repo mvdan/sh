@@ -213,11 +213,12 @@ dispatch:
 		if n < 0 {
 			return failf(1, "shift: %d: shift count out of range\n", n)
 		}
-		if n >= len(r.Params) {
-			r.Params = nil
-		} else {
-			r.Params = r.Params[n:]
+		if n > len(r.Params) {
+			// Like Bash, fail silently and leave the parameters alone.
+			exit.code = 1
+			break
 		}
+		r.Params = r.Params[n:]
 	case "unset":
 		vars := true
 		funcs := true

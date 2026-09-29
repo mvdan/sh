@@ -268,8 +268,8 @@ var runTests = []runTest{
 	{"cd a b", "usage: cd [dir]\nexit status 2 #JUSTERR"},
 	{"shift a", "usage: shift [n]\nexit status 2 #JUSTERR"},
 	{"set -- a b; shift -1; echo $? $@", "shift: -1: shift count out of range\n1 a b\n #JUSTERR"},
-	// Shifting past the end succeeds and clears the parameters, unlike in Bash.
-	{"set -- a b; shift 5; echo $? $#; shift 2; echo $? $#; shift; echo $? $#", "0 0\n0 0\n0 0\n #IGNORE shift past the end succeeds"},
+	// Shifting past the end fails silently, leaving the parameters alone.
+	{"set -- a b; shift 5; echo $? $#; shift 2; echo $? $#; shift; echo $? $#", "1 2\n0 0\n1 0\n"},
 	{
 		"shouldnotexist",
 		"\"shouldnotexist\": executable file not found in $PATH\nexit status 127 #JUSTERR",
