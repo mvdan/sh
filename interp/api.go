@@ -203,6 +203,11 @@ type Runner struct {
 	// subshells do not share nor inherit the background PIDs they can wait for.
 	bgProcs []bgProc
 
+	// pipeProcSubsts holds the done channels of the process substitutions
+	// started by the last command of a pipeline, which runs in a subshell.
+	// They are not jobs of this shell, but a plain wait still waits for them.
+	pipeProcSubsts []chan struct{}
+
 	// bgStarted is non-nil when this runner is a background subshell
 	// whose statement may amount to starting one external program;
 	// the runner reports through it once via [Runner.reportBgStart].
@@ -325,6 +330,9 @@ type bgProc struct {
 	// system, or the real process ID once started delivers a non-zero one.
 	// Read it via [Runner.bgProcID].
 	id string
+
+	// procSubst is set for a process substitution rather than a job.
+	procSubst bool
 
 	// started, when non-nil, delivers the report from [Runner.reportBgStart]:
 	// the process ID when the background statement started exactly one
@@ -855,6 +863,11 @@ var bashOptsTable = [...]bashOpt{
 		supported:    true,
 	},
 	{
+		name:         "lastpipe",
+		defaultState: false,
+		supported:    true,
+	},
+	{
 		name:         "nocaseglob",
 		defaultState: false,
 		supported:    true,
@@ -921,7 +934,6 @@ var bashOptsTable = [...]bashOpt{
 		name:         "interactive_comments",
 		defaultState: true,
 	},
-	{name: "lastpipe"},
 	{name: "lithist"},
 	{name: "localvar_inherit"},
 	{name: "localvar_unset"},
@@ -966,6 +978,7 @@ const (
 	optExpandAliases
 	optExtGlob
 	optGlobStar
+	optLastPipe
 	optNoCaseGlob
 	optNullGlob
 )
@@ -1293,6 +1306,8 @@ func (r *Runner) subshell(background bool) *Runner {
 		stdout:               r.stdout,
 		stderr:               r.stderr,
 		filename:             r.filename,
+		inFunc:               r.inFunc,
+		inSource:             r.inSource,
 		opts:                 r.opts,
 		usedNew:              r.usedNew,
 		exit:                 r.exit,

@@ -367,6 +367,10 @@ dispatch:
 			for _, bg := range r.bgProcs {
 				<-bg.done
 			}
+			for _, done := range r.pipeProcSubsts {
+				<-done
+			}
+			r.pipeProcSubsts = nil
 			break
 		}
 		for _, arg := range args {

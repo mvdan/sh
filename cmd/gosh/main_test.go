@@ -134,8 +134,8 @@ var interactiveTests = []struct {
 		pairs: []string{
 			"echo foo |\n",
 			"> ",
-			"read var; echo $var\n",
-			"foo\n",
+			"read var; echo \"[$var]\"\n",
+			"[]\n",
 		},
 	},
 	{

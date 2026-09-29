@@ -105,6 +105,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			// TODO: note that `man bash` mentions that `wait` only waits for the last
 			// process substitution as long as it is $!; the logic here would mean we wait for all of them.
 			bg := r.newBgProc()
+			bg.procSubst = true
 			r.bgProcs = append(r.bgProcs, bg)
 			go func() {
 				defer func() {
@@ -452,6 +453,7 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 // exitSubshell cleans up once a subshell is done, without exiting its parent.
 func (r *Runner) exitSubshell() {
 	r.exit.exiting = false
+	r.exit.returning = false // a return only exits the subshell
 	r.closeKeptFiles()
 }
 
@@ -583,24 +585,53 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				return
 			}
 			r2 := r.subshell(true)
+			r2.inLoop = r.inLoop && pipeElemInLoop(cm.X)
 			r2.stdout = pw
 			if cm.Op == syntax.PipeAll {
 				r2.stderr = pw
 			} else {
 				r2.stderr = r.stderr
 			}
-			oldIn := r.stdin
-			r.stdin = pr
 			var wg sync.WaitGroup
 			wg.Go(func() {
 				r2.stmt(ctx, cm.X)
 				r2.exitSubshell()
 				pw.Close()
 			})
-			r.stmt(ctx, cm.Y)
+			if r.opts[optLastPipe] {
+				oldIn := r.stdin
+				r.stdin = pr
+				r.stmt(ctx, cm.Y)
+				r.stdin = oldIn
+			} else {
+				// Like Bash, the last command runs in a subshell too,
+				// so `cmd | read x` does not set x in the current shell.
+				r3 := r.subshell(false)
+				r3.inLoop = r.inLoop && pipeElemInLoop(cm.Y)
+				r3.stdin = pr
+				r3.stmt(ctx, cm.Y)
+				r3.exitSubshell()
+				r.exit = r3.exit
+				// Its background jobs are not the parent shell's,
+				// but keep waiting on any process substitutions it started.
+				// Forget those which finished, to not grow without bound.
+				r.pipeProcSubsts = slices.DeleteFunc(r.pipeProcSubsts, func(done chan struct{}) bool {
+					select {
+					case <-done:
+						return true
+					default:
+						return false
+					}
+				})
+				for _, bg := range r3.bgProcs {
+					if bg.procSubst {
+						r.pipeProcSubsts = append(r.pipeProcSubsts, bg.done)
+					}
+				}
+				r.pipeProcSubsts = append(r.pipeProcSubsts, r3.pipeProcSubsts...)
+			}
 			pr.Close()
 			wg.Wait()
-			r.stdin = oldIn
 			if r.opts[optPipeFail] && !r2.exit.ok() && r.exit.ok() {
 				r.exit = r2.exit
 			}
@@ -1080,6 +1111,19 @@ func (r *Runner) trapCallback(ctx context.Context, callback, name string) {
 	r.lastExit = r.exit
 	r.stmts(ctx, file.Stmts)
 	r.exit, r.lastExit = oldExit, oldLastExit // traps on EXIT or ERR should not modify the result
+}
+
+// pipeElemInLoop reports whether a pipeline element keeps the enclosing loop.
+// Like in Bash, a simple command does, so that break or continue only end
+// its subshell, whereas a compound command like { break; } does not.
+func pipeElemInLoop(st *syntax.Stmt) bool {
+	switch cm := st.Cmd.(type) {
+	case *syntax.CallExpr:
+		return true
+	case *syntax.BinaryCmd: // the elements of a longer pipeline
+		return cm.Op == syntax.Pipe || cm.Op == syntax.PipeAll
+	}
+	return false
 }
 
 func (r *Runner) flattenAssigns(args []*syntax.Assign) iter.Seq[*syntax.Assign] {
