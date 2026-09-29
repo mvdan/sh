@@ -3897,6 +3897,36 @@ done <<< 2`,
 		"declare -n ref=arr; ref+=(x y); echo ${ref[@]} ${arr[@]}",
 		"x y x y\n",
 	},
+	// Operators apply to the parameter named by an indirect expansion.
+	{`n=x; echo "${!n:-d}"; x=abc; echo "${!n#a}" "${!n^^}" "${!n/b/X}" "${!n:1}" "${!n:+y}"`, "\nabc abc abc abc abc\n #IGNORE indirect expansions ignore operators"},
+	{`n=x; x=abc; echo "${!n@Q}" "${!n@U}"`, "abc abc\n #IGNORE bash quotes the value"},
+	{`n=x; echo ${!n=z}; echo $x`, "\n\n #IGNORE indirect expansions ignore operators"},
+	{`set -u; n=u; echo "${!n:-d}"`, "\n #IGNORE indirect expansions ignore operators"},
+	{
+		`x=abc; n=x; echo "${!n:?err}"; unset x; echo "${!n:?err}"`,
+		"abc\n\n #JUSTERR",
+	},
+	{
+		`unset n; echo "${!n:-d}"; echo after`,
+		"invalid indirect expansion\nexit status 1 #JUSTERR",
+	},
+	{
+		`n=""; echo "${!n}"; echo after`,
+		"\nafter\n #JUSTERR",
+	},
+	{
+		`n="a b"; echo "${!n}"; echo after`,
+		"\nafter\n #JUSTERR",
+	},
+	// An indirect expansion may name an array element or a list.
+	{`a=(p q); n="a[1]"; echo "${!n}"; n="a[@]"; printf "<%s>" "${!n}" "${!n@U}"; echo`, "\n<><>\n #IGNORE indirect expansions ignore operators"},
+	{`declare -A A=([k]=v); n="A[k]"; echo "${!n}"; n="A[@]"; echo "${!n}"`, "\n\n #IGNORE indirect expansions ignore operators"},
+	{`set -- s t; n=@; printf "<%s>" "${!n}"; echo; n="*"; printf "<%s>" "${!n}"; echo; n=2; echo "${!n}"`, "<s>\n<s>\nt\n #IGNORE indirect expansions ignore operators"},
+	{`set --; echo "[${!1}]" "[${!@}]"`, "invalid indirect expansion\nexit status 1 #IGNORE indirect expansions ignore operators"},
+	{`x=1; n=x; echo "${!n[@]}" "${!n[0]}"`, "1 1\n #IGNORE indirect expansions ignore operators"},
+	{`n=x; declare -n x=y; y=v; echo "${!n}"`, "\n #IGNORE indirect expansions ignore operators"},
+	{`declare -n r=y; y=v; echo "${!r}" "${!r:-d}"`, "y y\n"},
+	{`n=LINENO; echo ${!n}`, "\n #IGNORE indirect expansions ignore operators"},
 
 	// read-only vars
 	{"declare -r foo=bar; echo $foo", "bar\n"},
