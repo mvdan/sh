@@ -4758,17 +4758,17 @@ done <<< 2`,
 		`IFS=: read x <<< ':a:b:'; echo "[$x]"`,
 		"[:a:b:]\n",
 	},
-	// Unlike in Bash, a non-whitespace IFS character does not delimit
-	// empty fields, and trailing delimiters are dropped from the last name.
-	{`IFS=: read a b c <<< 'x::y'; echo "[$a][$b][$c]"`, "[x][y][]\n #IGNORE read drops empty fields"},
-	{`IFS=: read a b <<< 'x:y:z:'; echo "[$a][$b]"`, "[x][y:z]\n #IGNORE read drops empty fields"},
-	{`IFS=: read a b <<< 'x:y:'; echo "[$a][$b]"; IFS=: read a b <<< 'x:y::'; echo "[$a][$b]"`, "[x][y]\n[x][y]\n #IGNORE read drops empty fields"},
-	{`IFS=: read a b <<< 'x::'; echo "[$a][$b]"; IFS=: read a b <<< ':x'; echo "[$a][$b]"`, "[x][]\n[x][]\n #IGNORE read drops empty fields"},
+	// A non-whitespace IFS character delimits empty fields, and the last
+	// name takes the rest of the line unless it holds a single word.
+	{`IFS=: read a b c <<< 'x::y'; echo "[$a][$b][$c]"`, "[x][][y]\n"},
+	{`IFS=: read a b <<< 'x:y:z:'; echo "[$a][$b]"`, "[x][y:z:]\n"},
+	{`IFS=: read a b <<< 'x:y:'; echo "[$a][$b]"; IFS=: read a b <<< 'x:y::'; echo "[$a][$b]"`, "[x][y]\n[x][y::]\n"},
+	{`IFS=: read a b <<< 'x::'; echo "[$a][$b]"; IFS=: read a b <<< ':x'; echo "[$a][$b]"`, "[x][]\n[][x]\n"},
 	{`IFS=: read a b c <<< 'x:y::'; echo "[$a][$b][$c]"; IFS=: read a <<< 'x::'; echo "[$a]"`, "[x][y][]\n[x::]\n"},
-	{`IFS=, read -a arr <<< 'a,,b,'; echo ${#arr[@]}; IFS=: read -a arr <<< 'a::b::'; echo ${#arr[@]}`, "2\n2\n #IGNORE read drops empty fields"},
+	{`IFS=, read -a arr <<< 'a,,b,'; echo ${#arr[@]}; IFS=: read -a arr <<< 'a::b::'; echo ${#arr[@]}`, "3\n4\n"},
 	{`IFS=' :' read a b c <<< ' a : b : c '; echo "[$a][$b][$c]"`, "[a][b][c]\n"},
-	{`IFS=': ' read a b <<< 'x :: y'; echo "[$a][$b]"; IFS=': ' read a b <<< 'x : y : '; echo "[$a][$b]"`, "[x][y]\n[x][y]\n #IGNORE read drops empty fields"},
-	{`IFS=': ' read -a arr <<< '  x : : y  '; echo ${#arr[@]} "${arr[@]}"`, "2 x y\n #IGNORE read drops empty fields"},
+	{`IFS=': ' read a b <<< 'x :: y'; echo "[$a][$b]"; IFS=': ' read a b <<< 'x : y : '; echo "[$a][$b]"`, "[x][: y]\n[x][y]\n"},
+	{`IFS=': ' read -a arr <<< '  x : : y  '; echo ${#arr[@]} "${arr[@]}"`, "3 x  y\n"},
 	{`IFS=: read a b <<< 'x\:y:z'; echo "[$a][$b]"; IFS=: read -r a b <<< 'x\:y:z'; echo "[$a][$b]"`, "[x:y][z]\n[x\\][y:z]\n"},
 	{
 		`read <<< '  a \b  '; echo "[$REPLY]"; read -r <<< ' a\b '; echo "[$REPLY]"`,

@@ -1396,65 +1396,84 @@ func (e *expander) globDir(base, dir string, matcher func(string) bool, wantDir,
 func ReadFields(cfg *Config, s string, n int, raw bool) []string {
 	e := newExpander(cfg)
 	defer e.release()
-	type pos struct {
-		start, end int
-	}
-	var fpos []pos
 
-	runes := make([]rune, 0, len(s))
-	infield := false
+	// Decode the line, where a backslash escapes the next character unless raw.
+	type char struct {
+		r   rune
+		esc bool
+	}
+	chars := make([]char, 0, len(s))
 	esc := false
 	for _, r := range s {
-		if infield {
-			if e.ifsRune(r) && (raw || !esc) {
-				fpos[len(fpos)-1].end = len(runes)
-				infield = false
-			}
-		} else {
-			if !e.ifsRune(r) && (raw || !esc) {
-				fpos = append(fpos, pos{start: len(runes), end: -1})
-				infield = true
-			}
-		}
-		if r == '\\' {
-			if raw || esc {
-				runes = append(runes, r)
-			}
-			esc = !esc
+		if r == '\\' && !raw && !esc {
+			esc = true
 			continue
 		}
-		runes = append(runes, r)
+		chars = append(chars, char{r, esc})
 		esc = false
 	}
-	if len(fpos) == 0 {
-		return nil
+	isIFS := func(c char) bool { return !c.esc && e.ifsRune(c.r) }
+	isSpace := func(c char) bool { return !c.esc && e.ifsWhitespace(c.r) }
+	skipSpace := func(cs []char) []char {
+		for len(cs) > 0 && isSpace(cs[0]) {
+			cs = cs[1:]
+		}
+		return cs
 	}
-	if infield {
-		fpos[len(fpos)-1].end = len(runes)
+	text := func(cs []char) string {
+		sb := e.strBuilder()
+		sb.Grow(len(cs))
+		for _, c := range cs {
+			sb.WriteRune(c.r)
+		}
+		return sb.String()
+	}
+	// word extracts the next field like Bash: it skips leading IFS
+	// whitespace, takes the characters up to an IFS character, and
+	// consumes that delimiter along with any IFS whitespace around it.
+	word := func(cs []char) ([]char, []char) {
+		cs = skipSpace(cs)
+		i := 0
+		for i < len(cs) && !isIFS(cs[i]) {
+			i++
+		}
+		w, cs := cs[:i], cs[i:]
+		if len(cs) > 0 {
+			if isSpace(cs[0]) {
+				cs = skipSpace(cs)
+				if len(cs) > 0 && isIFS(cs[0]) {
+					cs = skipSpace(cs[1:])
+				}
+			} else {
+				cs = skipSpace(cs[1:])
+			}
+		}
+		return w, cs
 	}
 
-	switch {
-	case n == 1:
-		// The single field spans the whole line minus leading and trailing
-		// IFS whitespace; anything outside the fields is already IFS.
-		lo, hi := 0, len(runes)
-		for lo < fpos[0].start && e.ifsWhitespace(runes[lo]) {
-			lo++
+	var fields []string
+	var w []char
+	if n < 0 {
+		for len(skipSpace(chars)) > 0 {
+			w, chars = word(chars)
+			fields = append(fields, text(w))
 		}
-		for hi > fpos[len(fpos)-1].end && e.ifsWhitespace(runes[hi-1]) {
-			hi--
+		return fields
+	}
+	for range n - 1 {
+		w, chars = word(chars)
+		fields = append(fields, text(w))
+	}
+	// Like Bash, the last field is the rest of the line without leading or
+	// trailing IFS whitespace, unless it holds a single word, in which
+	// case a delimiter following it is dropped as well.
+	chars = skipSpace(chars)
+	if w, rest := word(chars); len(rest) == 0 {
+		chars = w
+	} else {
+		for len(chars) > 0 && isSpace(chars[len(chars)-1]) {
+			chars = chars[:len(chars)-1]
 		}
-		fpos[0].start, fpos[0].end = lo, hi
-		fpos = fpos[:1]
-	case n != -1 && n < len(fpos):
-		// combine to max n fields
-		fpos[n-1].end = fpos[len(fpos)-1].end
-		fpos = fpos[:n]
 	}
-
-	fields := make([]string, len(fpos))
-	for i, p := range fpos {
-		fields[i] = string(runes[p.start:p.end])
-	}
-	return fields
+	return append(fields, text(chars))
 }
