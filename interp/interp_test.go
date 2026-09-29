@@ -1861,15 +1861,15 @@ var runTests = []runTest{
 	},
 	{
 		"cat <<-EOF\n\n\tfoo\nEOF",
-		"foo\n #IGNORE a leading empty line is dropped",
+		"\nfoo\n",
 	},
 	{
 		"x=v; cat <<-EOF\n$x\tfoo\n\t$x\t\tbar\nEOF",
-		"vfoo\nvbar\n #IGNORE tabs after an expansion are stripped",
+		"v\tfoo\nv\t\tbar\n",
 	},
 	{
 		"cat <<-EOF\nfoo\\\n\tbar\nEOF",
-		"foobar\n #IGNORE tabs after an escaped newline are stripped",
+		"foo\tbar\n",
 	},
 	{
 		"cat <<EOF\nfoo\\\nbar\nEOF",

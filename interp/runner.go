@@ -1182,9 +1182,6 @@ func (r *Runner) hdocString(rd *syntax.Redirect) string {
 	var buf strings.Builder
 	var cur []syntax.WordPart
 	flushLine := func() {
-		if buf.Len() > 0 {
-			buf.WriteByte('\n')
-		}
 		buf.WriteString(r.hdocWord(&syntax.Word{Parts: cur}, quoted))
 		cur = cur[:0]
 	}
@@ -1198,9 +1195,12 @@ func (r *Runner) hdocString(rd *syntax.Redirect) string {
 		for part := range strings.SplitSeq(lit.Value, "\n") {
 			if !first {
 				flushLine()
+				buf.WriteByte('\n')
 			}
 			first = false
-			part = strings.TrimLeft(part, "\t")
+			if len(cur) == 0 { // not after an expansion or escaped newline
+				part = strings.TrimLeft(part, "\t")
+			}
 			cur = append(cur, &syntax.Lit{Value: part})
 		}
 	}
