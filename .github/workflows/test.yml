@@ -5,11 +5,28 @@ jobs:
     strategy:
       matrix:
         go-version: [1.26.x, 1.27.x]
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        # We have a sponsorship from Namespace which gives us a business plan,
+        # with concurrency limits set at:
+        #
+        #  * Linux: 160 vCPU, 320 GB RAM
+        #  * Windows: 80 vCPU, 160 GB RAM
+        #  * macOS: 48 vCPU, 112 GB RAM
+        #
+        # We've sized the runner profiles below as follows,
+        # which is plenty powerful while still allowing concurrent CI runs:
+        #
+        #  * Linux (amd64, Ubuntu 26.04): 16 vCPU, 32 GB RAM
+        #  * Windows (amd64, Server 2022): 16 vCPU, 32 GB RAM
+        #  * macOS (arm64, Tahoe 26): 12 vCPU, 28 GB RAM
+        os: [namespace-profile-linux, namespace-profile-macos, namespace-profile-windows]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
     - uses: actions/checkout@v7
+    # Namespace's macOS runners leave TMPDIR unset, so Go falls back to /tmp,
+    # where new files belong to the wheel group and chmod g+s fails.
+    - if: matrix.os == 'namespace-profile-macos'
+      run: echo "TMPDIR=$(getconf DARWIN_USER_TEMP_DIR)" >> "$GITHUB_ENV"
     - uses: actions/setup-go@v7
       with:
         go-version: ${{ matrix.go-version }}
@@ -19,32 +36,32 @@ jobs:
     - run: cd x && go test ./...
 
     - run: go test -race ./...
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'namespace-profile-linux'
     - run: GOARCH=386 go test -count=1 ./...
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'namespace-profile-linux'
     - name: confirm tests with Bash 5.3
       run: |
         go install mvdan.cc/dockexec@latest
         REQUIRE_SHELLS=1 CGO_ENABLED=0 go test -run TestRunnerRunConfirm -exec 'dockexec bash:5.3' ./interp
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'namespace-profile-linux'
 
     # Test that we can build for platforms that we can't currently test on.
-    - if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.27.x'
+    - if: matrix.os == 'namespace-profile-linux' && matrix.go-version == '1.27.x'
       run: GOOS=plan9 GOARCH=amd64 go build ./...
 
     # js/wasm can't run subprocesses, so many tests skip themselves there.
-    - if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.27.x'
+    - if: matrix.os == 'namespace-profile-linux' && matrix.go-version == '1.27.x'
       run: PATH="$PATH:$(go env GOROOT)/lib/wasm" GOOS=js GOARCH=wasm go test ./...
 
     # Static checks from this point forward. Only run on one Go version and on
     # Linux, since it's the fastest platform, and the tools behave the same.
-    - if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.27.x'
+    - if: matrix.os == 'namespace-profile-linux' && matrix.go-version == '1.27.x'
       run: diff <(echo -n) <(gofmt -s -d .)
-    - if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.27.x'
+    - if: matrix.os == 'namespace-profile-linux' && matrix.go-version == '1.27.x'
       run: go vet ./...
 
   test-linux-alpine:
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-linux
     timeout-minutes: 10
     steps:
     - uses: actions/checkout@v5
@@ -55,7 +72,7 @@ jobs:
     name: Build and test Docker images
     # Only deploy if previous stages pass.
     needs: [test, test-linux-alpine]
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-linux
     timeout-minutes: 10
     services:
       registry:
