@@ -1197,7 +1197,7 @@ func (p *Parser) advanceLitHdoc(r rune) {
 	for p.quote == hdocBodyTabs && r == '\t' {
 		r = p.rune()
 	}
-	lStart := len(p.litBs) - 1
+	lStart := len(p.litBs) - p.w
 	stop := p.hdocStops[len(p.hdocStops)-1]
 	for ; ; r = p.rune() {
 		switch r {
@@ -1261,7 +1261,7 @@ func (p *Parser) quotedHdocWord() *Word {
 		for p.quote == hdocBodyTabs && r == '\t' {
 			r = p.rune()
 		}
-		lStart := len(p.litBs) - 1
+		lStart := len(p.litBs) - p.w
 	runeLoop:
 		for {
 			switch r {
