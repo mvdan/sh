@@ -48,6 +48,17 @@ than breaking them, as with `FunctionNextLine` → `BlockNextLine` and
 `ReadDirHandler` → `ReadDirHandler2`. Record desired breaking changes as
 `TODO(v4)` comments; see https://github.com/mvdan/sh/issues/630.
 
+Behavior is not frozen. `interp` and `expand` aim to follow the latest Bash
+release, so fixing a divergence is fine even when it changes what existing
+scripts or callers observe, particularly when the old behavior was
+undocumented or broken in other ways. Such a change still gets a commit body
+citing what Bash does, and a note in the release notes.
+
+Bash features which are niche or undocumented don't need to be implemented,
+particularly when they would take a lot of code or slow down common cases.
+Their test cases are still worth keeping, marked with `#IGNORE` as known
+divergences which are not worth implementing.
+
 ## Testing
 
 - Table-driven tests with `t.Parallel()` are the norm; assertions use `github.com/go-quicktest/qt`.
