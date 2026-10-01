@@ -400,7 +400,7 @@ dispatch:
 				bg = found
 			}
 			<-bg.done
-			exit = *bg.exit
+			exit = bg.finalExit()
 			// Waiting for a job reaps it, as in bash.
 			r.reapBgProc(bg)
 		}

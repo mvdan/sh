@@ -316,3 +316,19 @@ func TestWaitJobSpec(t *testing.T) {
 		t.Fatalf("wait on a bad spec = %q", got)
 	}
 }
+
+func TestWaitReportsTheSignal(t *testing.T) {
+	needsSubprocesses(t)
+	t.Parallel()
+	// bash gives a job its signal killed 128 plus the signal number, which is
+	// 143 for TERM and 137 for KILL. The jobs listing already says Terminated
+	// for the same job, so the two now agree.
+	s := runSrc(t, `sleep 30 & p=$!; kill "$p"; wait "$p"; echo st=$?`)
+	if !strings.Contains(s, "st=143") {
+		t.Errorf("wait after kill = %q, want st=143", s)
+	}
+	s = runSrc(t, "sleep 30 & kill -9 %1; fg; echo st=$?")
+	if !strings.Contains(s, "st=137") {
+		t.Errorf("fg after kill -9 = %q, want st=137", s)
+	}
+}

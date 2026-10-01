@@ -81,6 +81,18 @@ func (bg bgProc) status(running bool) string {
 	return "Done"
 }
 
+// finalExit is the status wait and fg report for a finished job. bash gives a
+// job its signal killed 128 plus the signal number, and jobs already says
+// Terminated for the same reason, so the two agree.
+func (bg bgProc) finalExit() exitStatus {
+	if bg.signal != "" {
+		return exitStatus{code: uint8(128 + signalNum(bg.signal))}
+	}
+	exit := *bg.exit
+	exit.exiting = false
+	return exit
+}
+
 // jobList returns the jobs the builtins act on, oldest first. Disowned jobs,
 // the shells behind process substitutions and jobs already reaped are not jobs
 // as far as the user is concerned, so they are left out.
@@ -548,8 +560,7 @@ func (r *Runner) runFg(ctx context.Context, args []string) exitStatus {
 		return exit
 	case <-bg.done:
 	}
-	exit := *bg.exit
-	exit.exiting = false
+	exit := bg.finalExit()
 	// Waiting for a job is reaping it, as it is for wait.
 	r.reapBgProc(bg)
 	return exit
