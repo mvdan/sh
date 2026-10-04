@@ -196,11 +196,14 @@ func (r *Runner) expandErr(err error) {
 	_, unsetParam := errors.AsType[expand.UnsetParameterError](err)
 	_, fatal := errors.AsType[internal.FatalError](err)
 	switch {
-	case unsetParam, fatal, errors.Is(err, errReadOnly):
-		// Like in Bash, these exit the shell, including an expansion
-		// which assigns to a read-only variable, like ${i=3} or $((i=3)).
+	case unsetParam:
+		// Like in Bash, ${x?} and nounset exit a non-interactive shell.
 		r.exit.code = 1
 		r.exit.exiting = true
+	case fatal, errors.Is(err, errReadOnly):
+		// Others abandon the current commands, including an expansion
+		// which assigns to a read-only variable, like ${i=3} or $((i=3)).
+		r.exit.discard()
 	}
 }
 
@@ -298,7 +301,7 @@ func (r *Runner) errf(format string, a ...any) {
 
 func (r *Runner) stop(ctx context.Context) bool {
 	// Some traps trigger on exit, so we do want those to run.
-	if !r.handlingTrap && (r.exit.returning || r.exit.exiting) {
+	if r.exit.discarding || !r.handlingTrap && (r.exit.returning || r.exit.exiting) {
 		return true
 	}
 	if err := ctx.Err(); err != nil {
@@ -429,6 +432,8 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 			r.exit.clear()
 		}
 	} else if b, ok := st.Cmd.(*syntax.BinaryCmd); ok && (b.Op == syntax.AndStmt || b.Op == syntax.OrStmt) {
+	} else if r.exit.discarding {
+		// Abandoning the current commands skips the ERR trap.
 	} else if !r.exit.ok() && !r.noErrExit {
 		r.trapCallback(ctx, r.callbackErr, "error")
 		// If the "errexit" option is set and a command failed, exit the shell. Exceptions:
@@ -456,6 +461,7 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 // exitSubshell cleans up once a subshell is done, without exiting its parent.
 func (r *Runner) exitSubshell() {
 	r.exit.exiting = false
+	r.exit.discarding = false
 	r.exit.returning = false // a return only exits the subshell
 	r.closeKeptFiles()
 }
@@ -514,9 +520,8 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				}
 				if err != nil {
 					// Like Bash, an assignment error such as writing to a
-					// read-only variable exits a non-interactive shell.
-					r.exit.code = 1
-					r.exit.exiting = true
+					// read-only variable abandons the current commands.
+					r.exit.discard()
 					break
 				}
 
@@ -1125,7 +1130,7 @@ func (r *Runner) trapCallback(ctx context.Context, callback, name string) {
 	}
 	oldExit, oldLastExit := r.exit, r.lastExit
 	r.lastExit = r.exit
-	r.stmts(ctx, file.Stmts)
+	r.scriptStmts(ctx, file.Stmts)
 	r.exit, r.lastExit = oldExit, oldLastExit // traps on EXIT or ERR should not modify the result
 }
 
@@ -1218,6 +1223,39 @@ func (r *Runner) stmts(ctx context.Context, stmts []*syntax.Stmt) {
 	for _, stmt := range stmts {
 		r.stmt(ctx, stmt)
 	}
+}
+
+// scriptStmts runs the statements of a script, such as a file or the
+// argument to eval. Bash reads and runs a script one line at a time, and an
+// error such as assigning to a read-only variable abandons the commands
+// being run without exiting the shell, so we skip the rest of the line
+// and resume at the next one. With errexit, the shell exits instead.
+func (r *Runner) scriptStmts(ctx context.Context, stmts []*syntax.Stmt) {
+	for i := 0; i < len(stmts); i++ {
+		r.stmt(ctx, stmts[i])
+		if !r.endDiscard() {
+			continue
+		}
+		line := stmts[i].End().Line()
+		for i+1 < len(stmts) && stmts[i+1].Pos().Line() == line {
+			i++
+			line = stmts[i].End().Line()
+		}
+	}
+}
+
+// endDiscard stops abandoning commands after an error, reporting whether
+// the shell carries on rather than exit; see [Runner.scriptStmts].
+func (r *Runner) endDiscard() bool {
+	if !r.exit.discarding {
+		return false
+	}
+	r.exit.discarding = false
+	if r.opts[optErrExit] {
+		return false
+	}
+	r.exit.exiting = false
+	return true
 }
 
 func (r *Runner) hdocReader(rd *syntax.Redirect) (stdinFile, error) {

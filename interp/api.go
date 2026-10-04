@@ -257,6 +257,10 @@ type exitStatus struct {
 	exiting   bool // whether the current shell is exiting
 	fatalExit bool // whether the current shell is exiting due to a fatal error; err below must not be nil
 
+	// discarding is set along with exiting when an error abandons the
+	// commands being run without exiting the shell; see [Runner.scriptStmts].
+	discarding bool
+
 	// err holds the error information for a non-zero exit status code or fatal error.
 	// Used so that running a single statement with a custom handler
 	// which returns a non-fatal Go error, such as a Go error wrapping [NewExitStatus],
@@ -283,6 +287,13 @@ func (e *exitStatus) oneIf(b bool) {
 	if b {
 		e.code = 1
 	}
+}
+
+// discard fails the current command and abandons the rest of its line.
+func (e *exitStatus) discard() {
+	e.code = 1
+	e.exiting = true
+	e.discarding = true
 }
 
 func (e *exitStatus) fatal(err error) {
@@ -1217,13 +1228,15 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	switch node := node.(type) {
 	case *syntax.File:
 		r.filename = node.Name
-		r.stmts(ctx, node.Stmts)
+		r.scriptStmts(ctx, node.Stmts)
 	case *syntax.Stmt:
 		r.stmt(ctx, node)
+		r.endDiscard()
 	case syntax.Command:
 		n := len(r.procSubstUses)
 		r.cmd(ctx, node)
 		r.releaseProcSubsts(n) // a bare Command bypasses stmt
+		r.endDiscard()
 	default:
 		return fmt.Errorf("node can only be File, Stmt, or Command: %T", node)
 	}

@@ -484,7 +484,7 @@ dispatch:
 		if !r.enterCall(name, &r.evalDepth) {
 			return r.exit
 		}
-		r.stmts(ctx, file.Stmts)
+		r.scriptStmts(ctx, file.Stmts)
 		r.evalDepth--
 		exit = r.exit
 	case "source", ".":
@@ -530,7 +530,7 @@ dispatch:
 		// parameters.
 		r.sourceSetParams = false
 		r.inSource = true // know that we're inside a sourced script.
-		r.stmts(ctx, file.Stmts)
+		r.scriptStmts(ctx, file.Stmts)
 
 		// If we modified the parameters and the sourced file didn't
 		// explicitly set them, we restore the old ones.

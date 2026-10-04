@@ -4205,7 +4205,7 @@ done <<< 2`,
 		"s=1; unset 's[1]'; echo st=$?",
 		"unset: s: not an array variable\nst=1\n #JUSTERR",
 	},
-	// An assignment error exits a non-interactive shell, unlike a
+	// An assignment error abandons the rest of the line, unlike a
 	// failing builtin or arithmetic command.
 	{
 		"readonly i=0; i=1; echo after",
@@ -4254,31 +4254,31 @@ done <<< 2`,
 	// The script then carries on with the next line.
 	{
 		"readonly i=0\ni=1; echo same\necho after $?",
-		"i: readonly variable\nexit status 1 #IGNORE the shell exits",
+		"i: readonly variable\nafter 1\n #JUSTERR",
 	},
 	{
 		"readonly i=0\nf() { i=1; echo in f; }\nf || echo no; echo same\necho after",
-		"i: readonly variable\nexit status 1 #IGNORE the shell exits",
+		"i: readonly variable\nafter\n #JUSTERR",
 	},
 	{
 		"readonly i=0\n{ i=1\necho same\n}; echo same\necho after",
-		"i: readonly variable\nexit status 1 #IGNORE the shell exits",
+		"i: readonly variable\nafter\n #JUSTERR",
 	},
 	{
 		"readonly i=0\neval 'i=1; echo same\necho next'; echo after",
-		"i: readonly variable\nexit status 1 #IGNORE the shell exits",
+		"i: readonly variable\nnext\nafter\n #JUSTERR",
 	},
 	{
 		"readonly i\necho ${i=3}; echo same\necho $((i=3)); echo same\necho after",
-		"i: readonly variable\nexit status 1 #IGNORE the shell exits",
+		"i: readonly variable\ni: readonly variable\nafter\n #JUSTERR",
 	},
 	{
 		"x=08\necho $((x)); echo same\necho after",
-		"08: value too great for base\nexit status 1 #IGNORE the shell exits",
+		"08: value too great for base\nafter\n #JUSTERR",
 	},
 	{
 		"readonly i=0; trap 'echo err' ERR\ni=1\nfalse\necho after",
-		"i: readonly variable\nerr\nexit status 1 #IGNORE the shell exits",
+		"i: readonly variable\nerr\nafter\n #JUSTERR",
 	},
 	{
 		"set -e; readonly i=0\ni=1 || echo no\necho after",
