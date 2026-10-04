@@ -427,7 +427,7 @@ func (r *Runner) setVarString(name, value string) error {
 	vr := r.lookupVar(name)
 	if vr.Kind == expand.NameRef && vr.Str == "" {
 		// Like an assignment, this sets the target of a nameref without one.
-		return r.setNameRef(name, vr, value)
+		return r.setNameRef(name, vr, value, true)
 	}
 	if n, v := vr.Resolve(r.writeEnv); n != "" {
 		name, vr = n, v
@@ -435,11 +435,39 @@ func (r *Runner) setVarString(name, value string) error {
 	return r.setVar(name, expand.Variable{Set: true, Exported: vr.Exported, Kind: expand.String, Str: value})
 }
 
-// setNameRef sets the variable which the nameref vr refers to, keeping its
-// attributes. Errors are handled like in [Runner.varErr].
-func (r *Runner) setNameRef(name string, vr expand.Variable, target string) error {
+// setNameRef sets the target of the nameref vr, keeping its attributes.
+// Errors are handled like in [Runner.varErr]; see [Runner.checkNameRefTarget].
+func (r *Runner) setNameRef(name string, vr expand.Variable, target string, allowSelf bool) error {
+	if err := r.checkNameRefTarget("", name, target, allowSelf); err != nil {
+		return err
+	}
 	vr.Set, vr.Str = true, target
 	return r.setVar(name, vr)
+}
+
+// checkNameRefTarget fails like [Runner.varErr] if the nameref name cannot
+// refer to target, which must be a variable name. Unless allowSelf is set,
+// like for an assignment, target cannot be the nameref itself either.
+// A declaration builtin like declare, given as decl, reports errors its own
+// way, like in Bash.
+func (r *Runner) checkNameRefTarget(decl, name, target string, allowSelf bool) error {
+	prefix := ""
+	if decl != "" {
+		prefix = decl + ": "
+	}
+	switch {
+	case !allowSelf && target == name:
+		return r.failVar("%s%s: nameref variable self references not allowed", prefix, name)
+	case syntax.ValidName(target):
+		return nil
+	case decl != "":
+		return r.failVar("%s`%s': invalid variable name for name reference", prefix, target)
+	}
+	if _, _, elem := cutElemSubscript(target); elem {
+		// TODO: support namerefs to array elements like a[1], as Bash does.
+		return r.failVar("%s: invalid variable name for name reference", target)
+	}
+	return r.failVar("`%s': not a valid identifier", target)
 }
 
 // setVar sets a variable, reporting any error like [Runner.varErr].
@@ -629,10 +657,15 @@ func (r *Runner) assignVal(name string, prev expand.Variable, as *syntax.Assign,
 	if as.Value != nil {
 		str = r.literal(as.Value)
 	}
-	if prev.Kind == expand.NameRef && prev.Str == "" {
+	if prev.Kind == expand.NameRef && prev.Str == "" && valType != "-n" {
 		// Assigning to a nameref without a target, like `declare -n r; r=x`,
-		// sets the target.
+		// sets the target. A declaration builtin checks it on its own.
 		valType = "-n"
+		if str != "" && as.Array == nil {
+			if err := r.checkNameRefTarget("", name, str, true); err != nil {
+				return name, prev, err
+			}
+		}
 	}
 	if valType != "-n" {
 		// Assigning to a nameref assigns to the variable it refers to,

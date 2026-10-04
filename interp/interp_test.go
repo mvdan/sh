@@ -4094,11 +4094,11 @@ done <<< 2`,
 	},
 	{
 		"declare -n r='a b'; echo st=$?",
-		"declare: a b: invalid variable name for name reference\nst=1\n #JUSTERR",
+		"declare: `a b': invalid variable name for name reference\nst=1\n #JUSTERR",
 	},
 	{
 		"declare -n r; declare -n r='a b'; echo st=$?",
-		"declare: a b: invalid variable name for name reference\nst=1\n #JUSTERR",
+		"declare: `a b': invalid variable name for name reference\nst=1\n #JUSTERR",
 	},
 	{
 		"echo ${!@}-${!*}; set -- foo; echo ${!@}-${!*}-${!1}; foo=value; echo ${!@}-${!*}-${!1}",
@@ -4146,23 +4146,23 @@ done <<< 2`,
 	// Setting the target of a nameref checks that it is a valid name.
 	{
 		"declare -n r=x; for r in 'bad name' b; do echo in; done; echo st=$?; declare -p r",
-		"in\nin\nst=0\ndeclare -n r=\"b\"\n #IGNORE the target is not checked",
+		"`bad name': not a valid identifier\nst=1\ndeclare -n r=\"x\"\n #JUSTERR",
 	},
 	{
 		"declare -n r=x; for r in r b; do echo in; done; echo st=$?; declare -p r",
-		"in\nin\nst=0\ndeclare -n r=\"b\"\n #IGNORE the target is not checked",
+		"r: nameref variable self references not allowed\nst=1\ndeclare -n r=\"x\"\n #JUSTERR",
 	},
 	{
 		"declare -n r; read r <<< 'bad name'; echo st=$?; declare -p r",
-		"st=0\ndeclare -n r=\"bad name\"\n #IGNORE the target is not checked",
+		"`bad name': not a valid identifier\nst=1\ndeclare -n r\n #JUSTERR",
 	},
 	{
 		"declare -n r\nr='bad name'; echo same\ndeclare -p r",
-		"same\ndeclare -n r=\"bad name\"\n #IGNORE the target is not checked",
+		"`bad name': not a valid identifier\ndeclare -n r\n #JUSTERR",
 	},
 	{
 		"a=(x y); declare -n r s\nr='a[1]'; echo same\nr=z; echo \"<$r>\"; declare -p a\nfor s in 'a[0]'; do echo \"<$s>\"; done; echo st=$?",
-		"same\n<z>\ndeclare -a a=([0]=\"x\" [1]=\"y\")\n<>\nst=0\n #IGNORE the element is not followed, and the variable a[1] is set instead",
+		"a[1]: invalid variable name for name reference\n<>\ndeclare -a a=([0]=\"x\" [1]=\"y\")\na[0]: invalid variable name for name reference\nst=1\n #IGNORE namerefs to array elements are not supported",
 	},
 	// The subscript of an indirect expansion is an associative key or an
 	// arithmetic expression, depending on the array.

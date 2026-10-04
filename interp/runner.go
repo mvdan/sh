@@ -739,11 +739,11 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 
 			for _, field := range items {
 				var err error
-				if vr := r.lookupVar(name); vr.Kind == expand.NameRef {
-					// Like Bash, a nameref refers to each word in turn.
-					err = r.setNameRef(name, vr, field)
-				} else {
+				if vr := r.lookupVar(name); vr.Kind != expand.NameRef {
 					err = r.setVar(name, expand.Variable{Set: true, Exported: vr.Exported, Kind: expand.String, Str: field})
+				} else {
+					// Like Bash, a nameref refers to each word in turn.
+					err = r.setNameRef(name, vr, field, false)
 				}
 				if err != nil {
 					r.exit.code = 1
@@ -958,13 +958,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				}
 			}
 			if vr.Kind == expand.NameRef && vr.Str != "" {
-				switch {
-				case vr.Str == name:
-					r.errf("declare: %s: nameref variable self references not allowed\n", name)
-					r.exit.code = 1
-					continue
-				case !syntax.ValidName(vr.Str):
-					r.errf("declare: %s: invalid variable name for name reference\n", vr.Str)
+				if r.checkNameRefTarget(cm.Variant.Value, name, vr.Str, false) != nil {
 					r.exit.code = 1
 					continue
 				}
