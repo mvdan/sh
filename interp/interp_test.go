@@ -3695,6 +3695,16 @@ done <<< 2`,
 		"a: err\nexit status 1 #JUSTERR",
 	},
 
+	// operators resulting in a word which holds a list
+	{`a=(a "b c"); printf "<%s>" "${a[@]+"${a[@]}"}" "${a[@]:+${a[@]}}" "${a[*]+"${a[@]}"}"; echo`, "<a b c><a b c><a b c>\n #IGNORE the word is joined into one field"},
+	{`set -- a "b c"; printf "<%s>" "${@+"$@"}" "${u-$@}" "${u:-"$@"}"; echo`, "<a b c><a b c><a b c>\n #IGNORE the word is joined into one field"},
+	{`a=(1 2); printf "<%s>" "${a[@]+x y}" "${a[@]+p"${a[@]}"s}" "p${u-"${a[@]}"}s"; echo`, "<x y><p1 2s><p1 2s>\n #IGNORE the word is joined into one field"},
+	{`set -- 1 2; printf "<%s>" "${u-$*}" "${u-"$*"}"; echo`, "<1 2><1 2>\n"},
+	// Unlike a list of its own, an empty list in a word still produces a field.
+	{`set --; a=(1); printf "<%s>" "${a[@]+"$@"}" "${u-"$@"}" "${u-$@}"; echo`, "<><><>\n"},
+	// The subscript of an element is evaluated once.
+	{`a=(x y z); i=0; echo "${a[i++]-d}" $i; j=0; echo "${a[j++]:+s}" $j`, "x 1\ns 1\n"},
+
 	// operators transforming each element of a list
 	{`a=(ab cd); printf "<%s>" "${a[@]@U}" "${a[@]@u}" "${a[@]@L}" "${a[@]@E}"; echo`, "<AB><CD><Ab><Cd><ab><cd><ab><cd>\n"},
 	{`a=(a b); printf "<%s>" "${a[@]@Q}"; echo`, "<a><b>\n #IGNORE bash quotes the values"},
