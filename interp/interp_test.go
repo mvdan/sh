@@ -2719,6 +2719,17 @@ var runTests = []runTest{
 	{"a=; echo $((a+1)); unset u; echo $((u+1))", "1\n1\n"},
 	{"x='2#101'; echo $((x)); x='0x1f'; echo $((x+1)); x=-3; echo $((x)) $((-x))", "5\n32\n-3 3\n"},
 	{"let 'a = 5 + 4'; echo $a", "9\n"},
+	// Bash substitutes an expansion like $x before parsing the expression,
+	// so that x='1+2' gives $(($x*2)) a value of 5. We evaluate the expanded
+	// word as an expression of its own, a known divergence which only shows
+	// when an expansion holds an operator, and is not worth implementing.
+	{"x='1+2'; echo $(($x*2)) $((${x}*2)) $((\"$x\"*2)) $(($x$x))", "6 6 6 24\n #IGNORE an expansion is evaluated on its own; not worth implementing"},
+	{"a=1 b=2; echo $((-$a)) $(($a - -$b)) $(($a$b + 1)) $(($(echo 1+1) * 2))", "-1 3 13 4\n #IGNORE an expansion is evaluated on its own; not worth implementing"},
+	{"x='1+2'; a=(5 6 7); i=1; echo $((a[$i] * $x)) $((${a[$i]} + $x * 2)) ${a[@]:$i:$x-2}", "18 12 6\n #IGNORE an expansion is evaluated on its own; not worth implementing"},
+	{"i='1+1'; a=(0 1 2 3 4); echo $((a[$i*2])); ((a[$i*2] = 9)); ((a[$i*2]++)); let \"a[$i*2] += 1\"; echo ${a[@]}", "4\n0 1 2 4 10\n #IGNORE an expansion is evaluated on its own; not worth implementing"},
+	{"x='1+2'; let r=$x*2; ((r2 = $x * 2)); echo $r $r2; (($x > 2)) && echo gt", "6 6\ngt\n #IGNORE an expansion is evaluated on its own; not worth implementing"},
+	{"e=; echo $(($e + 1)); (echo $(($e * 2))) 2>/dev/null; echo $?", "1\n0\n0\n #IGNORE an expansion is evaluated on its own; not worth implementing"},
+	{"x=5 y=1; echo $((- -x + $y)) $((+ +x + $y)) $((! !x + $y)) $x; x=-y y=3; echo $((- $x)) $((-$x)) $y", "6 6 2 5\n3 3 3\n #IGNORE an expansion is evaluated on its own; not worth implementing"},
 	// A value is not subject to expansions like $y or $(cmd), except
 	// within an array subscript.
 	{"x='$(echo 42)'; (echo $((x))) 2>/dev/null; echo $?", "1\n"},
