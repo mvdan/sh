@@ -4097,6 +4097,10 @@ done <<< 2`,
 		"declare: a b: invalid variable name for name reference\nst=1\n #JUSTERR",
 	},
 	{
+		"declare -n r; declare -n r='a b'; echo st=$?",
+		"declare: a b: invalid variable name for name reference\nst=1\n #JUSTERR",
+	},
+	{
 		"echo ${!@}-${!*}; set -- foo; echo ${!@}-${!*}-${!1}; foo=value; echo ${!@}-${!*}-${!1}",
 		"-\n--\nvalue-value-value\n",
 	},
@@ -4139,6 +4143,27 @@ done <<< 2`,
 	{`f() { local -n ref; ref=$1; ref=9; }; f x; echo "[$x]"`, "[9]\n"},
 	// Like an assignment, read and getopts set its target.
 	{`x=0; declare -n r; read r <<< x; r=5; echo $x; declare -n q; getopts a q -a; declare -p q`, "5\ndeclare -n q=\"a\"\n"},
+	// Setting the target of a nameref checks that it is a valid name.
+	{
+		"declare -n r=x; for r in 'bad name' b; do echo in; done; echo st=$?; declare -p r",
+		"in\nin\nst=0\ndeclare -n r=\"b\"\n #IGNORE the target is not checked",
+	},
+	{
+		"declare -n r=x; for r in r b; do echo in; done; echo st=$?; declare -p r",
+		"in\nin\nst=0\ndeclare -n r=\"b\"\n #IGNORE the target is not checked",
+	},
+	{
+		"declare -n r; read r <<< 'bad name'; echo st=$?; declare -p r",
+		"st=0\ndeclare -n r=\"bad name\"\n #IGNORE the target is not checked",
+	},
+	{
+		"declare -n r\nr='bad name'; echo same\ndeclare -p r",
+		"same\ndeclare -n r=\"bad name\"\n #IGNORE the target is not checked",
+	},
+	{
+		"a=(x y); declare -n r s\nr='a[1]'; echo same\nr=z; echo \"<$r>\"; declare -p a\nfor s in 'a[0]'; do echo \"<$s>\"; done; echo st=$?",
+		"same\n<z>\ndeclare -a a=([0]=\"x\" [1]=\"y\")\n<>\nst=0\n #IGNORE the element is not followed, and the variable a[1] is set instead",
+	},
 	// The subscript of an indirect expansion is an associative key or an
 	// arithmetic expression, depending on the array.
 	{`declare -A a=(["foo bar"]=1); n="a[foo bar]"; echo "${!n}"; b=(x y); n="b[1+1-1]"; echo "${!n}"; n="b[@]"; echo "${!n}"`, "1\ny\nx y\n"},
