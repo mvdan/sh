@@ -257,6 +257,43 @@ func overridingUnset(pe *syntax.ParamExp) bool {
 	return false
 }
 
+// operandWord reports whether an expansion like ${x-word} or ${x:+word}
+// results in the operator's word rather than the parameter's value,
+// returning the word, which may be nil. A list like ${a[@]} is tested as a
+// whole: it is set when it has any elements, and null when they join into
+// an empty string. An element like ${a[i]} is replaced in p by its value,
+// so that its subscript is not evaluated again.
+func (e *expander) operandWord(pe *syntax.ParamExp, p *param) (*syntax.Word, bool, error) {
+	if pe.Exp == nil || pe.Length || pe.Width || pe.IsSet || namesExp(pe) {
+		return nil, false, nil
+	}
+	switch pe.Exp.Op {
+	case syntax.AlternateUnset, syntax.AlternateUnsetOrNull,
+		syntax.DefaultUnset, syntax.DefaultUnsetOrNull:
+	default:
+		return nil, false, nil
+	}
+	var set, null bool
+	if elems, star, ok := e.listElems(pe, *p); ok {
+		set = len(elems) > 0
+		// Only the operators with a colon test for null.
+		if op := pe.Exp.Op; op == syntax.AlternateUnsetOrNull || op == syntax.DefaultUnsetOrNull {
+			null = e.joinElems(elems, star) == ""
+		}
+	} else {
+		str, isSet, err := e.varInd(p.vr, p.index)
+		if err != nil {
+			return nil, false, err
+		}
+		set, null = isSet, str == ""
+		p.vr, p.index = Variable{Set: isSet, Kind: String, Str: str}, nil
+	}
+	if testParamOp(pe.Exp.Op, set, null) != testArg {
+		return nil, false, nil
+	}
+	return pe.Exp.Word, true, nil
+}
+
 // paramExp expands a parameter expansion, where quoted reports whether it is
 // within double quotes or a here-document; see [expander.expArg].
 func (e *expander) paramExp(pe *syntax.ParamExp, quoted bool) (string, error) {

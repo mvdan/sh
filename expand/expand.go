@@ -812,44 +812,73 @@ func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 			// there are no parameters and x is empty.
 			start := len(curField)
 			list, listElems := false, false
-			for j, part := range wp.Parts {
-				pe, ok := part.(*syntax.ParamExp)
-				if !ok {
-					var err error
-					if curField, err = e.appendDblQuoted(curField, wp.Parts[j:j+1]); err != nil {
-						return nil, err
-					}
-					continue
-				}
-				p, err := e.resolveParam(pe)
-				if err != nil {
-					return nil, err
-				}
-				elems, star, err := e.quotedElemFields(pe, p)
-				if err != nil {
-					return nil, err
-				}
-				if elems != nil {
-					if !star {
-						list = true
-						listElems = listElems || len(elems) > 0
-					}
-					for k, elem := range elems {
-						if k > 0 {
-							flush()
+			// A word used by an operator, as in "${x-word}", continues
+			// the string, and any list in it splits fields just the same,
+			// but it does not allow the string to produce no fields.
+			var appendParts func(parts []syntax.WordPart, operand bool) error
+			appendParts = func(parts []syntax.WordPart, operand bool) error {
+				for j, part := range parts {
+					if dq, ok := part.(*syntax.DblQuoted); ok && operand {
+						if err := appendParts(dq.Parts, true); err != nil {
+							return err
 						}
-						curField = append(curField, fieldPart{
-							quote: quoteDouble,
-							val:   elem,
-						})
+						continue
 					}
-					continue
+					pe, ok := part.(*syntax.ParamExp)
+					if !ok {
+						var err error
+						if curField, err = e.appendDblQuoted(curField, parts[j:j+1]); err != nil {
+							return err
+						}
+						continue
+					}
+					p, err := e.resolveParam(pe)
+					if err != nil {
+						return err
+					}
+					if word, ok, err := e.operandWord(pe, &p); err != nil {
+						return err
+					} else if ok {
+						if word != nil {
+							e.depth++
+							err := appendParts(word.Parts, true)
+							e.depth--
+							if err != nil {
+								return err
+							}
+						}
+						continue
+					}
+					elems, star, err := e.quotedElemFields(pe, p)
+					if err != nil {
+						return err
+					}
+					if elems != nil {
+						if !star && !operand {
+							list = true
+							listElems = listElems || len(elems) > 0
+						}
+						for k, elem := range elems {
+							if k > 0 {
+								flush()
+							}
+							curField = append(curField, fieldPart{
+								quote: quoteDouble,
+								val:   elem,
+							})
+						}
+						continue
+					}
+					val, err := e.paramExpResolved(pe, p, true)
+					if err != nil {
+						return err
+					}
+					curField = append(curField, fieldPart{quote: quoteDouble, val: val})
 				}
-				val, err := e.paramExpResolved(pe, p, true)
-				if err != nil {
-					return nil, err
-				}
-				curField = append(curField, fieldPart{quote: quoteDouble, val: val})
+				return nil
+			}
+			if err := appendParts(wp.Parts, false); err != nil {
+				return nil, err
 			}
 			if list && !listElems && !slices.ContainsFunc(curField[start:], func(part fieldPart) bool { return part.val != "" }) {
 				curField = curField[:start] // the empty parts produce no field
@@ -1028,21 +1057,10 @@ func (e *expander) quotedElemFields(pe *syntax.ParamExp, p param) (elems []strin
 			return nil, false, err
 		}
 		switch op := pe.Exp.Op; op {
-		case syntax.AlternateUnset, syntax.AlternateUnsetOrNull,
-			syntax.DefaultUnset, syntax.DefaultUnsetOrNull,
-			syntax.ErrorUnset, syntax.ErrorUnsetOrNull:
-			// These operators test the list as a whole: it is set when
-			// it has any elements, and null when they join into an
-			// empty string, which only the operators with a colon test.
-			null := false
-			switch op {
-			case syntax.AlternateUnsetOrNull, syntax.DefaultUnsetOrNull, syntax.ErrorUnsetOrNull:
-				null = e.joinElems(elems, star) == ""
-			}
-			switch testParamOp(op, len(elems) > 0, null) {
-			case testArg:
-				return []string{arg}, false, nil
-			case testFail:
+		case syntax.ErrorUnset, syntax.ErrorUnsetOrNull:
+			// Like in [expander.operandWord], the list is tested as a whole.
+			null := op == syntax.ErrorUnsetOrNull && e.joinElems(elems, star) == ""
+			if testParamOp(op, len(elems) > 0, null) == testFail {
 				return nil, false, UnsetParameterError{Node: pe, Message: arg}
 			}
 		case syntax.OtherParamOps:

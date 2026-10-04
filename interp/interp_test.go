@@ -3696,9 +3696,9 @@ done <<< 2`,
 	},
 
 	// operators resulting in a word which holds a list
-	{`a=(a "b c"); printf "<%s>" "${a[@]+"${a[@]}"}" "${a[@]:+${a[@]}}" "${a[*]+"${a[@]}"}"; echo`, "<a b c><a b c><a b c>\n #IGNORE the word is joined into one field"},
-	{`set -- a "b c"; printf "<%s>" "${@+"$@"}" "${u-$@}" "${u:-"$@"}"; echo`, "<a b c><a b c><a b c>\n #IGNORE the word is joined into one field"},
-	{`a=(1 2); printf "<%s>" "${a[@]+x y}" "${a[@]+p"${a[@]}"s}" "p${u-"${a[@]}"}s"; echo`, "<x y><p1 2s><p1 2s>\n #IGNORE the word is joined into one field"},
+	{`a=(a "b c"); printf "<%s>" "${a[@]+"${a[@]}"}" "${a[@]:+${a[@]}}" "${a[*]+"${a[@]}"}"; echo`, "<a><b c><a><b c><a><b c>\n"},
+	{`set -- a "b c"; printf "<%s>" "${@+"$@"}" "${u-$@}" "${u:-"$@"}"; echo`, "<a><b c><a><b c><a><b c>\n"},
+	{`a=(1 2); printf "<%s>" "${a[@]+x y}" "${a[@]+p"${a[@]}"s}" "p${u-"${a[@]}"}s"; echo`, "<x y><p1><2s><p1><2s>\n"},
 	{`set -- 1 2; printf "<%s>" "${u-$*}" "${u-"$*"}"; echo`, "<1 2><1 2>\n"},
 	// Unlike a list of its own, an empty list in a word still produces a field.
 	{`set --; a=(1); printf "<%s>" "${a[@]+"$@"}" "${u-"$@"}" "${u-$@}"; echo`, "<><><>\n"},
