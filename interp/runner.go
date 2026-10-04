@@ -862,31 +862,34 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		case "nameref":
 			valType = "-n"
 		}
+		flagsDone := false
 		for as := range r.flattenAssigns(cm.Args) {
-			// Like Bash, flags are only parsed before the first name.
-			fp := flagParser{remaining: []string{as.Name.Value}}
-			isFlag := false
-			for !named && fp.more() {
-				isFlag = true
-				switch flag := fp.flag(); flag {
-				case "-x", "-r":
-					modes = append(modes, flag)
-				case "-a", "-A", "-n":
-					valType = flag
-				case "-g":
-					scope = declGlobal
-				case "-f", "-p":
-					declQuery = flag
-				default:
-					r.errf("declare: invalid option %q\n", flag)
-					r.exit.code = 2
-					return
+			// Like Bash, flags are only parsed before the first name,
+			// and "--" ends them, so that a name may start with a dash.
+			if !flagsDone && as.Name.Value == "--" {
+				flagsDone = true
+				continue
+			}
+			if fp := (flagParser{remaining: []string{as.Name.Value}}); !flagsDone && fp.more() {
+				for fp.more() {
+					switch flag := fp.flag(); flag {
+					case "-x", "-r":
+						modes = append(modes, flag)
+					case "-a", "-A", "-n":
+						valType = flag
+					case "-g":
+						scope = declGlobal
+					case "-f", "-p":
+						declQuery = flag
+					default:
+						r.errf("declare: invalid option %q\n", flag)
+						r.exit.code = 2
+						return
+					}
 				}
+				continue
 			}
-			if isFlag || len(fp.remaining) == 0 {
-				continue // flags, or the "--" ending them
-			}
-			named = true
+			named, flagsDone = true, true
 			name := as.Name.Value
 			if !syntax.ValidName(name) {
 				r.errf("declare: invalid name %q\n", name)

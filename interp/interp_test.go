@@ -3109,8 +3109,8 @@ set +o pipefail
 	// Flags may be combined, and -- ends them.
 	{"declare -rx y=1; declare -p y", "declare -rx y=\"1\"\n"},
 	{"declare -- x=1; echo $x", "1\n"},
-	{"declare -- -y; echo $?; declare -r -- -x >/dev/null; echo $?", "declare: invalid option \"-y\"\n2\n0\n #IGNORE -- does not end the flags"},
-	{"f() { local -- -y; echo $?; }; f; export -- -y; echo $?; readonly -- -y; echo $?", "declare: invalid option \"-y\"\n2\ndeclare: invalid option \"-y\"\n2\ndeclare: invalid option \"-y\"\n2\n #IGNORE -- does not end the flags"},
+	{"declare -- -y; echo $?; declare -r -- -x >/dev/null; echo $?", "declare: invalid name \"-y\"\n1\ndeclare: invalid name \"-x\"\n1\n #JUSTERR"},
+	{"f() { local -- -y; echo $?; }; f; export -- -y; echo $?; readonly -- -y; echo $?", "declare: invalid name \"-y\"\n1\ndeclare: invalid name \"-y\"\n1\ndeclare: invalid name \"-y\"\n1\n #JUSTERR"},
 	{
 		"declare -ar a=(1); a[1]=2; echo after",
 		"a: readonly variable\nexit status 1 #JUSTERR",
