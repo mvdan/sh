@@ -97,6 +97,10 @@ type Runner struct {
 
 	alias map[string]alias
 
+	// sharedFuncs and sharedAlias are set when Funcs and alias are shared
+	// with a parent shell; see [Runner.subshell].
+	sharedFuncs, sharedAlias bool
+
 	// callHandler is a function allowing to replace a simple command's
 	// arguments. It may be nil.
 	callHandler CallHandlerFunc
@@ -1277,6 +1281,22 @@ func (r *Runner) Exited() bool {
 	return r.exit.exiting
 }
 
+// unshareFuncs copies Funcs if they are shared with a parent shell.
+func (r *Runner) unshareFuncs() {
+	if r.sharedFuncs {
+		r.Funcs = maps.Clone(r.Funcs)
+		r.sharedFuncs = false
+	}
+}
+
+// unshareAlias copies alias if it is shared with a parent shell.
+func (r *Runner) unshareAlias() {
+	if r.sharedAlias {
+		r.alias = maps.Clone(r.alias)
+		r.sharedAlias = false
+	}
+}
+
 // Subshell makes a copy of the given [Runner], suitable for use concurrently
 // with the original. The copy will have the same environment, including
 // variables and functions, but they can all be modified without affecting the
@@ -1332,15 +1352,19 @@ func (r *Runner) subshell(background bool) *Runner {
 
 		origStdout: r.origStdout, // used for process substitutions
 	}
+	// Variables, funcs, and aliases might be modified. A subshell which
+	// does not run alongside the parent shell only copies them once it
+	// first modifies them.
+	r2.Funcs, r2.alias = r.Funcs, r.alias
+	r2.sharedFuncs, r2.sharedAlias = true, true
 	if background {
 		r2.writeEnv = r.writeEnv.clone()
+		r2.unshareFuncs()
+		r2.unshareAlias()
 	} else {
 		r2.writeEnv = r.writeEnv.share()
 	}
-	// Funcs are copied, since they might be modified.
-	r2.Funcs = maps.Clone(r.Funcs)
 	r2.Vars = make(map[string]expand.Variable)
-	r2.alias = maps.Clone(r.alias)
 
 	r2.dirStack = append(r2.dirBootstrap[:0], r.dirStack...)
 	r2.fillExpandConfig(r.ectx)

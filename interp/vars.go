@@ -579,6 +579,7 @@ func (r *Runner) unsetElem(name, sub string) error {
 }
 
 func (r *Runner) setFunc(name string, body *syntax.Stmt) {
+	r.unshareFuncs()
 	if r.Funcs == nil {
 		r.Funcs = make(map[string]*syntax.Stmt, 4)
 	}

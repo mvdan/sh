@@ -244,6 +244,7 @@ dispatch:
 			} else if vars && r.lookupVar(arg).Declared() {
 				checkVar(r.delVar(arg, nameref))
 			} else if _, ok := r.Funcs[arg]; ok && funcs {
+				r.unshareFuncs()
 				delete(r.Funcs, arg)
 			}
 		}
@@ -961,6 +962,7 @@ dispatch:
 				words = append(words, w)
 			}
 
+			r.unshareAlias()
 			if r.alias == nil {
 				r.alias = make(map[string]alias)
 			}
@@ -970,6 +972,7 @@ dispatch:
 			}
 		}
 	case "unalias":
+		r.unshareAlias()
 		for _, name := range args {
 			delete(r.alias, name)
 		}

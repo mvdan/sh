@@ -4793,6 +4793,9 @@ done <<< 2`,
 	{"echo | exit 3; echo after $?", "after 3\n"},
 	{"shopt -s lastpipe; echo | exit 3; echo after", "exit status 3"},
 	{"echo foo | read; echo \"[$REPLY]\"; shopt -s lastpipe; echo foo | read; echo \"[$REPLY]\"", "[]\n[foo]\n"},
+	// Functions and aliases changed by a subshell do not affect its parent.
+	{"fn() { echo a; }; (fn() { echo b; }; fn); fn; echo | { fn() { echo c; }; fn; }; fn; x=$(unset -f fn; type fn >/dev/null 2>&1 || echo d); echo $x; fn", "b\na\nc\na\nd\na\n"},
+	{"shopt -s expand_aliases; alias g='echo a'\n(alias g='echo b'; unalias g; alias h='echo c')\ng; alias", "a\nalias g='echo a'\n"},
 	{"f() { echo | x=1; echo \"[$x]\"; }; f; echo \"[$x]\"", "[]\n[]\n"},
 	{"f() { echo | return 3; echo after; }; f; echo st=$?", "after\nst=0\n"},
 	// A simple command keeps the enclosing loop, ending only its subshell.
