@@ -553,6 +553,13 @@ var runTests = []runTest{
 		"readonly RANDOM; RANDOM=99; echo $?",
 		"RANDOM: readonly variable\nexit status 1 #JUSTERR",
 	},
+	// Bash treats a local or temporary RANDOM as a plain variable. Ours
+	// always expands to random numbers, a known divergence which is not
+	// worth implementing.
+	{"RANDOM=3 eval '[[ $RANDOM$RANDOM == 33 ]]'; echo $?", "1\n #IGNORE it expands to random numbers; not worth implementing"},
+	{"f() { [[ $RANDOM == 3 ]]; echo $?; RANDOM=9; [[ $RANDOM == 9 ]]; echo $?; }; RANDOM=3 f", "1\n1\n #IGNORE it expands to random numbers; not worth implementing"},
+	{"f() { local RANDOM=3; [[ $RANDOM$RANDOM == 33 ]]; echo $?; }; f", "1\n #IGNORE it expands to random numbers; not worth implementing"},
+	{"f() { local RANDOM; [[ -z $RANDOM ]]; echo $?; }; f", "1\n #IGNORE it expands to random numbers; not worth implementing"},
 	{"[[ $SRANDOM -eq $SRANDOM ]]", "exit status 1"}, // 1 in 2**32 chance of a collision,
 
 	// Ensure that we consistently use 64 bits even on 32-bit platforms.
