@@ -4251,6 +4251,39 @@ done <<< 2`,
 		"readonly i; let i=3; echo after",
 		"i: readonly variable\nafter\n #JUSTERR",
 	},
+	// The script then carries on with the next line.
+	{
+		"readonly i=0\ni=1; echo same\necho after $?",
+		"i: readonly variable\nexit status 1 #IGNORE the shell exits",
+	},
+	{
+		"readonly i=0\nf() { i=1; echo in f; }\nf || echo no; echo same\necho after",
+		"i: readonly variable\nexit status 1 #IGNORE the shell exits",
+	},
+	{
+		"readonly i=0\n{ i=1\necho same\n}; echo same\necho after",
+		"i: readonly variable\nexit status 1 #IGNORE the shell exits",
+	},
+	{
+		"readonly i=0\neval 'i=1; echo same\necho next'; echo after",
+		"i: readonly variable\nexit status 1 #IGNORE the shell exits",
+	},
+	{
+		"readonly i\necho ${i=3}; echo same\necho $((i=3)); echo same\necho after",
+		"i: readonly variable\nexit status 1 #IGNORE the shell exits",
+	},
+	{
+		"x=08\necho $((x)); echo same\necho after",
+		"08: value too great for base\nexit status 1 #IGNORE the shell exits",
+	},
+	{
+		"readonly i=0; trap 'echo err' ERR\ni=1\nfalse\necho after",
+		"i: readonly variable\nerr\nexit status 1 #IGNORE the shell exits",
+	},
+	{
+		"set -e; readonly i=0\ni=1 || echo no\necho after",
+		"i: readonly variable\nexit status 1 #JUSTERR",
+	},
 	{
 		"((z=${q:?boom})); echo after",
 		"q: boom\nexit status 1 #JUSTERR",
