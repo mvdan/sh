@@ -1502,6 +1502,17 @@ func (p *Parser) paramExp() *ParamExp {
 		Dollar: p.pos,
 		Short:  p.tok == dollar,
 	}
+	// Zsh chained subscripts like ${foo[1][2]} are parsed below as nested
+	// parameter expansions; the inner expansions share the outer one's
+	// closing brace, as there is no '}' of their own in the source.
+	var chainedInners []*ParamExp
+	defer func() {
+		if pe != nil {
+			for _, inner := range chainedInners {
+				inner.Rbrace = pe.Rbrace
+			}
+		}
+	}()
 	if !pe.Short && p.r == '(' {
 		p.checkLang(pe.Pos(), LangZsh, `parameter expansion flags`)
 		// For now, for simplicity, we parse flags as just a literal.
@@ -1612,6 +1623,18 @@ zshPrefixLoop:
 		p.pos = p.nextPos()
 		p.rune()
 		pe.Index = p.eitherIndex()
+		// Zsh allows chaining subscripts, like ${foo[1][2]},
+		// which subscripts the result of the previous subscript.
+		// Parse those as nested parameter expansions, like ${${foo[1]}[2]},
+		// which zsh treats as equivalent.
+		for p.lang.in(LangZsh) && p.r == '[' {
+			inner := pe
+			chainedInners = append(chainedInners, inner)
+			pe = &ParamExp{Dollar: inner.Dollar, NestedParam: inner}
+			p.pos = p.nextPos()
+			p.rune()
+			pe.Index = p.eitherIndex()
+		}
 	}
 	tokRune := p.r
 	p.pos = p.nextPos()

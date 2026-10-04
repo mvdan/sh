@@ -1233,11 +1233,6 @@ var errorCases = []errorCase{
 		langErr("1:15: not a valid parameter expansion operator: `\"`"),
 	),
 	errCase(
-		"echo ${var[1][2]}",
-		langErr("1:14: not a valid parameter expansion operator: `[`"),
-		langErr("1:11: arrays are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
-	),
-	errCase(
 		"echo ${%",
 		langErr("1:6: `${%foo}` is a mksh feature; tried parsing as LANG"),
 		langErr("1:9: invalid parameter name", LangMirBSDKorn),

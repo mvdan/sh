@@ -2934,6 +2934,19 @@ var fileTests = []fileTestCase{
 		}, LangZsh),
 	),
 	fileTest(
+		[]string{
+			`${${foo[1]}[2]}`,
+			`${foo[1][2]}`,
+		},
+		langFile(&ParamExp{
+			NestedParam: &ParamExp{
+				Param: lit("foo"),
+				Index: litWord("1"),
+			},
+			Index: litWord("2"),
+		}, LangZsh),
+	),
+	fileTest(
 		[]string{`a$foo[1]b`},
 		langFile(word(lit("a"), litParamExp("foo"), lit("[1]b"))),
 		langFile(word(
