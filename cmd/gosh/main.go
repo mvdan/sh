@@ -84,6 +84,11 @@ func runPath(r *interp.Runner, path string) error {
 
 func runInteractive(r *interp.Runner, stdin io.Reader, stdout, stderr io.Writer) error {
 	parser := syntax.NewParser()
+	// Background jobs outlive their command line in an interactive runner;
+	// end them when the shell itself is done, like bash's SIGHUP on exit.
+	// The default exec handler kills stubborn processes after a timeout, so
+	// this cannot block for long.
+	defer r.StopJobs(context.Background())
 	fmt.Fprintf(stdout, "$ ")
 	for stmts, err := range parser.InteractiveSeq(stdin) {
 		if err != nil {

@@ -165,6 +165,16 @@ dispatch:
 		exit.code = 1
 	case "help":
 		return r.runHelp(args)
+	case "jobs":
+		return r.runJobs(args)
+	case "kill":
+		return r.runKill(args)
+	case "disown":
+		return r.runDisown(args)
+	case "fg":
+		return r.runFg(ctx, args)
+	case "bg":
+		return r.runBg(args)
 	case "times":
 		// js/wasm has no per-process CPU accounting at all, so report zeros
 		// in bash's format — shell user/sys, then children user/sys — rather
@@ -355,17 +365,48 @@ dispatch:
 		if len(args) == 0 {
 			// Note that "wait" without arguments always returns exit status zero.
 			for _, bg := range r.bgProcs {
-				<-bg.done
+				if bg.disowned {
+					continue
+				}
+				if !bg.await(ctx) {
+					return exitStatus{code: 130}
+				}
+			}
+			// Waiting for a job reaps it, as in bash, so that a later jobs
+			// does not list what has already been accounted for.
+			for _, bg := range r.jobList() {
+				r.reapBgProc(bg)
 			}
 			break
 		}
 		for _, arg := range args {
-			bg, ok := r.lookupBgProc(arg)
-			if !ok {
-				return failf(1, "wait: pid %s is not a child of this shell\n", arg)
+			var bg *bgProc
+			if strings.HasPrefix(arg, "%") {
+				// bash's wait takes a job specification as well as a PID.
+				//
+				// It answers 127 here, as it does for a PID that names no
+				// child; the PID path above answers 1 instead, which is a
+				// divergence that predates job control and has a test of its
+				// own, so it is left alone rather than changed in passing.
+				found, err := r.jobSpec(arg)
+				if err != nil {
+					r.errJobSpec("wait", arg, err)
+					return exitStatus{code: 127}
+				}
+				bg = found
+			} else {
+				found, ok := r.lookupBgProc(arg)
+				if !ok {
+					return failf(1, "wait: pid %s is not a child of this shell\n", arg)
+				}
+				bg = found
 			}
-			<-bg.done
-			exit = *bg.exit
+			if !bg.await(ctx) {
+				return exitStatus{code: 130}
+			}
+			exit = bg.finalExit()
+			// Waiting for a job reaps it, as in bash.
+			r.reapBgProc(bg)
 		}
 	case "builtin":
 		if len(args) < 1 {

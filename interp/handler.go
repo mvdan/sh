@@ -110,6 +110,10 @@ type HandlerContext struct {
 // Shell builtins touch on many internals of the Runner, after all.
 //
 // Returning a non-nil error will halt the [Runner] and will be returned via the API.
+//
+// Note that this is the only handler which sees the kill builtin, which cancels
+// one of the runner's own jobs and can signal nothing else. An embedder which
+// wants to restrict it further has to intercept it here.
 type CallHandlerFunc func(ctx context.Context, args []string) ([]string, error)
 
 // TODO(v4): consistently treat handler errors as non-fatal by default,
