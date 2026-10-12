@@ -26,6 +26,13 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 	return e.arithm(expr)
 }
 
+// arithmExp evaluates an expression within an expansion like $((expr)) or
+// ${x:offset}, where any error is fatal, unlike in an arithmetic command.
+func (e *expander) arithmExp(expr syntax.ArithmExpr) (int, error) {
+	n, err := e.arithm(expr)
+	return n, internal.Fatal(err)
+}
+
 // subscript evaluates the subscript of an indexed array element like a[i].
 // Like in Bash, an error doing so is fatal, even in an arithmetic command.
 func (e *expander) subscript(idx syntax.ArithmExpr) (int, error) {
@@ -185,7 +192,7 @@ func (e *expander) arithmString(str, token string) (int, error) {
 		return int(n), nil // the common case, without parsing an expression
 	}
 	if e.arithmRecursion >= maxArithmRecursion {
-		return 0, fatalf("%s: expression recursion level exceeded", token)
+		return 0, fmt.Errorf("%s: expression recursion level exceeded", token)
 	}
 	e.arithmRecursion++
 	defer func() { e.arithmRecursion-- }()
@@ -194,14 +201,14 @@ func (e *expander) arithmString(str, token string) (int, error) {
 	}
 	expr, err := e.parseArithm(str)
 	if err != nil {
-		return 0, fatalf("%s: arithmetic syntax error in expression", str)
+		return 0, fmt.Errorf("%s: arithmetic syntax error in expression", str)
 	}
 	if !arithmValueExpr(expr) {
-		return 0, fatalf("%s: arithmetic syntax error: operand expected", str)
+		return 0, fmt.Errorf("%s: arithmetic syntax error: operand expected", str)
 	}
 	if word, ok := expr.(*syntax.Word); ok && word.Lit() == str {
 		// A single token which is neither a number nor a name.
-		return 0, fatalf("%s: value too great for base", str)
+		return 0, fmt.Errorf("%s: value too great for base", str)
 	}
 	return e.arithm(expr)
 }
@@ -340,18 +347,17 @@ func (e *expander) arithmVar(expr syntax.ArithmExpr) (string, syntax.ArithmExpr,
 			return "", nil, "", fmt.Errorf("%s[%s]: bad array subscript", name, lit)
 		}
 		var key string
-		var err error
 		if vr.Kind == Associative {
-			key, err = e.assocKey(pe.Index)
+			var err error
+			if key, err = e.assocKey(pe.Index); err != nil {
+				return "", nil, "", internal.ArithmExpandError{Err: err}
+			}
 		} else {
-			var i int
-			i, err = e.subscript(pe.Index)
+			i, err := e.subscript(pe.Index)
+			if err != nil {
+				return "", nil, "", err
+			}
 			key = strconv.Itoa(i)
-		}
-		if err != nil {
-			// Like when reading an element, the subscript fails like
-			// an expansion rather than like the rest of the expression.
-			return "", nil, "", internal.ArithmExpandError{Err: err}
 		}
 		idx = &syntax.Word{Parts: []syntax.WordPart{&syntax.SglQuoted{Value: key}}}
 	}

@@ -211,8 +211,11 @@ func (r *Runner) expandErr(err error) {
 // returned too.
 func (r *Runner) arithm(expr syntax.ArithmExpr) (int, error) {
 	n, err := expand.Arithm(r.ecfg, expr)
-	if _, ok := errors.AsType[internal.ArithmExpandError](err); ok {
-		// Expanding a word like ${x:?msg} fails like in any expansion.
+	_, expandErr := errors.AsType[internal.ArithmExpandError](err)
+	_, fatal := errors.AsType[internal.FatalError](err)
+	if expandErr || fatal {
+		// Expanding a word like ${x:?msg} fails like in any expansion,
+		// as does an error in a subscript like a[1/0].
 		r.expandErr(err)
 	} else if err != nil {
 		// Unlike an expansion, the arithmetic command ((i=3)) and let

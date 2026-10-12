@@ -322,15 +322,17 @@ func (e *expander) paramExpResolved(pe *syntax.ParamExp, p param, quoted bool) (
 	}
 
 	var sliceOffset, sliceLen int
-	if pe.Slice != nil {
+	if pe.Slice != nil && vr.IsSet() {
+		// Like Bash, the offset and length of an unset variable are
+		// not evaluated.
 		if pe.Slice.Offset != nil {
-			sliceOffset, err = e.arithm(pe.Slice.Offset)
+			sliceOffset, err = e.arithmExp(pe.Slice.Offset)
 			if err != nil {
 				return "", err
 			}
 		}
 		if pe.Slice.Length != nil {
-			sliceLen, err = e.arithm(pe.Slice.Length)
+			sliceLen, err = e.arithmExp(pe.Slice.Length)
 			if err != nil {
 				return "", err
 			}

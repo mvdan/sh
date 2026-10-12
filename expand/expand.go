@@ -707,7 +707,7 @@ func (e *expander) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 			}
 			field = append(field, fieldPart{val: val})
 		case *syntax.ArithmExp:
-			n, err := e.arithm(wp.X)
+			n, err := e.arithmExp(wp.X)
 			if err != nil {
 				return nil, err
 			}
@@ -914,7 +914,7 @@ func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 			}
 			splitAdd(val)
 		case *syntax.ArithmExp:
-			n, err := e.arithm(wp.X)
+			n, err := e.arithmExp(wp.X)
 			if err != nil {
 				return nil, err
 			}
