@@ -241,6 +241,9 @@ dispatch:
 		for _, arg := range args {
 			if name, sub, ok := cutElemSubscript(arg); vars && ok {
 				checkVar(r.unsetElem(name, sub))
+				if r.stop(ctx) {
+					break // an error in the subscript
+				}
 			} else if vars && r.lookupVar(arg).Declared() {
 				checkVar(r.delVar(arg, nameref))
 			} else if _, ok := r.Funcs[arg]; ok && funcs {

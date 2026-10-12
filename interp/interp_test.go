@@ -4325,23 +4325,23 @@ done <<< 2`,
 	// even in an arithmetic command, without modifying the array.
 	{
 		"a=(1 2)\na[08]=5; echo same\nx=1+\n{ a[x]=5; echo same; }\necho after; declare -p a",
-		"08: value too great for base\nsame\n1+: arithmetic syntax error in expression\nsame\nafter\ndeclare -a a=([0]=\"5\" [1]=\"2\")\n #JUSTERR",
+		"08: value too great for base\n1+: arithmetic syntax error in expression\nafter\ndeclare -a a=([0]=\"1\" [1]=\"2\")\n #JUSTERR",
 	},
 	{
 		"a=(1 2)\nunset 'a[08]'; echo same\ndeclare a[08]=5; echo same\na+=([1/0]=3); echo same\necho after; declare -p a",
-		"08: value too great for base\nsame\n08: value too great for base\nsame\ndivision by zero\nsame\nafter\ndeclare -a a=([0]=\"3\" [1]=\"2\")\n #JUSTERR",
+		"08: value too great for base\n08: value too great for base\ndivision by zero\nafter\ndeclare -a a=([0]=\"1\" [1]=\"2\")\n #JUSTERR",
 	},
 	{
 		"a=(1 2)\n((a[08] = 3)); echo same\nlet 'a[1/0] = 3' b=4; echo same\n((a[1/0])); echo same\necho ${a[1/0]}; echo same\necho after $b; declare -p a",
-		"08: value too great for base\nsame\ndivision by zero\nsame\ndivision by zero\nsame\ndivision by zero\nsame\nafter\ndeclare -a a=([0]=\"1\" [1]=\"2\")\n #JUSTERR",
+		"08: value too great for base\ndivision by zero\ndivision by zero\ndivision by zero\nafter\ndeclare -a a=([0]=\"1\" [1]=\"2\")\n #JUSTERR",
 	},
 	{
 		"exec 2>/dev/null; a=(1 2)\na[08]=5; echo same\n((a[1/0] = 3)); echo same\necho after $?; declare -p a",
-		"same\nsame\nafter 0\ndeclare -a a=([0]=\"5\" [1]=\"2\")\n #IGNORE the subscript is taken as 0 and the line carries on",
+		"after 1\ndeclare -a a=([0]=\"1\" [1]=\"2\")\n",
 	},
 	{
 		"exec 2>/dev/null; a=(1)\ndeclare a[1/0]=x c=2; echo same\necho ${c-unset}",
-		"same\n2\n #IGNORE the rest of the line and the other names carry on",
+		"unset\n",
 	},
 	{
 		"readonly i=0; trap 'echo err' ERR\ni=1\nfalse\necho after",
@@ -5714,7 +5714,7 @@ func TestRunnerUnsupported(t *testing.T) {
 		{syntax.LangZsh, `echo "${}"`, "unsupported\n"},
 		{syntax.LangZsh, "echo ${:-foo}", "unsupported\n"},
 		{syntax.LangZsh, "echo ${+a}", "unsupported\n"},
-		{syntax.LangZsh, "a=abc; echo ${a[(r)b]}", "unsupported\n"},
+		{syntax.LangZsh, "a=abc; echo ${a[(r)b]}", "unsupported\nexit status 1"},
 		{syntax.LangZsh, "() { echo anon; }", "unsupported\nexit status 1"},
 		{syntax.LangZsh, "function { echo anon; }", "unsupported\nexit status 1"},
 		{syntax.LangZsh, "function f g { echo multi; }", "unsupported\nexit status 1"},

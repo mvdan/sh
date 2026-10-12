@@ -223,6 +223,15 @@ func (r *Runner) arithm(expr syntax.ArithmExpr) (int, error) {
 	return n, err
 }
 
+// subscript evaluates the subscript of an indexed array element, like i+1
+// in a[i+1]=x. Like in Bash, an error doing so abandons the current commands.
+func (r *Runner) subscript(expr syntax.ArithmExpr) (int, error) {
+	n, err := expand.Arithm(r.ecfg, expr)
+	err = internal.Fatal(err)
+	r.expandErr(err)
+	return n, err
+}
+
 func (r *Runner) fields(words ...*syntax.Word) []string {
 	strs, err := expand.Fields(r.ecfg, words...)
 	r.expandErr(err)
@@ -864,6 +873,9 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		}
 		flagsDone := false
 		for as := range r.flattenAssigns(cm.Args) {
+			if r.stop(ctx) {
+				return // like Bash, an error abandons the rest
+			}
 			// Like Bash, flags are only parsed before the first name,
 			// and "--" ends them, so that a name may start with a dash.
 			if !flagsDone && as.Name.Value == "--" {
@@ -1511,7 +1523,14 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 	}
 	if IsBuiltin(name) {
 		r.reportBgStart(0) // not one external program
-		r.exit = r.builtin(ctx, pos, name, args[1:])
+		exiting := r.exit.exiting
+		exit := r.builtin(ctx, pos, name, args[1:])
+		if r.exit.exiting && !exiting {
+			// An expansion error within the builtin, like in the subscript
+			// of `unset 'a[1/0]'`, abandons the line or exits the shell.
+			return
+		}
+		r.exit = exit
 		return
 	}
 	r.exec(ctx, pos, args)

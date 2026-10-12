@@ -26,6 +26,13 @@ func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 	return e.arithm(expr)
 }
 
+// subscript evaluates the subscript of an indexed array element like a[i].
+// Like in Bash, an error doing so is fatal, even in an arithmetic command.
+func (e *expander) subscript(idx syntax.ArithmExpr) (int, error) {
+	n, err := e.arithm(idx)
+	return n, internal.Fatal(err)
+}
+
 func (e *expander) arithm(expr syntax.ArithmExpr) (int, error) {
 	e.depth++
 	n, err := e.arithmExpr(expr)
@@ -333,17 +340,18 @@ func (e *expander) arithmVar(expr syntax.ArithmExpr) (string, syntax.ArithmExpr,
 			return "", nil, "", fmt.Errorf("%s[%s]: bad array subscript", name, lit)
 		}
 		var key string
+		var err error
 		if vr.Kind == Associative {
-			var err error
-			if key, err = e.assocKey(pe.Index); err != nil {
-				return "", nil, "", err
-			}
+			key, err = e.assocKey(pe.Index)
 		} else {
-			i, err := e.arithm(pe.Index)
-			if err != nil {
-				return "", nil, "", err
-			}
+			var i int
+			i, err = e.subscript(pe.Index)
 			key = strconv.Itoa(i)
+		}
+		if err != nil {
+			// Like when reading an element, the subscript fails like
+			// an expansion rather than like the rest of the expression.
+			return "", nil, "", internal.ArithmExpandError{Err: err}
 		}
 		idx = &syntax.Word{Parts: []syntax.WordPart{&syntax.SglQuoted{Value: key}}}
 	}

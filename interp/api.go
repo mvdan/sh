@@ -293,8 +293,12 @@ func (e *exitStatus) oneIf(b bool) {
 	}
 }
 
-// discard fails the current command and abandons the rest of its line.
+// discard fails the current command and abandons the rest of its line,
+// unless the shell is already exiting.
 func (e *exitStatus) discard() {
+	if e.exiting && !e.discarding {
+		return
+	}
 	e.code = 1
 	e.exiting = true
 	e.discarding = true

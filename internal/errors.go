@@ -3,6 +3,8 @@
 
 package internal
 
+import "errors"
+
 // FatalError is an expansion error which exits a non-interactive shell in
 // Bash, such as an invalid indirect expansion or an arithmetic error, so
 // that the interpreter can tell it apart from errors which only fail the
@@ -24,3 +26,14 @@ type ArithmExpandError struct {
 
 func (e ArithmExpandError) Error() string { return e.Err.Error() }
 func (e ArithmExpandError) Unwrap() error { return e.Err }
+
+// Fatal wraps a non-nil error as a [FatalError], unless it already is one.
+func Fatal(err error) error {
+	if err == nil {
+		return nil
+	}
+	if _, ok := errors.AsType[FatalError](err); ok {
+		return err
+	}
+	return FatalError{Err: err}
+}

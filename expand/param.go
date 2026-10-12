@@ -709,7 +709,7 @@ func (e *expander) varInd(vr Variable, idx syntax.ArithmExpr) (string, bool, err
 		if listIndex(idx) {
 			return vr.Str, vr.IsSet(), nil
 		}
-		n, err := e.arithm(idx)
+		n, err := e.subscript(idx)
 		if err != nil {
 			return "", false, err
 		}
@@ -720,7 +720,7 @@ func (e *expander) varInd(vr Variable, idx syntax.ArithmExpr) (string, bool, err
 		if listIndex(idx) {
 			return strings.Join(vr.List, " "), vr.IsSet(), nil
 		}
-		i, err := e.arithm(idx)
+		i, err := e.subscript(idx)
 		if err != nil {
 			return "", false, err
 		}
@@ -780,7 +780,7 @@ func (e *expander) assignElem(name string, vr Variable, idx syntax.ArithmExpr, v
 		i := 0
 		if idx != nil {
 			var err error
-			if i, err = e.arithm(idx); err != nil {
+			if i, err = e.subscript(idx); err != nil {
 				return err
 			}
 			var ok bool
