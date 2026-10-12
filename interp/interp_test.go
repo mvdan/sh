@@ -1642,7 +1642,8 @@ var runTests = []runTest{
 		"statement nesting is deeper than 10000 levels #IGNORE bash has no limit by default",
 	},
 	{
-		`o='(' c=')'; for i in {1..12}; do o=$o$o c=$c$c; done; eval "f() { echo \$(( $o\$(f)$c )); }"; f 2>err; read -r l <err; echo "$l"`,
+		`o='(' c=')'; for i in {1..12}; do o=$o$o c=$c$c; done; eval "f() { echo \$(( $o\$(f)$c )); }"; f 2>err
+read -r l <err; echo "$l"`,
 		"statement nesting is deeper than 10000 levels\n #IGNORE bash has no limit by default",
 	},
 	{
@@ -2589,7 +2590,7 @@ var runTests = []runTest{
 		"1 0 2\n",
 	},
 	{
-		"x=0; echo $((1/0 && x++)); echo $x",
+		"x=0; echo $((1/0 && x++))\necho $x",
 		"division by zero\n0\n #JUSTERR",
 	},
 	{
@@ -2621,8 +2622,8 @@ var runTests = []runTest{
 		"8 0\n",
 	},
 	{
-		"echo $((2 ** -1)); let x=2**-1",
-		"exponent less than 0\nexponent less than 0\nexit status 1 #JUSTERR",
+		"let x=2**-1; echo $((2 ** -1))",
+		"exponent less than 0\nexponent less than 0\n #JUSTERR",
 	},
 	{
 		"echo $((1 ? 2 : 3)) $((0 ? 2 : 3))",
@@ -2769,13 +2770,21 @@ var runTests = []runTest{
 	},
 	{"exec 2>/dev/null; let a=1/0 b=1; echo $? ${b-unset}", "1 unset\n"},
 	{
-		"let x=3; let 3/0; ((3/0)); echo $((x/y)); let x/=0",
-		"division by zero\ndivision by zero\ndivision by zero\ndivision by zero\nexit status 1 #JUSTERR",
+		"let x=3; let 3/0; ((3/0)); let x/=0; echo $((x/y))",
+		"division by zero\ndivision by zero\ndivision by zero\ndivision by zero\n #JUSTERR",
 	},
 	{
-		"let x=3; let 3%0; ((3%0)); echo $((x%y)); let x%=0",
-		"division by zero\ndivision by zero\ndivision by zero\ndivision by zero\nexit status 1 #JUSTERR",
+		"let x=3; let 3%0; ((3%0)); let x%=0; echo $((x%y))",
+		"division by zero\ndivision by zero\ndivision by zero\ndivision by zero\n #JUSTERR",
 	},
+	// Any arithmetic error in an expansion abandons the rest of the line,
+	// including a slice offset, or $((...)) within an arithmetic command.
+	{
+		"exec 2>/dev/null\necho $((1/0)); echo same\nx=$((08)); echo same\n((1 + $((1/0)))); echo same\nx=ab; echo ${x:1/0}; echo same\necho after",
+		"same\nsame\nsame\nafter\n #IGNORE the line carries on",
+	},
+	// The offset and length of an unset variable are not evaluated.
+	{"echo ${u:1/0} ${u:1:1/0}; echo same", "division by zero\nsame\n #IGNORE the offset is evaluated"},
 	{
 		"let x=' 3'; echo $x",
 		"3\n",
