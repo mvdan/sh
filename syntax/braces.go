@@ -106,8 +106,9 @@ func SplitBraces(word *Word) bool {
 				if j+1 >= len(lit.Value) || lit.Value[j+1] != '.' {
 					continue
 				}
-				if !cur.Sequence && len(cur.Elems) > 1 {
-					// ".." inside a list expansion like {1,2..3} is literal.
+				if !cur.Sequence && (len(cur.Elems) > 1 || (j+2 < len(lit.Value) && lit.Value[j+2] == '}')) {
+					// ".." inside a list expansion like {1,2..3} or immediately
+					// before a closing brace like {a..},b} is literal.
 					continue
 				}
 				addlitidx()
@@ -116,7 +117,9 @@ func SplitBraces(word *Word) bool {
 				cur.Elems = append(cur.Elems, acc)
 				j++
 			case '}':
-				if cur == nil {
+				if cur == nil || (len(open) == 1 && len(cur.Elems) == 1) {
+					// A "}" at depth 0 before any "," or ".." like {a},b} is
+					// treated as a literal inside the first element in bash.
 					continue
 				}
 				addlitidx()
