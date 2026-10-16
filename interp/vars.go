@@ -22,34 +22,44 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-func newOverlayEnviron(parent expand.Environ, background bool) *overlayEnviron {
-	oenv := &overlayEnviron{}
-	if !background {
-		oenv.parent = parent
-	} else {
-		// We could do better here if the parent is also an overlayEnviron;
-		// measure with profiles or benchmarks before we choose to do so.
-		for name, vr := range parent.Each {
-			oenv.Set(name, vr)
-		}
-	}
-	return oenv
-}
-
 // overlayEnviron is our main implementation of [expand.WriteEnviron].
+//
+// A runner's variables live in a chain of scopes: the global scope at the
+// root, over which each function call, temporary environment of prefix
+// assignments, and subshell adds a scope of its own. Reads walk the chain,
+// and writes land in the scope which owns a variable, so that a function
+// modifies its caller's local variables like in Bash.
 type overlayEnviron struct {
-	// parent is non-nil if [values] is an overlay over a parent environment
-	// which we can safely reuse without data races, such as non-background subshells
-	// or function calls.
+	// parent is the enclosing scope, which is [Runner.Env] for the root.
 	parent expand.Environ
 
 	// values maps normalized variable names, per [overlayEnviron.normalize].
 	values map[string]namedVariable
 
-	// We need to know if the current scope is a function's scope, because
-	// functions can modify global variables. When true, [parent] must not be nil.
-	funcScope bool
+	// shared is set when values is shared with the scope of a parent shell,
+	// so that it is copied before it is first modified; see [overlayEnviron.share].
+	shared bool
+
+	// sharedParent is set when parent is a scope of a parent shell, so that
+	// it is copied before it or any scope beyond it is modified; see
+	// [overlayEnviron.up].
+	sharedParent bool
+
+	kind scopeKind
 }
+
+type scopeKind uint8
+
+const (
+	// scopeGlobal holds global variables in the root scope. A subshell
+	// clones the chain, so that it can modify any scope without affecting
+	// the parent shell.
+	scopeGlobal scopeKind = iota
+	// scopeFunc holds the local variables of a function call.
+	scopeFunc
+	// scopeTemp holds the prefix assignments of a command, like `x=1 cmd`.
+	scopeTemp
+)
 
 // namedVariable records the original name of a variable for platforms
 // where variable names are matched in a case-insensitive way.
@@ -68,6 +78,60 @@ func (o *overlayEnviron) normalize(name string) string {
 	return name
 }
 
+// clone copies a chain of scopes for a background subshell, which runs
+// alongside the parent shell, including the variables in [Runner.Env] into
+// the root scope. Other subshells use [overlayEnviron.share] instead.
+func (o *overlayEnviron) clone() *overlayEnviron {
+	c := &overlayEnviron{kind: o.kind, values: maps.Clone(o.values)}
+	switch parent := o.parent.(type) {
+	case *overlayEnviron:
+		c.parent = parent.clone()
+	case nil:
+	default:
+		if c.values == nil {
+			c.values = make(map[string]namedVariable)
+		}
+		for name, vr := range parent.Each {
+			normalized := o.normalize(name)
+			if _, ok := o.values[normalized]; !ok {
+				c.values[normalized] = namedVariable{name, vr}
+			}
+		}
+	}
+	return c
+}
+
+// share returns a copy of this scope which shares its values and its parent
+// scopes, so that a subshell copies each of them only when modifying it.
+func (o *overlayEnviron) share() *overlayEnviron {
+	return &overlayEnviron{
+		parent:       o.parent,
+		values:       o.values,
+		shared:       true,
+		sharedParent: true,
+		kind:         o.kind,
+	}
+}
+
+// up returns the parent scope to be modified, first copying it if it is
+// shared with a parent shell.
+func (o *overlayEnviron) up() *overlayEnviron {
+	p := o.parent.(*overlayEnviron)
+	if o.sharedParent {
+		p = p.share()
+		o.parent, o.sharedParent = p, false
+	}
+	return p
+}
+
+// unshare copies values if they are shared with a parent shell.
+func (o *overlayEnviron) unshare() {
+	if o.shared {
+		o.values = maps.Clone(o.values)
+		o.shared = false
+	}
+}
+
 func (o *overlayEnviron) Get(name string) expand.Variable {
 	normalized := o.normalize(name)
 	if vr, ok := o.values[normalized]; ok {
@@ -79,42 +143,115 @@ func (o *overlayEnviron) Get(name string) expand.Variable {
 	return expand.Variable{}
 }
 
-func (o *overlayEnviron) Set(name string, vr expand.Variable) error {
+// owner returns the scope which a plain assignment or unset of name applies
+// to: the innermost scope holding it, or else the innermost global scope.
+func (o *overlayEnviron) owner(name string) *overlayEnviron {
 	normalized := o.normalize(name)
-	prev, inOverlay := o.values[normalized]
-	// Manipulation of a global var inside a function.
-	if o.funcScope && !vr.Local && !prev.Local {
-		// In a function, the parent environment is ours, so it's always read-write.
-		return o.parent.(expand.WriteEnviron).Set(name, vr)
+	for {
+		if _, ok := o.values[normalized]; ok || o.kind == scopeGlobal {
+			return o
+		}
+		o = o.up()
 	}
-	if !inOverlay && o.parent != nil {
+}
+
+// globalScope returns the innermost global scope.
+func (o *overlayEnviron) globalScope() *overlayEnviron {
+	for o.kind != scopeGlobal {
+		o = o.up()
+	}
+	return o
+}
+
+// funcScope returns the scope of the current function call, or nil.
+func (o *overlayEnviron) funcScope() *overlayEnviron {
+	for {
+		switch o.kind {
+		case scopeFunc:
+			return o
+		case scopeGlobal:
+			return nil
+		}
+		o = o.parent.(*overlayEnviron)
+	}
+}
+
+// Set sets a variable like a plain assignment does, in the scope which owns
+// it; see [overlayEnviron.owner].
+func (o *overlayEnviron) Set(name string, vr expand.Variable) error {
+	return o.owner(name).set(name, vr)
+}
+
+// setLocal declares a variable in the current scope, like the local builtin.
+// Like in Bash, temporary scopes are skipped unless they hold the variable,
+// so that `x=1 eval 'local y=2'` declares y beyond the eval command,
+// whereas `x=1 eval 'local x=2'` only modifies the temporary x.
+func (o *overlayEnviron) setLocal(name string, vr expand.Variable) error {
+	vr.Local = true
+	return o.localScope(name).set(name, vr)
+}
+
+// localScope returns the innermost temporary scope holding name, or else
+// the innermost scope which is not temporary; see [overlayEnviron.setLocal].
+func (o *overlayEnviron) localScope(name string) *overlayEnviron {
+	normalized := o.normalize(name)
+	for o.kind == scopeTemp {
+		if _, ok := o.values[normalized]; ok {
+			break
+		}
+		o = o.up()
+	}
+	return o
+}
+
+// setGlobal sets a variable in the global scope, like `declare -g`.
+func (o *overlayEnviron) setGlobal(name string, vr expand.Variable) error {
+	vr.Local = false
+	return o.globalScope().set(name, vr)
+}
+
+// set writes a variable into this scope, where an unset variable hides any
+// outer variable of the same name.
+func (o *overlayEnviron) set(name string, vr expand.Variable) error {
+	normalized := o.normalize(name)
+	prev, inScope := o.values[normalized]
+	if !inScope && o.parent != nil {
 		prev.Variable = o.parent.Get(name)
 	}
-
-	if o.values == nil {
-		o.values = make(map[string]namedVariable)
-	}
 	if vr.Kind == expand.KeepValue {
+		vr.Set = prev.Set
 		vr.Kind = prev.Kind
 		vr.Str = prev.Str
 		vr.List = prev.List
 		vr.Indexes = prev.Indexes
 		vr.Map = prev.Map
 	} else if prev.ReadOnly {
-		return errReadOnly
+		return fmt.Errorf("%s: %w", name, errReadOnly)
 	}
-	if !vr.IsSet() { // unsetting
-		if prev.Local {
-			vr.Local = true
-			o.values[normalized] = namedVariable{name, vr}
-			return nil
-		}
-		delete(o.values, normalized)
+	o.unshare()
+	if o.values == nil {
+		o.values = make(map[string]namedVariable)
 	}
-	// modifying the entire variable
 	vr.Local = prev.Local || vr.Local
 	o.values[normalized] = namedVariable{name, vr}
 	return nil
+}
+
+// unset unsets a variable like the unset builtin. Like in Bash, a local
+// variable unset within its own function stays declared and hides any outer
+// variable, whereas one unset from a called function is removed entirely,
+// revealing the outer variable.
+func (o *overlayEnviron) unset(name string) error {
+	scope := o.owner(name)
+	if scope.kind != scopeGlobal && scope != o.funcScope() {
+		if scope.Get(name).ReadOnly {
+			return fmt.Errorf("%s: %w", name, errReadOnly)
+		}
+		scope.unshare()
+		delete(scope.values, scope.normalize(name))
+		return nil
+	}
+	return scope.set(name, expand.Variable{})
 }
 
 // localInFunc reports whether name is a local variable of the current function,
@@ -125,11 +262,10 @@ func (o *overlayEnviron) localInFunc(name string) bool {
 		if vr, ok := o.values[normalized]; ok {
 			return vr.Local
 		}
-		parent, ok := o.parent.(*overlayEnviron)
-		if o.funcScope || !ok {
+		if o.kind != scopeTemp {
 			return false
 		}
-		o = parent
+		o = o.parent.(*overlayEnviron)
 	}
 }
 
@@ -144,28 +280,33 @@ func (o *overlayEnviron) Each(f func(name string, vr expand.Variable) bool) {
 	}
 }
 
+// execEnv lists the exported variables to run a program with, in the form
+// "name=value". [expand.Environ.Each] may yield a name more than once, with
+// the innermost variable last; like Bash, the innermost set variable wins,
+// except that a local variable without a value does not hide an outer one.
 func execEnv(env expand.Environ) []string {
 	list := make([]string, 0, 64)
+	index := make(map[string]int, 64)
 	for name, vr := range env.Each {
-		if !vr.IsSet() && !vr.Local {
-			// If a variable is set globally but unset in the
-			// runner, we need to ensure it's not part of the final
-			// list. Seems like zeroing the element is enough.
-			// Like Bash, a local variable without a value does not
-			// hide an outer variable.
-			// This is a linear search, but this scenario should be
-			// rare, and the number of variables shouldn't be large.
-			for i, kv := range list {
-				if strings.HasPrefix(kv, name+"=") {
-					list[i] = ""
-				}
+		i, seen := index[name]
+		switch {
+		case vr.IsSet() && vr.Exported && vr.Kind == expand.String:
+			if seen {
+				list[i] = name + "=" + vr.String()
+			} else {
+				index[name] = len(list)
+				list = append(list, name+"="+vr.String())
+			}
+		case vr.IsSet() || !vr.Local:
+			// Hidden by a set variable which is not exported,
+			// or unset by the shell.
+			if seen {
+				list[i] = ""
+				delete(index, name)
 			}
 		}
-		if vr.IsSet() && vr.Exported && vr.Kind == expand.String {
-			list = append(list, name+"="+vr.String())
-		}
 	}
-	return list
+	return slices.DeleteFunc(list, func(s string) bool { return s == "" })
 }
 
 func (r *Runner) lookupVar(name string) expand.Variable {
@@ -239,7 +380,8 @@ func (r *Runner) lookupVar(name string) expand.Variable {
 }
 
 func (r *Runner) envGet(name string) string {
-	return r.lookupVar(name).String()
+	_, vr := r.resolveName(name)
+	return vr.String()
 }
 
 // varErr reports a variable error, if any, and returns it for the caller
@@ -257,24 +399,53 @@ func (r *Runner) failVar(format string, args ...any) error {
 }
 
 // delVar unsets a variable, reporting any error like [Runner.varErr].
-func (r *Runner) delVar(name string) error {
-	if err := r.writeEnv.Set(name, expand.Variable{}); err != nil {
-		return r.failVar("%s: %v", name, err)
+// A nameref unsets the variable it refers to, unless nameref is true,
+// like `unset -n`.
+func (r *Runner) delVar(name string, nameref bool) error {
+	if !nameref {
+		name, _ = r.resolveName(name)
 	}
-	return nil
+	return r.varErr(r.writeEnv.unset(name))
+}
+
+// resolveName follows any namerefs, returning the name of the variable
+// which name ultimately refers to. The variable is returned too.
+func (r *Runner) resolveName(name string) (string, expand.Variable) {
+	vr := r.lookupVar(name)
+	if n, v := vr.Resolve(r.writeEnv); n != "" {
+		return n, v
+	}
+	return name, vr
 }
 
 // setVarString sets a variable's value to a string, keeping its attributes
 // such as whether it is exported. Errors are handled like in [Runner.varErr].
 func (r *Runner) setVarString(name, value string) error {
-	prev := r.writeEnv.Get(name)
+	name, prev := r.resolveName(name)
 	return r.setVar(name, expand.Variable{Set: true, Exported: prev.Exported, Kind: expand.String, Str: value})
 }
 
-// setVar sets a variable, reporting any error like [Runner.varErr].
-func (r *Runner) setVar(name string, vr expand.Variable) error {
-	return r.varErr(r.setVarErr(name, vr))
+// setNameRef sets the variable which the nameref vr refers to, keeping its
+// attributes. Errors are handled like in [Runner.varErr].
+func (r *Runner) setNameRef(name string, vr expand.Variable, target string) error {
+	vr.Set, vr.Str = true, target
+	return r.setVar(name, vr)
 }
+
+// setVar sets a variable, reporting any error like [Runner.varErr].
+// Namerefs must have been followed already; see [Runner.setVarIn].
+func (r *Runner) setVar(name string, vr expand.Variable) error {
+	return r.varErr(r.setVarIn(name, vr, declPlain))
+}
+
+// declScope is the scope which a declaration builtin assigns in.
+type declScope uint8
+
+const (
+	declPlain  declScope = iota // like a plain assignment; see [overlayEnviron.Set]
+	declLocal                   // the current scope, like `local`
+	declGlobal                  // the global scope, like `declare -g`
+)
 
 // errReadOnly is returned when trying to modify a read-only variable.
 var errReadOnly = errors.New("readonly variable")
@@ -282,14 +453,24 @@ var errReadOnly = errors.New("readonly variable")
 // randomMax is one past the highest value that RANDOM expands to, like in Bash.
 const randomMax = 32768
 
-// setVarErr is like [Runner.setVar], but it returns any error rather than
-// reporting it, for the sake of the expand package.
-func (r *Runner) setVarErr(name string, vr expand.Variable) error {
+// setVarIn sets a variable in the given scope. The name must have any
+// nameref followed already, as done by [Runner.assignVal] and
+// [Runner.resolveName], since declaring a nameref sets the nameref itself.
+func (r *Runner) setVarIn(name string, vr expand.Variable, scope declScope) error {
 	if r.opts[optAllExport] {
 		vr.Exported = true
 	}
-	if err := r.writeEnv.Set(name, vr); err != nil {
-		return fmt.Errorf("%s: %w", name, err)
+	var err error
+	switch scope {
+	case declLocal:
+		err = r.writeEnv.setLocal(name, vr)
+	case declGlobal:
+		err = r.writeEnv.setGlobal(name, vr)
+	default:
+		err = r.writeEnv.Set(name, vr)
+	}
+	if err != nil {
+		return err
 	}
 	if name == "RANDOM" && vr.Kind == expand.String {
 		// Assigning to RANDOM seeds its generator; the stored value is never
@@ -316,16 +497,13 @@ func cutElemSubscript(arg string) (name, sub string, ok bool) {
 
 // unsetElem unsets a single element of an indexed or associative array, like
 // `unset 'a[3]'`. Unsetting an indexed array element may leave a hole.
-// Errors are handled like in [Runner.varErr].
+// Errors are handled like in [Runner.delVar].
 func (r *Runner) unsetElem(name, sub string) error {
-	vr := r.lookupVar(name)
-	if n, v := vr.Resolve(r.writeEnv); n != "" {
-		name, vr = n, v
-	}
+	name, vr := r.resolveName(name)
 	switch vr.Kind {
 	case expand.Indexed:
 		if sub == "@" || sub == "*" {
-			return r.delVar(name)
+			return r.delVar(name, false)
 		}
 		expr, err := syntax.NewParser().Arithmetic(strings.NewReader(sub))
 		if err != nil {
@@ -345,7 +523,7 @@ func (r *Runner) unsetElem(name, sub string) error {
 		return r.setVar(name, vr)
 	case expand.Associative:
 		if sub == "@" || sub == "*" {
-			return r.delVar(name)
+			return r.delVar(name, false)
 		}
 		// TODO: only clone when inside a subshell and getting a var from outside for the first time
 		vr.Map = maps.Clone(vr.Map)
@@ -354,7 +532,7 @@ func (r *Runner) unsetElem(name, sub string) error {
 	case expand.String:
 		// A scalar can be unset via subscript zero.
 		if sub == "0" {
-			return r.delVar(name)
+			return r.delVar(name, false)
 		}
 		return r.failVar("unset: %s: not an array variable", name)
 	}
@@ -436,8 +614,16 @@ func (r *Runner) convertKind(name string, vr expand.Variable, valType string) (e
 // The name is returned too, as a nameref is resolved first.
 // Errors are handled like in [Runner.delVar].
 func (r *Runner) assignVal(name string, prev expand.Variable, as *syntax.Assign, valType string) (string, expand.Variable, error) {
-	if n, v := prev.Resolve(r.writeEnv); n != "" {
-		name, prev = n, v
+	str := ""
+	if as.Value != nil {
+		str = r.literal(as.Value)
+	}
+	if valType != "-n" {
+		// Assigning to a nameref assigns to the variable it refers to,
+		// unless we are declaring the nameref itself.
+		if n, v := prev.Resolve(r.writeEnv); n != "" {
+			name, prev = n, v
+		}
 	}
 	prev, err := r.convertKind(name, prev, valType)
 	if err != nil {
@@ -448,10 +634,6 @@ func (r *Runner) assignVal(name string, prev expand.Variable, as *syntax.Assign,
 		return name, prev, err
 	}
 	// A scalar value like x=y or x[i]+=y; `x=` has no value at all.
-	str := ""
-	if as.Value != nil {
-		str = r.literal(as.Value)
-	}
 	switch {
 	case valType == "-n":
 		prev.Kind, prev.Str = expand.NameRef, str

@@ -223,6 +223,7 @@ dispatch:
 	case "unset":
 		vars := true
 		funcs := true
+		nameref := false
 	unsetOpts:
 		for i, arg := range args {
 			switch arg {
@@ -230,6 +231,8 @@ dispatch:
 				funcs = false
 			case "-f":
 				vars = false
+			case "-n":
+				nameref = true
 			default:
 				args = args[i:]
 				break unsetOpts
@@ -240,7 +243,7 @@ dispatch:
 			if name, sub, ok := cutElemSubscript(arg); vars && ok {
 				checkVar(r.unsetElem(name, sub))
 			} else if vars && r.lookupVar(arg).Declared() {
-				checkVar(r.delVar(arg))
+				checkVar(r.delVar(arg, nameref))
 			} else if _, ok := r.Funcs[arg]; ok && funcs {
 				delete(r.Funcs, arg)
 			}
@@ -755,6 +758,7 @@ dispatch:
 			}
 			// Use -1 as max to get all fields without joining the last ones.
 			values := expand.ReadFields(r.ecfg, string(line), -1, raw)
+			arrayName, _ = r.resolveName(arrayName)
 			checkVar(r.setVar(arrayName, expand.Variable{
 				Set:  true,
 				Kind: expand.Indexed,
@@ -824,7 +828,7 @@ dispatch:
 			exit.code = 2
 			return exit
 		}
-		r.delVar("OPTARG")
+		r.delVar("OPTARG", false)
 		switch {
 		case opt == '?' && diagnostics && !done:
 			r.errf("getopts: illegal option -- %q\n", optarg)
@@ -1062,6 +1066,7 @@ dispatch:
 		if err := scanner.Err(); err != nil {
 			return failf(2, "%s: unable to read, %v\n", name, err)
 		}
+		arrayName, _ = r.resolveName(arrayName)
 		checkVar(r.setVar(arrayName, vr))
 
 	default:

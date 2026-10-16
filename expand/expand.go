@@ -217,7 +217,8 @@ func (e *expander) strBuilder() *strings.Builder {
 }
 
 func (e *expander) envGet(name string) string {
-	return e.Env.Get(name).String()
+	_, vr := e.Env.Get(name).Resolve(e.Env)
+	return vr.String()
 }
 
 func (e *expander) envSet(name, value string) error {

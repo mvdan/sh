@@ -2994,25 +2994,26 @@ set +o pipefail
 	},
 	// Variables are dynamically scoped: a function sees and modifies
 	// its caller's locals, and declare -g reaches the global scope.
-	{"x=0; f() { local x=1; declare -g x=2; echo $x; }; f; echo $x", "2\n0\n #IGNORE scoping differs from bash"},
-	{"x=0; f() { local x=1; g; echo $x; }; g() { declare -g x=2; echo $x; }; f; echo $x", "2\n2\n0\n #IGNORE scoping differs from bash"},
-	{"f() { typeset t=1; }; f; echo \"[${t-unset}]\"", "[1]\n #IGNORE scoping differs from bash"},
-	{"x=g; f() { local x=l; g; echo $x; }; g() { unset x; echo ${x-unset}; }; f", "unset\n\n #IGNORE scoping differs from bash"},
-	{"x=0; f() { local x=1; g; echo \"f: ${x-unset}\"; }; g() { unset x; x=5; echo \"g: $x\"; }; f; echo $x", "g: 5\nf: 5\n0\n #IGNORE scoping differs from bash"},
+	{"x=0; f() { local x=1; declare -g x=2; echo $x; }; f; echo $x", "1\n2\n"},
+	{"x=0; f() { local x=1; g; echo $x; }; g() { declare -g x=2; echo $x; }; f; echo $x", "1\n1\n2\n"},
+	{"f() { typeset t=1; }; f; echo \"[${t-unset}]\"", "[unset]\n"},
+	{"x=g; f() { local x=l; g; echo $x; }; g() { unset x; echo ${x-unset}; }; f", "g\ng\n"},
+	{"x=0; f() { local x=1; g; echo \"f: ${x-unset}\"; }; g() { unset x; x=5; echo \"g: $x\"; }; f; echo $x", "g: 5\nf: 5\n5\n"},
 	{"x=0; f() { local x=1; unset x; x=2; echo \"f: $x\"; }; f; echo $x", "f: 2\n0\n"},
 	{"x=0; f() { local x=1; unset x; g; }; g() { echo \"g: ${x-unset}\"; }; f", "g: unset\n"},
-	{"x=g; f() { local x+=a; echo $x; }; f; echo $x", "ga\ng\n #IGNORE scoping differs from bash"},
-	{"x=(1 2); f() { local x+=(3); echo ${x[@]}; }; f", "1 2 3\n #IGNORE scoping differs from bash"},
+	{"x=g; f() { local x+=a; echo $x; }; f; echo $x", "a\ng\n"},
+	{"x=(1 2); f() { local x+=(3); echo ${x[@]}; }; f", "3\n"},
 	{"f() { local x=1; (x=2; echo $x); echo $x; }; f", "2\n1\n"},
 	{"f() { local x=1; (unset x; echo ${x-unset}); echo $x; }; f", "unset\n1\n"},
+	{"x=g; f() { local x=1; g; }; g() { (declare -g x=2; echo \"[$x]\"); echo \"[$x]\"; }; f; echo $x", "[1]\n[1]\ng\n"},
 	{"f() { local x=1; readonly x; }; f; x=2; echo $x", "2\n"},
 	{
 		"readonly r=1; f() { local r=2; echo \"f $r\"; }; f; echo st=$?",
-		"r: readonly variable\nf 1\nst=0\n #JUSTERR",
+		"local: r: readonly variable\nf 1\nst=0\n #JUSTERR",
 	},
 	{
 		"f() { local x=1; readonly x; local x=2; echo st=$? $x; }; f",
-		"x: readonly variable\nst=1 1\n #JUSTERR",
+		"local: x: readonly variable\nst=1 1\n #JUSTERR",
 	},
 	// Bash expands all scalar values before any assignment, and then
 	// applies them in order, whereas an array is assigned as soon as it is
@@ -3029,15 +3030,15 @@ set +o pipefail
 	{"declare x=5 a=($x); echo ${#a[@]}", "1\n #IGNORE values are expanded and assigned in turn; not worth implementing"},
 	{"x=(9); f() { local x=(1 2) y=(\"${x[@]}\"); echo ${y[@]}; }; f; echo ${x[@]}", "1 2\n9\n"},
 	// Flags may be combined, and -- ends them.
-	{"declare -rx y=1; declare -p y", "declare -r y=\"1\"\n #IGNORE scoping differs from bash"},
-	{"declare -- x=1; echo $x", "declare: invalid name \"--\"\n\n #IGNORE scoping differs from bash"},
+	{"declare -rx y=1; declare -p y", "declare -rx y=\"1\"\n"},
+	{"declare -- x=1; echo $x", "1\n"},
 	{
 		"declare -ar a=(1); a[1]=2; echo after",
-		"after\n #JUSTERR",
+		"a: readonly variable\nexit status 1 #JUSTERR",
 	},
 	// Prefix assignments form a temporary environment for the command,
 	// which a function sees as its caller's scope.
-	{"f() { declare -g x=2; }; x=1 f; echo $x", "\n #IGNORE scoping differs from bash"},
+	{"f() { declare -g x=2; }; x=1 f; echo $x", "2\n"},
 	{"f() { x=3; }; x=1 f; echo \"[$x]\"", "[]\n"},
 	{"x=0; f() { echo \"in f: $x\"; x=3; g; }; g() { echo \"in g: $x\"; }; x=1 f; echo \"[$x]\"", "in f: 1\nin g: 3\n[0]\n"},
 	{"f() { echo \"$x\"; }; x=1; x=2 f; x+=3 f", "2\n13\n"},
@@ -3046,14 +3047,14 @@ set +o pipefail
 	{`f() { x=1 eval 'local y=2; declare -a q=(1 2)'; echo "[$y]"; declare -p q; }; f; echo "[$y]"`, "[2]\ndeclare -a q=([0]=\"1\" [1]=\"2\")\n[]\n"},
 	// Each prefix assignment sees the earlier ones.
 	{"x=old; f() { echo $x $y; }; x=new y=$x f", "new new\n"},
-	{"x=old; f() { echo $x; }; x=new x+=! f; echo $x", "new!\nnew\n #IGNORE scoping differs from bash"},
+	{"x=old; f() { echo $x; }; x=new x+=! f; echo $x", "new!\nold\n"},
 	{
 		"readonly r=1; r=2 echo hi; echo st=$?",
-		"r: readonly variable\nhi\nr: readonly variable\nst=0\n #JUSTERR",
+		"r: readonly variable\nhi\nst=0\n #JUSTERR",
 	},
 	// A local variable without a value does not hide an exported
 	// variable from a program, even in a pipeline.
-	{"export INTERP_X=1; f() { local INTERP_X; echo | $ENV_PROG | grep ^INTERP_X=; echo \"${INTERP_X-unset}\"; }; f", "unset\n #IGNORE scoping differs from bash"},
+	{"export INTERP_X=1; f() { local INTERP_X; echo | $ENV_PROG | grep ^INTERP_X=; echo \"${INTERP_X-unset}\"; }; f", "INTERP_X=1\nunset\n"},
 	{"export INTERP_X=1; f() { local INTERP_X=2; $ENV_PROG | grep ^INTERP_X=; }; f", "INTERP_X=2\n"},
 	// A program does not see a stale exported value.
 	{"export INTERP_X=1; unset INTERP_X; INTERP_X=3; $ENV_PROG | grep ^INTERP_X=; echo st=$?", "st=1\n"},
@@ -3744,8 +3745,8 @@ done <<< 2`,
 	{"declare $unset=$unset", "declare: invalid name \"\"\nexit status 1 #JUSTERR"},
 	// Flags are only parsed before the first name, and other names are
 	// still declared after an invalid one.
-	{`declare x=1 -r z=3; echo "$? $x $z"; x=2; echo $x`, "0 1 3\n2\n #IGNORE scoping differs from bash"},
-	{`v=1y=2; declare -x a=1 "$v" -r b=2; echo $?; declare -p a b`, "declare: invalid name \"1y\"\n1\ndeclare -x a=\"1\"\ndeclare: b: not found\nexit status 1 #IGNORE scoping differs from bash"},
+	{`declare x=1 -r z=3; echo "$? $x $z"; x=2; echo $x`, "declare: invalid name \"-r\"\n1 1 3\n2\n #JUSTERR"},
+	{`v=1y=2; declare -x a=1 "$v" -r b=2; echo $?; declare -p a b`, "declare: invalid name \"1y\"\ndeclare: invalid name \"-r\"\n1\ndeclare -x a=\"1\"\ndeclare -x b=\"2\"\n #JUSTERR"},
 
 	// export
 	{"declare foo=bar; $ENV_PROG | grep '^foo='", "exit status 1"},
@@ -3959,25 +3960,25 @@ done <<< 2`,
 		"bar=value\n",
 	},
 	// Namerefs are followed on every path which reads or writes a variable.
-	{"g() { local -n r=$1; r=v; }; f() { local x=l; g x; echo $x; }; f", "l\n #IGNORE scoping differs from bash"},
+	{"g() { local -n r=$1; r=v; }; f() { local x=l; g x; echo $x; }; f", "v\n"},
 	{"arr=(x y z); declare -n r=arr; r[2]=Z; echo \"${arr[@]}\"", "x y Z\n"},
-	{"a=3; declare -n r=a; echo $((r+1)); ((r++)); echo $a", "1\n3\n #IGNORE scoping differs from bash"},
-	{"declare -n r=x; x=1; read r <<< 7; echo $x; mapfile -t r <<< 8; echo ${x[@]}", "1\n1\n #IGNORE scoping differs from bash"},
+	{"a=3; declare -n r=a; echo $((r+1)); ((r++)); echo $a", "4\n4\n"},
+	{"declare -n r=x; x=1; read r <<< 7; echo $x; mapfile -t r <<< 8; echo ${x[@]}", "7\n8\n"},
 	// A for loop makes a nameref refer to each word in turn.
-	{`a=1 b=2 x=0; declare -n r=x; for r in a b; do echo "$r"; done; declare -p r x`, "a\nb\ndeclare -- r=\"b\"\ndeclare -- x=\"0\"\n #IGNORE scoping differs from bash"},
-	{"declare -n r=x; x=1; unset r; echo \"[${x-unset}] [${r-unset}]\"; declare -p r", "[1] [unset]\ndeclare: r: not found\nexit status 1 #IGNORE scoping differs from bash"},
+	{`a=1 b=2 x=0; declare -n r=x; for r in a b; do echo "$r"; done; declare -p r x`, "1\n2\ndeclare -n r=\"b\"\ndeclare -- x=\"0\"\n"},
+	{"declare -n r=x; x=1; unset r; echo \"[${x-unset}] [${r-unset}]\"; declare -p r", "[unset] [unset]\ndeclare -n r=\"x\"\n"},
 	{"declare -n r=x; x=1; unset -n r; echo \"[${x-unset}] [${r-unset}]\"", "[1] [unset]\n"},
 	{
 		"declare -n r=x; x=1; readonly r; x=2; echo after",
-		"after\n #JUSTERR",
+		"x: readonly variable\nexit status 1 #JUSTERR",
 	},
 	{
 		"declare -n r=r; echo st=$?",
-		"st=0\n #JUSTERR",
+		"declare: r: nameref variable self references not allowed\nst=1\n #JUSTERR",
 	},
 	{
 		"declare -n r='a b'; echo st=$?",
-		"st=0\n #JUSTERR",
+		"declare: a b: invalid variable name for name reference\nst=1\n #JUSTERR",
 	},
 	{
 		"echo ${!@}-${!*}; set -- foo; echo ${!@}-${!*}-${!1}; foo=value; echo ${!@}-${!*}-${!1}",
@@ -4042,7 +4043,7 @@ done <<< 2`,
 	},
 	{
 		"declare -r foo=bar; export foo=",
-		"foo: readonly variable\nexit status 1 #JUSTERR",
+		"export: foo: readonly variable\nexit status 1 #JUSTERR",
 	},
 	{
 		"readonly foo=bar; foo=etc",
@@ -4151,7 +4152,7 @@ done <<< 2`,
 	},
 	{
 		"readonly i=0; declare i=2; echo st=$?",
-		"i: readonly variable\nst=1\n #JUSTERR",
+		"declare: i: readonly variable\nst=1\n #JUSTERR",
 	},
 
 	// globbing

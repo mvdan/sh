@@ -64,7 +64,7 @@ type Runner struct {
 
 	// writeEnv overlays [Runner.Env] so that we can write environment variables
 	// as an overlay.
-	writeEnv expand.WriteEnviron
+	writeEnv *overlayEnviron
 
 	// Dir specifies the working directory of the command, which must be an
 	// absolute path. It can only be set via [Dir].
@@ -1304,7 +1304,11 @@ func (r *Runner) subshell(background bool) *Runner {
 
 		origStdout: r.origStdout, // used for process substitutions
 	}
-	r2.writeEnv = newOverlayEnviron(r.writeEnv, background)
+	if background {
+		r2.writeEnv = r.writeEnv.clone()
+	} else {
+		r2.writeEnv = r.writeEnv.share()
+	}
 	// Funcs are copied, since they might be modified.
 	r2.Funcs = maps.Clone(r.Funcs)
 	r2.Vars = make(map[string]expand.Variable)

@@ -246,7 +246,7 @@ func (e *expander) arithmVar(expr syntax.ArithmExpr) (string, syntax.ArithmExpr,
 			return "", nil, 0, fmt.Errorf("%s[%s]: bad array subscript", name, lit)
 		}
 		var key string
-		if e.Env.Get(name).Kind == Associative {
+		if _, vr := e.Env.Get(name).Resolve(e.Env); vr.Kind == Associative {
 			var err error
 			if key, err = e.assocKey(pe.Index); err != nil {
 				return "", nil, 0, err
@@ -263,7 +263,11 @@ func (e *expander) arithmVar(expr syntax.ArithmExpr) (string, syntax.ArithmExpr,
 	if name == "" {
 		return "", nil, 0, fmt.Errorf("attempted assignment to non-variable")
 	}
-	str, _, err := e.varInd(e.Env.Get(name), idx)
+	vr := e.Env.Get(name)
+	if n, v := vr.Resolve(e.Env); n != "" {
+		name, vr = n, v
+	}
+	str, _, err := e.varInd(vr, idx)
 	return name, idx, atoi(str), err
 }
 

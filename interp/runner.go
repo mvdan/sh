@@ -252,12 +252,14 @@ func (e expandEnv) Get(name string) expand.Variable {
 }
 
 func (e expandEnv) Set(name string, vr expand.Variable) error {
-	return e.r.setVarErr(name, vr)
+	return e.r.setVarIn(name, vr, declPlain)
 }
 
 func (e expandEnv) Each(fn func(name string, vr expand.Variable) bool) {
 	e.r.writeEnv.Each(fn)
 }
+
+var _ expand.WriteEnviron = (*overlayEnviron)(nil)
 
 var todoPos syntax.Pos // for handlerCtx callers where we don't yet have a position
 
@@ -500,14 +502,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		if len(fields) == 0 {
 			for _, as := range cm.Assigns {
 				name := as.Name.Value
-
 				prev := r.lookupVar(name)
-				// Here we have a naked "foo=bar", so if we inherited a local var from a parent
-				// function we want to signal that we are modifying the parent var rather than
-				// creating a new local var via "local foo=bar".
-				// TODO: there is likely a better way to do this.
-				prev.Local = false
-
 				name, vr, err := r.assignVal(name, prev, as, "")
 				if err == nil {
 					err = r.setVar(name, vr)
@@ -544,44 +539,33 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			break
 		}
 
-		type restoreVar struct {
-			name string
-			vr   expand.Variable
-		}
-		var restores []restoreVar
-
-		for _, as := range cm.Assigns {
-			name := as.Name.Value
-			prev := r.lookupVar(name)
-			// Resolve any nameref so we can restore the original final value later on.
-			if n, v := prev.Resolve(r.writeEnv); n != "" {
-				name, prev = n, v
+		origEnv := r.writeEnv
+		if len(cm.Assigns) > 0 {
+			// Like Bash, prefix assignments form a temporary environment
+			// for the command, which a function sees as its caller's scope,
+			// and which each assignment after the first expands within.
+			temp := &overlayEnviron{parent: origEnv, kind: scopeTemp}
+			r.writeEnv = temp
+			for _, as := range cm.Assigns {
+				// The temporary variable starts from the string value,
+				// so that x+=y appends and arrays are replaced.
+				name, prev := r.resolveName(as.Name.Value)
+				scalar := expand.Variable{Set: prev.IsSet(), Kind: expand.String, Str: prev.String()}
+				name, vr, err := r.assignVal(name, scalar, as, "")
+				if err != nil {
+					continue
+				}
+				vr.Exported = true // always exported
+				// Like Bash, report any error and run the command anyway.
+				r.varErr(temp.set(name, vr))
 			}
-
-			// Like Bash, the temporary variable starts from the string
-			// value, so that x+=y appends and arrays are replaced.
-			scalar := prev
-			scalar.Kind, scalar.Str = expand.String, prev.String()
-			scalar.List, scalar.Indexes, scalar.Map = nil, nil, nil
-			name, vr, err := r.assignVal(name, scalar, as, "")
-			if err != nil {
-				continue
-			}
-			// Inline command vars are always exported.
-			vr.Exported = true
-
-			restores = append(restores, restoreVar{name, prev})
-
-			r.setVar(name, vr)
 		}
 
 		trace.call(fields[0], fields[1:]...)
 		trace.newLineFlush()
 
 		r.call(ctx, cm.Args[0].Pos(), fields)
-		for _, restore := range restores {
-			r.setVar(restore.name, restore.vr)
-		}
+		r.writeEnv = origEnv
 	case *syntax.BinaryCmd:
 		switch cm.Op {
 		case syntax.AndStmt, syntax.OrStmt:
@@ -715,7 +699,14 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 
 			for _, field := range items {
-				if r.setVarString(name, field) != nil {
+				var err error
+				if vr := r.lookupVar(name); vr.Kind == expand.NameRef {
+					// Like Bash, a nameref refers to each word in turn.
+					err = r.setNameRef(name, vr, field)
+				} else {
+					err = r.setVar(name, expand.Variable{Set: true, Exported: vr.Exported, Kind: expand.String, Str: field})
+				}
+				if err != nil {
 					r.exit.code = 1
 					break
 				}
@@ -797,23 +788,25 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			r.exit.code = 1
 		}
 	case *syntax.DeclClause:
-		local, global := false, false
+		scope := declPlain
 		named := false
 		var modes []string
 		valType := ""
 		declQuery := "" // "-f" or "-p" for query mode
 		switch cm.Variant.Value {
-		case "declare":
+		case "declare", "typeset":
 			// When used in a function, "declare" acts as "local"
 			// unless the "-g" option is used.
-			local = r.inFunc
+			if r.inFunc {
+				scope = declLocal
+			}
 		case "local":
 			if !r.inFunc {
 				r.errf("local: can only be used in a function\n")
 				r.exit.code = 1
 				return
 			}
-			local = true
+			scope = declLocal
 		case "export":
 			modes = append(modes, "-x")
 		case "readonly":
@@ -821,17 +814,19 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		case "nameref":
 			valType = "-n"
 		}
-	assignLoop:
 		for as := range r.flattenAssigns(cm.Args) {
+			// Like Bash, flags are only parsed before the first name.
 			fp := flagParser{remaining: []string{as.Name.Value}}
-			for fp.more() {
+			isFlag := false
+			for !named && fp.more() {
+				isFlag = true
 				switch flag := fp.flag(); flag {
 				case "-x", "-r":
 					modes = append(modes, flag)
 				case "-a", "-A", "-n":
 					valType = flag
 				case "-g":
-					global = true
+					scope = declGlobal
 				case "-f", "-p":
 					declQuery = flag
 				default:
@@ -839,14 +834,16 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 					r.exit.code = 2
 					return
 				}
-				continue assignLoop
+			}
+			if isFlag || len(fp.remaining) == 0 {
+				continue // flags, or the "--" ending them
 			}
 			named = true
 			name := as.Name.Value
 			if !syntax.ValidName(name) {
 				r.errf("declare: invalid name %q\n", name)
 				r.exit.code = 1
-				return
+				continue
 			}
 			if declQuery == "-f" {
 				// declare -f name: print function definition.
@@ -874,13 +871,17 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				continue
 			}
 			vr := r.lookupVar(name)
+			if as.Naked && valType != "-n" {
+				// Attributes apply to the variable a nameref refers to.
+				name, vr = r.resolveName(name)
+			}
+			// Like Bash, a new local variable starts without a value,
+			// inheriting only the export attribute.
+			newLocal := scope == declLocal && !r.writeEnv.localInFunc(name)
+			if newLocal {
+				vr = expand.Variable{Exported: vr.Exported}
+			}
 			if as.Naked {
-				// Like Bash, a new local variable starts without a value,
-				// inheriting only the export attribute.
-				newLocal := local && !global && !r.writeEnv.(*overlayEnviron).localInFunc(name)
-				if newLocal {
-					vr = expand.Variable{Exported: vr.Exported}
-				}
 				switch {
 				case valType == "-a" || valType == "-A":
 					var err error
@@ -901,10 +902,17 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 					continue
 				}
 			}
-			if global {
-				vr.Local = false
-			} else if local {
-				vr.Local = true
+			if vr.Kind == expand.NameRef {
+				switch {
+				case vr.Str == name:
+					r.errf("declare: %s: nameref variable self references not allowed\n", name)
+					r.exit.code = 1
+					continue
+				case !syntax.ValidName(vr.Str):
+					r.errf("declare: %s: invalid variable name for name reference\n", vr.Str)
+					r.exit.code = 1
+					continue
+				}
 			}
 			for _, mode := range modes {
 				switch mode {
@@ -914,7 +922,8 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 					vr.ReadOnly = true
 				}
 			}
-			if r.setVar(name, vr) != nil {
+			if err := r.setVarIn(name, vr, scope); err != nil {
+				r.errf("%s: %v\n", cm.Variant.Value, err)
 				r.exit.code = 1
 			}
 		}
@@ -998,15 +1007,14 @@ func (r *Runner) listDecls(local bool, modes []string, valType, declQuery string
 		// TODO: list variables and functions like Bash's `set` builtin.
 		return
 	}
-	oenv := r.writeEnv.(*overlayEnviron)
 	names := make(map[string]string) // normalized to original names
-	for name := range oenv.Each {
+	for name := range r.writeEnv.Each {
 		if syntax.ValidName(name) {
-			names[oenv.normalize(name)] = name
+			names[r.writeEnv.normalize(name)] = name
 		}
 	}
 	for _, name := range slices.Sorted(maps.Values(names)) {
-		if local && !oenv.localInFunc(name) {
+		if local && !r.writeEnv.localInFunc(name) {
 			continue
 		}
 		vr := r.lookupVar(name)
@@ -1395,9 +1403,8 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 		r.inFunc = true
 
 		// Functions run in a nested scope.
-		// Note that [Runner.exec] below does something similar.
 		origEnv := r.writeEnv
-		r.writeEnv = &overlayEnviron{parent: r.writeEnv, funcScope: true}
+		r.writeEnv = &overlayEnviron{parent: r.writeEnv, kind: scopeFunc}
 
 		r.stmt(ctx, body)
 
