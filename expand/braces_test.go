@@ -56,6 +56,52 @@ var braceTests = []struct {
 		litWords("ab", "ac"),
 	},
 	{
+		// Bash treats a closing brace before any comma as literal; see #1435.
+		litWord("{foo},1}"),
+		litWords("{foo},1}"),
+	},
+	{
+		// Bash treats a closing brace before any comma as literal; see #1435.
+		litWord("{a},b}"),
+		litWords("{a},b}"),
+	},
+	{
+		// Bash treats a closing brace before any comma as literal; see #1435.
+		litWord("{{a}},b}"),
+		litWords("{{a}},b}"),
+	},
+	{
+		// Bash treats a closing brace before any comma as literal; see #1435.
+		litWord("{a..},b}"),
+		litWords("{a..},b}"),
+	},
+	{
+		// Bash treats a closing brace before any comma as literal; see #1435.
+		litWord("x{a},b}"),
+		litWords("x{a},b}"),
+	},
+	{
+		litWord("{x{a},b}"),
+		litWords("x{a}", "b"),
+	},
+	{
+		litWord("{a..c},d}"),
+		litWords("a,d}", "b,d}", "c,d}"),
+	},
+	{
+		litWord("{},a}"),
+		litWords("{},a}"),
+	},
+	{
+		// Bash treats a closing brace before any comma as literal; see #1435.
+		litWord("x{},a}"),
+		litWords("x{},a}"),
+	},
+	{
+		litWord("{a,b}{},c}"),
+		litWords("a{},c}", "b{},c}"),
+	},
+	{
 		litWord("a{à,世界}"),
 		litWords("aà", "a世界"),
 	},
@@ -198,6 +244,20 @@ var braceTests = []struct {
 	{
 		litWord("a{1..2..3..4}"),
 		litWords("a{1..2..3..4}"),
+	},
+	{
+		// Bash keeps a malformed sequence as is, along with any braces within.
+		litWord("{1..2{a,b}}"),
+		litWords("{1..2a}", "{1..2b}"),
+	},
+	{
+		litWord("{x..2{a,b}}"),
+		litWords("{x..2a}", "{x..2b}"),
+	},
+	{
+		// Bash keeps a malformed sequence as is, along with any braces within.
+		litWord("{a.{x,y}..b}"),
+		litWords("{a.x..b}", "{a.y..b}"),
 	},
 	{
 		litWord("{9223372036854775806..9223372036854775807}"),
