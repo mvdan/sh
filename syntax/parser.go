@@ -577,6 +577,7 @@ const bufSize = 1 << 10
 // maxNesting is how deeply statements, words, and expressions may be nested,
 // so that a small input cannot overflow the Go stack when recursively parsing
 // or walking the syntax tree. Bash fails at a few thousand nested subshells.
+// [SplitBraces] applies it to brace expansions too.
 const maxNesting = 10_000
 
 // enterNode increments [Parser.openNodes], failing if [maxNesting] is exceeded.

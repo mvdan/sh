@@ -75,6 +75,7 @@ func bracesSeq(word *syntax.Word, yield func(w *syntax.Word, depth int, err erro
 // maxBraceDepth is how many brace expansions may apply to each word,
 // nested like {a,{b,c}} or in a row like {a,b}{c,d},
 // so that a long word cannot overflow the Go stack.
+// [syntax.SplitBraces] splits one level deeper, so that this error is reported.
 const maxBraceDepth = 10_000
 
 // braceRest is a linked list of the word parts left to expand
