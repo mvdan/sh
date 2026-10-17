@@ -469,17 +469,32 @@ func (*CStyleLoop) loopNode() {}
 // for clause. If InPos is an invalid position, the "in" token was missing, so
 // the iteration is over the shell's positional parameters.
 type WordIter struct {
+	// TODO(v4): join these, even if it's mildly annoying to non-Zsh users.
+
+	// Only one of these is set at a time.
 	Name  *Lit
+	Names []*Lit // When iterating with many names with [LangZsh].
+
 	InPos Pos // position of "in"
 	Items []*Word
 }
 
-func (w *WordIter) Pos() Pos { return w.Name.Pos() }
+func (w *WordIter) Pos() Pos {
+	if len(w.Names) > 0 {
+		return w.Names[0].Pos()
+	}
+	return w.Name.Pos()
+}
+
 func (w *WordIter) End() Pos {
 	if len(w.Items) > 0 {
 		return wordLastEnd(w.Items)
 	}
-	return posMax(w.Name.End(), posAddCol(w.InPos, 2))
+	last := w.Name
+	if len(w.Names) > 0 {
+		last = w.Names[len(w.Names)-1]
+	}
+	return posMax(last.End(), posAddCol(w.InPos, 2))
 }
 
 // CStyleLoop represents the behavior of a for clause similar to the C

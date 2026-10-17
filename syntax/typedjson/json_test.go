@@ -87,8 +87,8 @@ coproc foo
 [[ ! (foo && -n bar) ]]
 # comment
 `},
-		// FlagsArithm and CallArithm only appear with zsh.
-		{syntax.LangZsh, "echo ${a[(r)foo]} $((abs(-1)))\n"},
+		// FlagsArithm, CallArithm, and multi-name for loops only appear with zsh.
+		{syntax.LangZsh, "echo ${a[(r)foo]} $((abs(-1)))\nfor a b in x y; do foo; done\n"},
 		// TestDecl only appears with bats.
 		{syntax.LangBats, "@test \"name\" {\n\tfoo\n}\n"},
 	}

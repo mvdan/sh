@@ -982,7 +982,17 @@ func (p *Printer) cmdSubst(cs *CmdSubst) {
 func (p *Printer) loop(loop Loop) {
 	switch loop := loop.(type) {
 	case *WordIter:
-		p.writeLit(loop.Name.Value)
+		if loop.Name != nil {
+			p.writeLit(loop.Name.Value)
+		} else {
+			for i, name := range loop.Names {
+				if i > 0 {
+					p.space()
+					p.bslashNewlIfWanted(name.Pos())
+				}
+				p.writeLit(name.Value)
+			}
+		}
 		if loop.InPos.IsValid() {
 			p.spacedString(" in", Pos{})
 			p.wordJoin(loop.Items)

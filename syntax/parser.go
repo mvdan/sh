@@ -2564,6 +2564,14 @@ func (p *Parser) wordIter(ftok string, fpos Pos) *WordIter {
 	if wi.Name = p.getLit(); wi.Name == nil {
 		p.followErr(fpos, ftok, noQuote("a literal"))
 	}
+	for ftok == "for" && p.tok == _LitWord && ValidName(p.val) && !IsKeyword(p.val) {
+		if wi.Names == nil {
+			p.checkLang(fpos, LangZsh, "multi-name for loops")
+			wi.Names = []*Lit{wi.Name}
+			wi.Name = nil
+		}
+		wi.Names = append(wi.Names, p.getLit())
+	}
 	if p.got(semicolon) {
 		p.got(_Newl)
 		return wi

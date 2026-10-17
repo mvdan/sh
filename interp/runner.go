@@ -680,6 +680,11 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 	case *syntax.ForClause:
 		switch y := cm.Loop.(type) {
 		case *syntax.WordIter:
+			if y.Name == nil { // e.g. zsh's multi-name for loops
+				r.errf("unsupported\n")
+				r.exit.code = 1
+				break
+			}
 			name := y.Name.Value
 			items := r.Params // for i; do ...
 

@@ -601,6 +601,48 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{
+			"for a b c; do foo; done",
+			"for a b c do foo; done",
+			"for a b c\ndo foo\ndone",
+			"for a b c in; do foo; done",
+		},
+		langFile(&ForClause{
+			Loop: &WordIter{Names: lits("a", "b", "c")},
+			Do:   litStmts("foo"),
+		}, LangZsh),
+		langErr2("1:1: multi-name for loops are a zsh feature; tried parsing as LANG", LangPOSIX|LangBash|LangMirBSDKorn),
+	),
+	fileTest(
+		[]string{
+			"for a b in 1 2 3; do echo $a $b; done",
+			"for a b #foo\n\tin 1 2 3\ndo echo $a $b\ndone",
+		},
+		langFile(&ForClause{
+			Loop: &WordIter{
+				Names: lits("a", "b"),
+				Items: litWords("1", "2", "3"),
+			},
+			Do: stmts(call(
+				litWord("echo"),
+				word(litParamExp("a")),
+				word(litParamExp("b")),
+			)),
+		}, LangZsh),
+		langErr2("1:1: multi-name for loops are a zsh feature; tried parsing as LANG", LangPOSIX|LangBash|LangMirBSDKorn),
+	),
+	fileTest(
+		[]string{"for a b \\\n\tc in x; do foo; done"},
+		langFile(&ForClause{
+			Loop: &WordIter{
+				Names: lits("a", "b", "c"),
+				Items: litWords("x"),
+			},
+			Do: litStmts("foo"),
+		}, LangZsh),
+		langErr2("1:1: multi-name for loops are a zsh feature; tried parsing as LANG", LangPOSIX|LangBash|LangMirBSDKorn),
+	),
+	fileTest(
+		[]string{
 			"for ((i = 0; i < 10; i++)); do echo $i; done",
 			"for ((i=0;i<10;i++)) do echo $i; done",
 			"for (( i = 0 ; i < 10 ; i++ ))\ndo echo $i\ndone",
