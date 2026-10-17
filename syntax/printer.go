@@ -1478,6 +1478,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.advanceLine(cmd.Body.Pos().Line())
 		p.comments(cmd.Body.Comments...)
 		p.stmt(cmd.Body)
+		p.wordJoin(cmd.Args)
 	case *CaseClause:
 		p.w.WriteString("case ")
 		p.word(cmd.Word)

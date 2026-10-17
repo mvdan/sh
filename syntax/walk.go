@@ -85,6 +85,7 @@ func Walk(node Node, f func(Node) bool) {
 		walkNilable(node.Name, f)
 		walkList(node.Names, f)
 		Walk(node.Body, f)
+		walkList(node.Args, f)
 	case *Word:
 		walkList(node.Parts, f)
 	case *Lit:

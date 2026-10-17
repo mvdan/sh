@@ -3090,5 +3090,29 @@ func (p *Parser) funcDecl(s *Stmt, pos Pos, long, withParens bool, names ...*Lit
 	if fd.Body = p.getStmt(false, false, true); fd.Body == nil {
 		p.followErr(fd.Pos(), "foo()", noQuote("a statement"))
 	}
+	if len(names) == 0 && p.lang.in(LangZsh) {
+		p.anonFuncArgs(s, fd)
+	}
 	s.Cmd = fd
+}
+
+// anonFuncArgs parses the words following a zsh anonymous function body,
+// which are its arguments. Redirects may be mixed with them.
+func (p *Parser) anonFuncArgs(s *Stmt, fd *FuncDecl) {
+	for !p.stopToken() {
+		switch {
+		case p.peekRedir():
+			p.doRedirect(s)
+			continue
+		case p.tok == _LitWord && p.val == "}":
+			return // zsh does not require a semicolon to close a block
+		case p.tok == leftParen && p.r == ')':
+			return
+		}
+		w := p.getWord()
+		if w == nil {
+			return
+		}
+		fd.Args = append(fd.Args, w)
+	}
 }

@@ -520,6 +520,9 @@ type BinaryCmd struct {
 func (b *BinaryCmd) Pos() Pos { return b.X.Pos() }
 func (b *BinaryCmd) End() Pos { return b.Y.End() }
 
+// TODO(v4): consider a separate node for anonymous funcs, which run
+// immediately with Args rather than declaring anything.
+
 // FuncDecl represents the declaration of a function.
 type FuncDecl struct {
 	Position Pos
@@ -533,10 +536,19 @@ type FuncDecl struct {
 	Names []*Lit // When declaring many func names with [LangZsh].
 
 	Body *Stmt
+
+	// Args are the arguments to an anonymous func with [LangZsh],
+	// which runs immediately.
+	Args []*Word
 }
 
 func (f *FuncDecl) Pos() Pos { return f.Position }
-func (f *FuncDecl) End() Pos { return f.Body.End() }
+func (f *FuncDecl) End() Pos {
+	if len(f.Args) > 0 {
+		return wordLastEnd(f.Args)
+	}
+	return f.Body.End()
+}
 
 // Word represents a shell word, containing one or more word parts contiguous to
 // each other. The word is delimited by word boundaries, such as spaces,

@@ -1017,6 +1017,72 @@ var fileTests = []fileTestCase{
 		langErr2("1:1: anonymous functions are a zsh feature; tried parsing as LANG", LangBash|LangMirBSDKorn),
 	),
 	fileTest(
+		[]string{"() { a; } b c", "() { a } b c", "() {\na\n} b c"},
+		langFile(&FuncDecl{
+			Parens: true,
+			Body:   stmt(block(litStmt("a"))),
+			Args:   litWords("b", "c"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{`function { a; } "$@"`, `function { a } "$@"`},
+		langFile(&FuncDecl{
+			RsrvWord: true,
+			Body:     stmt(block(litStmt("a"))),
+			Args:     []*Word{word(dblQuoted(litParamExp("@")))},
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"() (a) b"},
+		langFile(&FuncDecl{
+			Parens: true,
+			Body:   stmt(subshell(litStmt("a"))),
+			Args:   litWords("b"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"() { a; } b c >d", "() { a; } b >d c"},
+		langFile(&Stmt{
+			Cmd: &FuncDecl{
+				Parens: true,
+				Body:   stmt(block(litStmt("a"))),
+				Args:   litWords("b", "c"),
+			},
+			Redirs: []*Redirect{{Op: RdrOut, Word: litWord("d")}},
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"function { a; } b >c"},
+		langFile(&Stmt{
+			Cmd: &FuncDecl{
+				RsrvWord: true,
+				Body:     stmt(block(litStmt("a"))),
+				Args:     litWords("b"),
+			},
+			Redirs: []*Redirect{{Op: RdrOut, Word: litWord("c")}},
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"() { a; } b && c", "() { a } b&&c"},
+		langFile(&BinaryCmd{
+			Op: AndStmt,
+			X: stmt(&FuncDecl{
+				Parens: true,
+				Body:   stmt(block(litStmt("a"))),
+				Args:   litWords("b"),
+			}),
+			Y: litStmt("c"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"{ () { a; } b; }", "{ () { a } b }"},
+		langFile(block(stmt(&FuncDecl{
+			Parens: true,
+			Body:   stmt(block(litStmt("a"))),
+			Args:   litWords("b"),
+		})), LangZsh),
+	),
+	fileTest(
 		[]string{"a=b foo=$bar foo=start$bar"},
 		langFile(&CallExpr{
 			Assigns: []*Assign{
