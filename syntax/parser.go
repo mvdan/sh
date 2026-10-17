@@ -2296,13 +2296,9 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			if p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
 				p.bashFuncDecl(s)
 			}
-		case "declare":
-			if p.lang.in(langBashLike | LangZsh) { // Note that mksh lacks this one.
-				p.declClause(s)
-			}
-		case "local", "export", "readonly", "typeset", "nameref":
-			if p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
-				p.declClause(s)
+		case "declare", "local", "export", "readonly", "typeset", "nameref":
+			if p.isDeclKeyword() {
+				p.declClause(s, nil)
 			}
 		case "time":
 			if p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
@@ -2819,8 +2815,18 @@ func (p *Parser) testExprUnary() TestExpr {
 	}
 }
 
-func (p *Parser) declClause(s *Stmt) {
-	ds := &DeclClause{Variant: p.lit(p.pos, p.val)}
+func (p *Parser) isDeclKeyword() bool {
+	switch p.val {
+	case "declare":
+		return p.lang.in(langBashLike | LangZsh) // Note that mksh lacks this one.
+	case "local", "export", "readonly", "typeset", "nameref":
+		return p.lang.in(langBashLike | LangMirBSDKorn | LangZsh)
+	}
+	return false
+}
+
+func (p *Parser) declClause(s *Stmt, assigns []*Assign) {
+	ds := &DeclClause{Variant: p.lit(p.pos, p.val), Assigns: assigns}
 	p.next()
 	for !p.stopToken() && !p.peekRedir() {
 		if p.hasValidIdent() {
@@ -2989,6 +2995,11 @@ loop:
 				ce.Assigns = append(ce.Assigns, p.getAssign(true))
 				break
 			}
+			if len(ce.Args) == 0 && p.isDeclKeyword() {
+				p.checkInlineAssigns(ce.Assigns)
+				p.declClause(s, ce.Assigns)
+				return
+			}
 			// Avoid failing later with the confusing "} can only be used to close a block".
 			if p.val == "{" && w != nil && w.Lit() == "function" {
 				p.checkLang(p.pos, langBashLike, `the "function" builtin`)
@@ -3042,13 +3053,17 @@ loop:
 	if len(ce.Args) == 0 {
 		ce.Args = nil
 	} else {
-		for _, asgn := range ce.Assigns {
-			if asgn.Index != nil || asgn.Array != nil {
-				p.posErr(asgn.Pos(), "inline variables cannot be arrays")
-			}
-		}
+		p.checkInlineAssigns(ce.Assigns)
 	}
 	s.Cmd = ce
+}
+
+func (p *Parser) checkInlineAssigns(assigns []*Assign) {
+	for _, asgn := range assigns {
+		if asgn.Index != nil || asgn.Array != nil {
+			p.posErr(asgn.Pos(), "inline variables cannot be arrays")
+		}
+	}
 }
 
 func (p *Parser) funcDecl(s *Stmt, pos Pos, long, withParens bool, names ...*Lit) {

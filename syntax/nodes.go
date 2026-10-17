@@ -941,20 +941,32 @@ type ParenTest struct {
 func (p *ParenTest) Pos() Pos { return p.Lparen }
 func (p *ParenTest) End() Pos { return posAddCol(p.Rparen, 1) }
 
+// TODO(v4): keep prefix assignments in one place shared with [CallExpr]
+// and [LetClause], as "a=b let x" is still a CallExpr.
+
 // DeclClause represents a Bash declare clause.
 //
 // Args can contain a mix of regular and naked assignments. The naked
 // assignments can represent either options or variable names.
 //
-// This node will only appear with [LangBash].
+// This node will only appear with [LangBash], [LangMirBSDKorn], and [LangZsh].
 type DeclClause struct {
 	// Variant is one of "declare", "local", "export", "readonly",
 	// "typeset", or "nameref".
 	Variant *Lit
 	Args    []*Assign
+
+	// Assigns are prefix assignments like in [CallExpr.Assigns],
+	// such as the "a=x" in "a=x declare b=y".
+	Assigns []*Assign
 }
 
-func (d *DeclClause) Pos() Pos { return d.Variant.Pos() }
+func (d *DeclClause) Pos() Pos {
+	if len(d.Assigns) > 0 {
+		return d.Assigns[0].Pos()
+	}
+	return d.Variant.Pos()
+}
 func (d *DeclClause) End() Pos {
 	if len(d.Args) > 0 {
 		return d.Args[len(d.Args)-1].End()

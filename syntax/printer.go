@@ -378,6 +378,16 @@ func (p *Printer) bslashNewl() {
 	p.indent()
 }
 
+// bslashNewlIfWanted escapes a newline before pos within a command,
+// indenting the following line like [Printer.wordJoin] does.
+func (p *Printer) bslashNewlIfWanted(pos Pos) {
+	if p.wantsNewline(pos, true) {
+		p.incLevel()
+		p.bslashNewl()
+		p.decLevel()
+	}
+}
+
 func (p *Printer) spacedString(s string, pos Pos) {
 	p.spacePad(pos)
 	p.w.WriteString(s)
@@ -1515,7 +1525,11 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.decLevel()
 		p.spacedString("]]", cmd.Right)
 	case *DeclClause:
-		p.spacedString(cmd.Variant.Value, cmd.Pos())
+		if len(cmd.Assigns) > 0 {
+			p.assigns(cmd.Assigns)
+			p.bslashNewlIfWanted(cmd.Variant.Pos())
+		}
+		p.spacedString(cmd.Variant.Value, cmd.Variant.Pos())
 		p.assigns(cmd.Args)
 	case *TimeClause:
 		p.spacedString("time", cmd.Pos())

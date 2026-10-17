@@ -563,24 +563,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 
 		origEnv := r.writeEnv
 		if len(cm.Assigns) > 0 {
-			// Like Bash, prefix assignments form a temporary environment
-			// for the command, which a function sees as its caller's scope,
-			// and which each assignment after the first expands within.
-			temp := &overlayEnviron{parent: origEnv, kind: scopeTemp}
-			r.writeEnv = temp
-			for _, as := range cm.Assigns {
-				// The temporary variable starts from the string value,
-				// so that x+=y appends and arrays are replaced.
-				name, prev := r.resolveName(as.Name.Value)
-				scalar := expand.Variable{Set: prev.IsSet(), Kind: expand.String, Str: prev.String()}
-				name, vr, err := r.assignVal(name, scalar, as, "")
-				if err != nil {
-					continue
-				}
-				vr.Exported = true // always exported
-				// Like Bash, report any error and run the command anyway.
-				r.varErr(temp.set(name, vr))
-			}
+			r.writeEnv = r.prefixAssigns(cm.Assigns)
 		}
 
 		trace.call(fields[0], fields[1:]...)
@@ -848,6 +831,13 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			r.exit.code = 1
 		}
 	case *syntax.DeclClause:
+		// Like Bash, the arguments are expanded and assigned outside of
+		// the temporary environment, which only provides the values of
+		// the variables it holds.
+		var temp *overlayEnviron
+		if len(cm.Assigns) > 0 {
+			temp = r.prefixAssigns(cm.Assigns)
+		}
 		scope := declPlain
 		named := false
 		var modes []string
@@ -925,9 +915,12 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				}
 				continue
 			}
+			vr, inTemp := temp.own(name)
+			if !inTemp {
+				vr = r.lookupVar(name)
+			}
 			if declQuery == "-p" {
 				// declare -p name: print variable with attributes.
-				vr := r.lookupVar(name)
 				if !vr.Declared() {
 					r.errf("declare: %s: not found\n", name)
 					r.exit.code = 1
@@ -936,14 +929,20 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				r.printDeclare(name, vr)
 				continue
 			}
-			vr := r.lookupVar(name)
-			if as.Naked && valType != "-n" {
+			if inTemp {
+				// Like Bash, a temporary variable is discarded with its
+				// environment, unless it is exported, made read-only, or
+				// declared as a local variable which starts from its value.
+				if len(modes) == 0 && scope != declLocal {
+					continue
+				}
+			} else if as.Naked && valType != "-n" {
 				// Attributes apply to the variable a nameref refers to.
 				name, vr = r.resolveName(name)
 			}
 			// Like Bash, a new local variable starts without a value,
 			// inheriting only the export attribute.
-			newLocal := scope == declLocal && !r.writeEnv.localInFunc(name)
+			newLocal := scope == declLocal && !inTemp && !r.writeEnv.localInFunc(name)
 			if newLocal {
 				vr = expand.Variable{Exported: vr.Exported}
 			}
@@ -962,6 +961,8 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				case newLocal || !vr.Declared():
 					// Like Bash, declare a string variable without a value.
 					vr.Kind = expand.String
+				case inTemp:
+					// Keep the temporary value.
 				default:
 					vr.Kind = expand.KeepValue
 				}
@@ -1157,6 +1158,30 @@ func pipeElemInLoop(st *syntax.Stmt) bool {
 		return cm.Op == syntax.Pipe || cm.Op == syntax.PipeAll
 	}
 	return false
+}
+
+// prefixAssigns returns a temporary environment for a command's prefix
+// assignments. Like in Bash, a function sees it as its caller's scope,
+// and each assignment after the first expands within it.
+func (r *Runner) prefixAssigns(assigns []*syntax.Assign) *overlayEnviron {
+	parent := r.writeEnv
+	temp := &overlayEnviron{parent: parent, kind: scopeTemp}
+	r.writeEnv = temp
+	for _, as := range assigns {
+		// The temporary variable starts from the string value,
+		// so that x+=y appends and arrays are replaced.
+		name, prev := r.resolveName(as.Name.Value)
+		scalar := expand.Variable{Set: prev.IsSet(), Kind: expand.String, Str: prev.String()}
+		name, vr, err := r.assignVal(name, scalar, as, "")
+		if err != nil {
+			continue
+		}
+		vr.Exported = true // always exported
+		// Like Bash, report any error and run the command anyway.
+		r.varErr(temp.set(name, vr))
+	}
+	r.writeEnv = parent
+	return temp
 }
 
 func (r *Runner) flattenAssigns(args []*syntax.Assign) iter.Seq[*syntax.Assign] {

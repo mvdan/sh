@@ -143,6 +143,16 @@ func (o *overlayEnviron) Get(name string) expand.Variable {
 	return expand.Variable{}
 }
 
+// own returns the variable held by this scope, if any.
+// A nil scope holds no variables.
+func (o *overlayEnviron) own(name string) (expand.Variable, bool) {
+	if o == nil {
+		return expand.Variable{}, false
+	}
+	vr, ok := o.values[o.normalize(name)]
+	return vr.Variable, ok
+}
+
 // owner returns the scope which a plain assignment or unset of name applies
 // to: the innermost scope holding it, or else the innermost global scope.
 func (o *overlayEnviron) owner(name string) *overlayEnviron {

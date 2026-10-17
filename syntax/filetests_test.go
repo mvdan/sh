@@ -4845,9 +4845,10 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"a=b local c"},
-		langFile(&CallExpr{
+		langFile(&DeclClause{
+			Variant: lit("local"),
+			Args:    litAssigns("c"),
 			Assigns: litAssigns("a=b"),
-			Args:    litWords("local", "c"),
 		}, LangBash|LangMirBSDKorn|LangZsh),
 		langFile(&CallExpr{
 			Assigns: litAssigns("a=b"),
@@ -4856,10 +4857,15 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"IFS=: local x=($(echo a:b))"},
-		langErr2("1:15: a command can only contain words and redirects; encountered `(`", LangBash),
-		langErr2("1:27: the `local` builtin is a bash feature; tried parsing as LANG", LangZsh),
+		langFile(&DeclClause{
+			Variant: lit("local"),
+			Args: []*Assign{{
+				Name:  lit("x"),
+				Array: arrValues(word(cmdSubst(litStmt("echo", "a:b")))),
+			}},
+			Assigns: litAssigns("IFS=:"),
+		}, LangBash|LangZsh),
 		langErr2("1:15: the `local` builtin is a bash feature; tried parsing as LANG", LangPOSIX),
-		flipConfirm2(LangBash|LangZsh),
 	),
 	fileTest(
 		[]string{"declare -A foo=([a]=b)"},

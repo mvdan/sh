@@ -150,6 +150,7 @@ func Walk(node Node, f func(Node) bool) {
 	case *TestClause:
 		Walk(node.X, f)
 	case *DeclClause:
+		walkList(node.Assigns, f)
 		walkList(node.Args, f)
 	case *ArrayExpr:
 		walkList(node.Elems, f)
