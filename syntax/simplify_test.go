@@ -75,6 +75,8 @@ var simplifyTests = [...]simplifyTest{
 }
 
 var simplifyTestsZsh = [...]simplifyTest{
+	{"${a[1][$(((x)))]}", "${a[1][$((x))]}"},
+	noSimple("${a[1][x,$b]}"),
 	noSimple("echo $((f($i + 1, ($j))))"),
 	noSimple("${h[f($i + 1)]}"),
 	{"echo $((f(x) + $y))", "echo $((f(x) + y))"},

@@ -690,9 +690,14 @@ type ParamExp struct {
 	// or either of those in a [*DblQuoted]. Only possible with [LangZsh].
 	NestedParam WordPart
 
-	// TODO(v4): rename Index to Subscript, which better matches bash and zsh terminology
+	// TODO(v4): rename Index to Subscript, which better matches bash and zsh terminology,
+	// and merge it with Subscripts.
 
 	Index ArithmExpr // ${a[i]}, ${a["k"]}, or a ${a[i,j]} slice with [LangZsh]
+
+	// Subscripts holds any further subscripts after [ParamExp.Index],
+	// applied in order, as in ${a[1][2]}. Only possible with [LangZsh].
+	Subscripts []ArithmExpr
 
 	// Only one of these is set at a time.
 	// TODO(v4): consider joining these in a single "expansion" field/type,
@@ -711,7 +716,7 @@ func (p *ParamExp) simple() bool {
 	return p.Param != nil && p.Flags == nil &&
 		!p.Excl && !p.Length && !p.Width && !p.IsSet &&
 		p.Split == OptUnset && p.GlobSubst == OptUnset && p.RcExpand == OptUnset &&
-		p.NestedParam == nil && p.Index == nil &&
+		p.NestedParam == nil && p.Index == nil && len(p.Subscripts) == 0 &&
 		len(p.Modifiers) == 0 && p.Slice == nil &&
 		p.Repl == nil && p.Names == 0 && p.Exp == nil
 }

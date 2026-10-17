@@ -3133,6 +3133,47 @@ var fileTests = []fileTestCase{
 		langErr2("1:6: arrays are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
 	),
 	fileTest(
+		[]string{`${var[1][2]}`},
+		langFile(&ParamExp{
+			Param:      lit("var"),
+			Index:      litWord("1"),
+			Subscripts: []ArithmExpr{litWord("2")},
+		}, LangZsh),
+		langErr2("1:9: multiple subscripts are a zsh feature; tried parsing as LANG", LangBash|LangMirBSDKorn),
+		langErr2("1:6: arrays are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
+	),
+	fileTest(
+		[]string{`${var[(r)f*][1,2][-1]:-x}`},
+		langFile(&ParamExp{
+			Param: lit("var"),
+			Index: &FlagsArithm{
+				Flags: lit("r"),
+				X:     litWord("f*"),
+			},
+			Subscripts: []ArithmExpr{
+				&BinaryArithm{
+					Op: Comma,
+					X:  litWord("1"),
+					Y:  litWord("2"),
+				},
+				&UnaryArithm{
+					Op: Minus,
+					X:  litWord("1"),
+				},
+			},
+			Exp: &Expansion{Op: DefaultUnsetOrNull, Word: litWord("x")},
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{`${var[1][2]:u}`},
+		langFile(&ParamExp{
+			Param:      lit("var"),
+			Index:      litWord("1"),
+			Subscripts: []ArithmExpr{litWord("2")},
+			Modifiers:  []*Lit{lit("u")},
+		}, LangZsh),
+	),
+	fileTest(
 		[]string{`${a:(1):(2)}`},
 		langFile(&ParamExp{
 			Param: lit("a"),

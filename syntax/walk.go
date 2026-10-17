@@ -100,6 +100,7 @@ func Walk(node Node, f func(Node) bool) {
 		walkNilable(node.Param, f)
 		walkNilable(node.NestedParam, f)
 		walkNilable(node.Index, f)
+		walkList(node.Subscripts, f)
 		if node.Slice != nil {
 			walkNilable(node.Slice.Offset, f)
 			walkNilable(node.Slice.Length, f)

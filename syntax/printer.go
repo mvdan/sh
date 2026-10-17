@@ -900,6 +900,9 @@ func (p *Printer) paramExp(pe *ParamExp) {
 		p.minify = saved
 	}
 	p.wroteIndex(pe.Index)
+	for _, sub := range pe.Subscripts {
+		p.wroteIndex(sub)
+	}
 	switch {
 	case len(pe.Modifiers) > 0:
 		for _, lit := range pe.Modifiers {

@@ -129,7 +129,7 @@ func namesExp(pe *syntax.ParamExp) bool {
 // of n, which may be a list like @ or a subscripted name like a[1], so
 // that any operators apply to that parameter.
 func (e *expander) resolveParam(pe *syntax.ParamExp) (param, error) {
-	if pe.Param == nil { // e.g. zsh's ${}
+	if pe.Param == nil || len(pe.Subscripts) > 0 { // e.g. zsh's ${} or ${a[1][2]}
 		return param{}, fmt.Errorf("unsupported")
 	}
 	p := e.lookupParam(pe, pe.Param.Value, pe.Index)

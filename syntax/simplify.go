@@ -67,6 +67,9 @@ func (s *simplifier) visit(node Node) {
 	case *ParamExp:
 		node.Index = s.removeParensArithm(node.Index)
 		s.markIndex(node.Index)
+		for _, sub := range node.Subscripts {
+			s.markIndex(sub)
+		}
 
 		if node.Slice == nil {
 			break

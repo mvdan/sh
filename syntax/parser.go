@@ -1619,6 +1619,12 @@ zshPrefixLoop:
 		p.pos = p.nextPos()
 		p.rune()
 		pe.Index = p.eitherIndex()
+		for p.r == '[' {
+			p.checkLang(p.nextPos(), LangZsh, "multiple subscripts")
+			p.pos = p.nextPos()
+			p.rune()
+			pe.Subscripts = append(pe.Subscripts, p.eitherIndex())
+		}
 	}
 	tokRune := p.r
 	p.pos = p.nextPos()
