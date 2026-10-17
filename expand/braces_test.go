@@ -223,6 +223,18 @@ var braceTests = []struct {
 		litWord("{a..z..9223372036854775807}"),
 		litWords("a"),
 	},
+	{
+		litWord("{a},b}"),
+		litWords("a}", "b"),
+	},
+	{
+		litWord("{{a}},b}"),
+		litWords("{a}}", "b"),
+	},
+	{
+		litWord("{a..},b}"),
+		litWords("a..}", "b"),
+	},
 }
 
 func TestBraces(t *testing.T) {
