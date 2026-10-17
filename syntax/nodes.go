@@ -766,7 +766,8 @@ func (a *ArithmCmd) End() Pos { return posAddCol(a.Right, 2) }
 
 // ArithmExpr represents all nodes that form arithmetic expressions.
 //
-// These are [*BinaryArithm], [*UnaryArithm], [*ParenArithm], [*FlagsArithm], and [*Word].
+// These are [*BinaryArithm], [*UnaryArithm], [*ParenArithm], [*FlagsArithm],
+// [*CallArithm], and [*Word].
 type ArithmExpr interface {
 	Node
 	arithmExprNode()
@@ -776,6 +777,7 @@ func (*BinaryArithm) arithmExprNode() {}
 func (*UnaryArithm) arithmExprNode()  {}
 func (*ParenArithm) arithmExprNode()  {}
 func (*FlagsArithm) arithmExprNode()  {}
+func (*CallArithm) arithmExprNode()   {}
 func (*Word) arithmExprNode()         {}
 
 // BinaryArithm represents a binary arithmetic expression.
@@ -847,6 +849,21 @@ func (z *FlagsArithm) End() Pos {
 	}
 	return posAddCol(z.Flags.End(), 1) // closing paren
 }
+
+// CallArithm represents a math function call in an arithmetic expression,
+// such as abs(-5) or atan(y, x). Each argument is an expression without
+// a top-level comma.
+//
+// This node will only appear with [LangZsh].
+type CallArithm struct {
+	Name           *Lit
+	Lparen, Rparen Pos
+
+	Args []ArithmExpr
+}
+
+func (c *CallArithm) Pos() Pos { return c.Name.Pos() }
+func (c *CallArithm) End() Pos { return posAddCol(c.Rparen, 1) }
 
 // CaseClause represents a case (switch) clause.
 type CaseClause struct {

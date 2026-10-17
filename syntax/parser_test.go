@@ -1148,6 +1148,26 @@ var errorCases = []errorCase{
 		flipConfirmAll, // note that we don't backtrack
 	),
 	errCase(
+		"echo $((abs (1)))",
+		langErr("1:13: not a valid arithmetic operator: `(`", LangZsh),
+	),
+	errCase(
+		"echo $((f(,1)))",
+		langErr("1:10: `(` must be followed by an expression", LangZsh),
+	),
+	errCase(
+		"echo $((f(1,)))",
+		langErr("1:12: `,` must be followed by an expression", LangZsh),
+	),
+	errCase(
+		"echo $((f(1 2)))",
+		langErr("1:10: reached LitWord without matching `(` with `)`", LangZsh),
+	),
+	errCase(
+		"echo $((f(1",
+		langErr("1:10: reached EOF without matching `(` with `)`", LangZsh),
+	),
+	errCase(
 		"echo $((a *))",
 		langErr("1:11: `*` must be followed by an expression"),
 	),

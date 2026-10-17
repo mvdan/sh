@@ -1068,6 +1068,17 @@ func (p *Printer) arithmExprRecurse(expr ArithmExpr, compact, spacePlusMinus boo
 		if expr.X != nil {
 			p.arithmExprRecurse(expr.X, compact, false)
 		}
+	case *CallArithm:
+		p.w.WriteString(expr.Name.Value)
+		p.w.WriteByte('(')
+		for i, arg := range expr.Args {
+			if i > 0 {
+				p.w.WriteByte(',')
+				p.space()
+			}
+			p.arithmExprRecurse(arg, false, false)
+		}
+		p.w.WriteByte(')')
 	}
 }
 

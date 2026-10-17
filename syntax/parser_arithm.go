@@ -207,6 +207,10 @@ func (p *Parser) arithmExprValue(compact bool) ArithmExpr {
 		p.curErr("ternary operator missing %#q before %#q", quest, colon)
 	case _LitWord:
 		l := p.getLit()
+		if p.tok == leftParen && !p.spaced && ValidName(l.Value) {
+			x = p.callArithm(l)
+			break
+		}
 		if p.tok != leftBrack {
 			x = p.wordOne(l)
 			break
@@ -250,6 +254,31 @@ func (p *Parser) arithmExprValue(compact bool) ArithmExpr {
 		return u
 	}
 	return x
+}
+
+// callArithm parses a zsh math function call like atan(y, x),
+// whose arguments are separated by commas.
+func (p *Parser) callArithm(name *Lit) *CallArithm {
+	p.checkLang(p.pos, LangZsh, "math function calls")
+	ca := &CallArithm{Name: name, Lparen: p.pos}
+	p.enterNode()
+	p.nextArith(false)
+	sepTok, sepPos := leftParen, ca.Lparen
+	for p.tok != rightParen || len(ca.Args) > 0 {
+		arg := p.arithmExprAssign(false)
+		if arg == nil {
+			p.followErrExp(sepPos, sepTok)
+		}
+		ca.Args = append(ca.Args, arg)
+		if BinAritOperator(p.tok) != Comma {
+			break
+		}
+		sepTok, sepPos = p.tok, p.pos
+		p.nextArith(false)
+	}
+	p.leaveNode()
+	ca.Rparen = p.matched(ca.Lparen, leftParen, rightParen)
+	return ca
 }
 
 // nextArith consumes a token.

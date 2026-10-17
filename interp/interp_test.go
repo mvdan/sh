@@ -5741,6 +5741,8 @@ func TestRunnerUnsupported(t *testing.T) {
 		{syntax.LangZsh, "echo ${:-foo}", "unsupported\n"},
 		{syntax.LangZsh, "echo ${+a}", "unsupported\n"},
 		{syntax.LangZsh, "a=abc; echo ${a[(r)b]}", "unsupported\nexit status 1"},
+		{syntax.LangZsh, "echo $(( abs(-5) ))", "unsupported\nexit status 1"},
+		{syntax.LangZsh, "(( abs(-5) ))", "unsupported\nexit status 1"},
 		{syntax.LangZsh, "() { echo anon; }", "unsupported\nexit status 1"},
 		{syntax.LangZsh, "function { echo anon; }", "unsupported\nexit status 1"},
 		{syntax.LangZsh, "function f g { echo multi; }", "unsupported\nexit status 1"},

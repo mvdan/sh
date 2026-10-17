@@ -74,29 +74,40 @@ var simplifyTests = [...]simplifyTest{
 	noSimple(`foo""bar`),
 }
 
+var simplifyTestsZsh = [...]simplifyTest{
+	noSimple("echo $((f($i + 1, ($j))))"),
+	noSimple("${h[f($i + 1)]}"),
+	{"echo $((f(x) + $y))", "echo $((f(x) + y))"},
+}
+
 func TestSimplify(t *testing.T) {
 	t.Parallel()
-	parser := NewParser()
 	printer := NewPrinter()
-	for _, tc := range simplifyTests {
-		t.Run("", func(t *testing.T) {
-			prog, err := parser.Parse(strings.NewReader(tc.in), "")
-			if err != nil {
-				t.Fatal(err)
-			}
-			simplified := Simplify(prog)
-			var buf bytes.Buffer
-			printer.Print(&buf, prog)
-			want := tc.want + "\n"
-			if got := buf.String(); got != want {
-				t.Fatalf("Simplify mismatch of %q\nwant: %q\ngot:  %q",
-					tc.in, want, got)
-			}
-			if simplified && tc.in == tc.want {
-				t.Fatalf("returned true but did not simplify")
-			} else if !simplified && tc.in != tc.want {
-				t.Fatalf("returned false but did simplify")
-			}
-		})
+	for lang, tests := range map[LangVariant][]simplifyTest{
+		LangBash: simplifyTests[:],
+		LangZsh:  simplifyTestsZsh[:],
+	} {
+		parser := NewParser(Variant(lang))
+		for _, tc := range tests {
+			t.Run("", func(t *testing.T) {
+				prog, err := parser.Parse(strings.NewReader(tc.in), "")
+				if err != nil {
+					t.Fatal(err)
+				}
+				simplified := Simplify(prog)
+				var buf bytes.Buffer
+				printer.Print(&buf, prog)
+				want := tc.want + "\n"
+				if got := buf.String(); got != want {
+					t.Fatalf("Simplify mismatch of %q\nwant: %q\ngot:  %q",
+						tc.in, want, got)
+				}
+				if simplified && tc.in == tc.want {
+					t.Fatalf("returned true but did not simplify")
+				} else if !simplified && tc.in != tc.want {
+					t.Fatalf("returned false but did simplify")
+				}
+			})
+		}
 	}
 }

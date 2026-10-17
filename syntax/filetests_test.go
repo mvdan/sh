@@ -427,6 +427,60 @@ var fileTests = []fileTestCase{
 		langErr2("1:4: floating point arithmetic is a zsh feature; tried parsing as LANG", LangBash|LangMirBSDKorn),
 	),
 	fileTest(
+		[]string{"$((abs(-5)))"},
+		langFile(arithmExp(&CallArithm{
+			Name: lit("abs"),
+			Args: []ArithmExpr{&UnaryArithm{Op: Minus, X: litWord("5")}},
+		}), LangZsh),
+		langErr2("1:7: math function calls are a zsh feature; tried parsing as LANG", LangPOSIX|LangBash|LangMirBSDKorn),
+	),
+	fileTest(
+		[]string{"$((atan(1.0, x) * 4))", "$(( atan( 1.0 ,x )*4 ))", "$((atan(\n1.0,\nx\n)*4))"},
+		langFile(arithmExp(&BinaryArithm{
+			Op: Mul,
+			X: &CallArithm{
+				Name: lit("atan"),
+				Args: []ArithmExpr{litWord("1.0"), litWord("x")},
+			},
+			Y: litWord("4"),
+		}), LangZsh),
+	),
+	fileTest(
+		[]string{"((f()))", "(( f( ) ))"},
+		langFile(arithmCmd(&CallArithm{Name: lit("f")}), LangZsh),
+	),
+	fileTest(
+		[]string{"$((f(a = g(1), (b, c))))"},
+		langFile(arithmExp(&CallArithm{
+			Name: lit("f"),
+			Args: []ArithmExpr{
+				&BinaryArithm{
+					Op: Assgn,
+					X:  litWord("a"),
+					Y: &CallArithm{
+						Name: lit("g"),
+						Args: []ArithmExpr{litWord("1")},
+					},
+				},
+				parenArit(&BinaryArithm{
+					Op: Comma,
+					X:  litWord("b"),
+					Y:  litWord("c"),
+				}),
+			},
+		}), LangZsh),
+	),
+	fileTest(
+		[]string{"${a[abs(-2)]}"},
+		langFile(&ParamExp{
+			Param: lit("a"),
+			Index: &CallArithm{
+				Name: lit("abs"),
+				Args: []ArithmExpr{&UnaryArithm{Op: Minus, X: litWord("2")}},
+			},
+		}, LangZsh),
+	),
+	fileTest(
 		[]string{
 			"while a; do b; done",
 			"wh\\\nile a; do b; done",
@@ -6064,6 +6118,9 @@ func (c sanityChecker) visit(node Node) bool {
 		c.checkPos(node, node.Lparen, "(")
 		c.checkPos(node, node.Rparen, ")")
 	case *FlagsArithm:
+	case *CallArithm:
+		c.checkPos(node, node.Lparen, "(")
+		c.checkPos(node, node.Rparen, ")")
 	case *ParenTest:
 		c.checkPos(node, node.Lparen, "(")
 		c.checkPos(node, node.Rparen, ")")

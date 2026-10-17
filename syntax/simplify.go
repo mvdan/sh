@@ -27,8 +27,8 @@ func Simplify(n Node) bool {
 type simplifier struct {
 	modified bool
 
-	// keepParams holds arithmetic nodes within an array index;
-	// see [simplifier.markIndex].
+	// keepParams holds arithmetic nodes within an array index
+	// or a math function call; see [simplifier.markIndex].
 	keepParams map[ArithmExpr]bool
 }
 
@@ -58,6 +58,12 @@ func (s *simplifier) visit(node Node) {
 		s.markIndex(node.Index)
 	case *ArrayElem:
 		s.markIndex(node.Index)
+	case *CallArithm:
+		// Zsh math functions declared with "functions -s -M"
+		// take their argument as a string.
+		for _, arg := range node.Args {
+			s.markIndex(arg)
+		}
 	case *ParamExp:
 		node.Index = s.removeParensArithm(node.Index)
 		s.markIndex(node.Index)
