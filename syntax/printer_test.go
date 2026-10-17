@@ -512,6 +512,14 @@ var printTests = []printCase{
 		"a=b \\\nc=d \\\nfoo \\\nbar",
 		"a=b \\\n\tc=d \\\n\tfoo \\\n\tbar",
 	},
+	{
+		"a=b \\\nlocal c",
+		"a=b \\\n\tlocal c",
+	},
+	{
+		"a=b \\\nexport \\\nc=d",
+		"a=b \\\n\texport \\\n\tc=d",
+	},
 	samePrint("a $(x) \\\n\tb"),
 	samePrint("\"foo\nbar\"\netc"),
 	samePrint("\"foo\nbar\nbar2\"\netc"),

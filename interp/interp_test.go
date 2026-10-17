@@ -3130,6 +3130,11 @@ set +o pipefail
 	{"f() { x=3; }; x=1 f; echo \"[$x]\"", "[]\n"},
 	{"x=0; f() { echo \"in f: $x\"; x=3; g; }; g() { echo \"in g: $x\"; }; x=1 f; echo \"[$x]\"", "in f: 1\nin g: 3\n[0]\n"},
 	{"f() { echo \"$x\"; }; x=1; x=2 f; x+=3 f", "2\n13\n"},
+	// Including for declaration builtins.
+	{`x=1 declare -p x; echo "[$x]"`, "declare: unsupported builtin\n[]\n #IGNORE prefix assignments are not supported"},
+	{`x=1 declare y=2; echo "[$x] $y"`, "declare: unsupported builtin\n[] \n #IGNORE prefix assignments are not supported"},
+	{`x=1 export y=3; echo "[$x] $y"`, "export: unsupported builtin\n[] \n #IGNORE prefix assignments are not supported"},
+	{`f() { x=1 local x=2; echo "[$x]"; }; f`, "local: unsupported builtin\n[]\n #IGNORE prefix assignments are not supported"},
 	// A local declared under a temporary environment, like in eval or
 	// source, belongs to the function.
 	{`f() { x=1 eval 'local y=2; declare -a q=(1 2)'; echo "[$y]"; declare -p q; }; f; echo "[$y]"`, "[2]\ndeclare -a q=([0]=\"1\" [1]=\"2\")\n[]\n"},
