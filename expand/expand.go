@@ -115,6 +115,16 @@ func (u UnexpectedCommandError) Error() string {
 	return fmt.Sprintf("unexpected command substitution at %s", u.Node.Pos())
 }
 
+// UnexpectedProcessError is returned if a process substitution is encountered
+// when [Config.ProcSubst] is nil.
+type UnexpectedProcessError struct {
+	Node *syntax.ProcSubst
+}
+
+func (u UnexpectedProcessError) Error() string {
+	return fmt.Sprintf("unexpected process substitution at %s", u.Node.Pos())
+}
+
 // expander holds the state for a single expansion call with a copy of
 // a [Config], so that the caller's can be reused and shared by concurrent calls.
 type expander struct {
@@ -732,7 +742,7 @@ func (e *expander) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 
 func (e *expander) procSubst(ps *syntax.ProcSubst) (string, error) {
 	if e.ProcSubst == nil {
-		return "", fmt.Errorf("unexpected process substitution at %s", ps.Pos())
+		return "", UnexpectedProcessError{Node: ps}
 	}
 	return e.ProcSubst(ps)
 }
