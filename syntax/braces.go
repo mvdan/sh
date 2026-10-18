@@ -211,6 +211,7 @@ func (s *braceSplitter) split(from, to int) []WordPart {
 			s.depth--
 		}
 		if br != nil {
+			br.Lbrace, br.Rbrace = s.pos(t), s.pos(match)
 			if parts == nil {
 				parts = make([]WordPart, 0, 4)
 			}
@@ -329,6 +330,21 @@ func (s *braceSplitter) partAt(off int) int {
 	return k
 }
 
+// pos returns the position of token t, which must be within a literal.
+// Like [braceSplitter.appendLit], it is approximate after an escaped newline,
+// which is not part of a literal's value.
+func (s *braceSplitter) pos(t int) Pos {
+	off := s.toks[t].off
+	k := s.partAt(off)
+	lit := s.parts[k].(*Lit)
+	i := off - s.offs[k]
+	if i == len(lit.Value)-1 {
+		// A token ending the literal is placed from its end, which is exact.
+		return posAddCol(lit.ValueEnd, -1)
+	}
+	return posAddCol(lit.ValuePos, i)
+}
+
 // appendLit appends the parts making up the text between tokens from and to,
 // slicing any literals which are only partially included.
 func (s *braceSplitter) appendLit(parts []WordPart, from, to int) []WordPart {
@@ -349,6 +365,10 @@ func (s *braceSplitter) appendLit(parts []WordPart, from, to int) []WordPart {
 		if i > 0 || j < len(lit.Value) {
 			l2 := *lit
 			l2.Value = lit.Value[i:j]
+			l2.ValuePos = posAddCol(lit.ValuePos, i)
+			if j < len(lit.Value) {
+				l2.ValueEnd = posAddCol(lit.ValuePos, j)
+			}
 			lit = &l2
 		}
 		parts = append(parts, lit)

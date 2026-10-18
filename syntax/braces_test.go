@@ -61,17 +61,17 @@ func TestSplitBracesPos(t *testing.T) {
 	tests := []struct {
 		in, want string
 	}{
-		{"foo{bar,baz}qux", `"foo"@1:1-1:16 {@1:?-1:17 ["bar"@1:1-1:16] ["baz"@1:1-1:16]} "qux"@1:1-1:16`},
+		{"foo{bar,baz}qux", `"foo"@1:1-1:4 {@1:4-1:13 ["bar"@1:5-1:8] ["baz"@1:9-1:12]} "qux"@1:13-1:16`},
 		{"{,a}", `{@1:1-1:5 [] ["a"@1:3-1:4]}`},
 		{"{a,}", `{@1:1-1:5 ["a"@1:2-1:3] []}`},
-		{"a{b,$x}c", `"a"@1:1-1:5 {@1:?-1:8 ["b"@1:1-1:5] [*syntax.ParamExp@1:5-1:7]} "c"@1:7-1:9`},
-		{"{1..3}", `{@1:?-1:8 ["1"@1:1-1:7] ["3"@1:1-1:7]}`},
-		{"{a,{b,c}}", `{@1:?-1:12 ["a"@1:1-1:10] [{@1:?-1:11 ["b"@1:1-1:10] ["c"@1:1-1:10]}]}`},
-		{"x{a,b}{c,d}", `"x"@1:1-1:12 {@1:?-1:13 ["a"@1:1-1:12] ["b"@1:1-1:12]} {@1:?-1:13 ["c"@1:1-1:12] ["d"@1:1-1:12]}`},
-		{"'{'{a,b}", `*syntax.SglQuoted@1:1-1:4 {@1:3-1:10 ["a"@1:4-1:9] ["b"@1:4-1:9]}`},
+		{"a{b,$x}c", `"a"@1:1-1:2 {@1:2-1:8 ["b"@1:3-1:4] [*syntax.ParamExp@1:5-1:7]} "c"@1:8-1:9`},
+		{"{1..3}", `{@1:1-1:7 ["1"@1:2-1:3] ["3"@1:5-1:6]}`},
+		{"{a,{b,c}}", `{@1:1-1:10 ["a"@1:2-1:3] [{@1:4-1:9 ["b"@1:5-1:6] ["c"@1:7-1:8]}]}`},
+		{"x{a,b}{c,d}", `"x"@1:1-1:2 {@1:2-1:7 ["a"@1:3-1:4] ["b"@1:5-1:6]} {@1:7-1:12 ["c"@1:8-1:9] ["d"@1:10-1:11]}`},
+		{"'{'{a,b}", `*syntax.SglQuoted@1:1-1:4 {@1:4-1:9 ["a"@1:5-1:6] ["b"@1:7-1:8]}`},
 		// Positions after an escaped newline are approximate, as a literal's
 		// value drops it, but the word still ends where the literal does.
-		{"a\\\n{b,c}", `"a"@1:1-2:6 {@1:?-2:7 ["b"@1:1-2:6] ["c"@1:1-2:6]}`},
+		{"a\\\n{b,c}", `"a"@1:1-1:2 {@1:2-2:6 ["b"@1:3-1:4] ["c"@1:5-1:6]}`},
 	}
 	for _, tc := range tests {
 		t.Run(tc.in, func(t *testing.T) {
@@ -79,12 +79,6 @@ func TestSplitBracesPos(t *testing.T) {
 			qt.Assert(t, qt.IsNil(err))
 			word := f.Stmts[0].Cmd.(*syntax.CallExpr).Args[0]
 			qt.Assert(t, qt.IsTrue(syntax.SplitBraces(word)))
-			if tc.in == "{,a}" || tc.in == "{a,}" {
-				// BraceExp derives its positions from its elements,
-				// panicking when the first or last element is empty,
-				// so the positions below are not reached.
-				defer func() { qt.Assert(t, qt.Not(qt.IsNil(recover()))) }()
-			}
 			qt.Assert(t, qt.Equals(dumpParts(word.Parts), tc.want))
 		})
 	}

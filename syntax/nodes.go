@@ -1138,17 +1138,14 @@ func (l *LetClause) End() Pos { return l.Exprs[len(l.Exprs)-1].End() }
 //
 // This node will only appear as a result of [SplitBraces].
 type BraceExp struct {
+	Lbrace, Rbrace Pos
+
 	Sequence bool // {x..y[..incr]} instead of {x,y[,...]}
 	Elems    []*Word
 }
 
-func (b *BraceExp) Pos() Pos {
-	return posAddCol(b.Elems[0].Pos(), -1)
-}
-
-func (b *BraceExp) End() Pos {
-	return posAddCol(wordLastEnd(b.Elems), 1)
-}
+func (b *BraceExp) Pos() Pos { return b.Lbrace }
+func (b *BraceExp) End() Pos { return posAddCol(b.Rbrace, 1) }
 
 // TestDecl represents the declaration of a Bats test function.
 type TestDecl struct {
