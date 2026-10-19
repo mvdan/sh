@@ -367,6 +367,13 @@ type bgProc struct {
 	// the process ID when the background statement started exactly one
 	// external program, and zero otherwise.
 	started chan int
+
+	// The fields below are only set for jobs; see jobs.go.
+
+	num    int                     // the job number, starting at 1
+	stmt   *syntax.Stmt            // the statement run in the background
+	cancel context.CancelCauseFunc // used by kill, as a job is a goroutine
+	hidden bool                    // disowned, or finished and reported
 }
 
 // newBgProc returns a background job with the next fake PID.
@@ -378,11 +385,10 @@ func (r *Runner) newBgProc() bgProc {
 	}
 }
 
-// bgProcID returns what $! expands to for the background job at index i,
+// bgProcID returns what $! expands to for a background job,
 // waiting for the job's report first when one is pending;
 // see [Runner.reportBgStart].
-func (r *Runner) bgProcID(i int) string {
-	bg := &r.bgProcs[i]
+func (r *Runner) bgProcID(bg *bgProc) string {
 	if bg.started != nil {
 		if pid := <-bg.started; pid != 0 {
 			bg.id = strconv.Itoa(pid)
@@ -393,15 +399,15 @@ func (r *Runner) bgProcID(i int) string {
 }
 
 // lookupBgProc finds a background job by a string that $! expanded to.
-func (r *Runner) lookupBgProc(arg string) (bgProc, bool) {
+func (r *Runner) lookupBgProc(arg string) (*bgProc, bool) {
 	// Iterate backwards so that, if the OS reused a PID,
 	// we find the most recent background job.
 	for i := range slices.Backward(r.bgProcs) {
-		if r.bgProcID(i) == arg {
-			return r.bgProcs[i], true
+		if bg := &r.bgProcs[i]; r.bgProcID(bg) == arg {
+			return bg, true
 		}
 	}
-	return bgProc{}, false
+	return nil, false
 }
 
 type alias struct {
@@ -1020,6 +1026,10 @@ const (
 // multiple programs non-incrementally. Not calling Reset between each run will
 // mean that the shell state will be kept, including variables, options, and the
 // current directory.
+//
+// Background jobs keep running, like those of a shell which exited, but they
+// are no longer known to builtins such as jobs or kill. To stop or join them,
+// cancel the context given to [Runner.Run] and call [Runner.WaitBackground].
 func (r *Runner) Reset() {
 	if !r.usedNew {
 		panic("use interp.New to construct a Runner")

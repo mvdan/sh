@@ -337,7 +337,7 @@ func (r *Runner) lookupVar(name string) expand.Variable {
 		}
 	case "!":
 		if n := len(r.bgProcs); n > 0 {
-			vr.Kind, vr.Str = expand.String, r.bgProcID(n-1)
+			vr.Kind, vr.Str = expand.String, r.bgProcID(&r.bgProcs[n-1])
 		}
 	case "?":
 		vr.Kind, vr.Str = expand.String, strconv.Itoa(int(r.lastExit.code))

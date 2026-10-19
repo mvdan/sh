@@ -171,6 +171,15 @@ dispatch:
 		exit.code = 1
 	case "help":
 		return r.runHelp(args)
+	case "jobs":
+		return r.jobsBuiltin(args)
+	case "kill":
+		return r.killBuiltin(args)
+	case "disown":
+		return r.disownBuiltin(args)
+	case "fg", "bg":
+		// Like a non-interactive Bash, as nothing is ever stopped.
+		return failf(1, "%s: no job control\n", name)
 	case "times":
 		// js/wasm has no per-process CPU accounting at all, so report zeros
 		// in bash's format — shell user/sys, then children user/sys — rather
@@ -368,8 +377,11 @@ dispatch:
 		}
 		if len(args) == 0 {
 			// Note that "wait" without arguments always returns exit status zero.
-			for _, bg := range r.bgProcs {
-				<-bg.done
+			for i := range r.bgProcs {
+				if bg := &r.bgProcs[i]; !bg.hidden {
+					<-bg.done
+					bg.hidden = true
+				}
 			}
 			for _, done := range r.pipeProcSubsts {
 				<-done
@@ -378,12 +390,18 @@ dispatch:
 			break
 		}
 		for _, arg := range args {
-			bg, ok := r.lookupBgProc(arg)
-			if !ok {
+			var bg *bgProc
+			if strings.HasPrefix(arg, "%") {
+				var err error
+				if bg, err = r.findJob(arg); err != nil {
+					return failf(127, "wait: %v\n", err)
+				}
+			} else if bg, _ = r.lookupBgProc(arg); bg == nil {
 				return failf(1, "wait: pid %s is not a child of this shell\n", arg)
 			}
 			<-bg.done
 			exit = *bg.exit
+			bg.hidden = true
 		}
 	case "builtin":
 		if len(args) < 1 {

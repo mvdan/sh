@@ -242,8 +242,8 @@ var runTests = []runTest{
 	{"help -q", "help: -q: invalid option\nhelp: usage: help [-dms] [pattern ...]\nexit status 2 #IGNORE bash prefixes its errors with `bash: line N:'"},
 	// a builtin we recognize but do not implement is starred, so that help is
 	// an honest statement of what this shell can do
-	{"help -s jobs", "jobs: jobs [-lnprs] [jobspec ...]\n #IGNORE bash implements jobs, and its synopsis differs"},
-	{"help jobs", "jobs: jobs [-lnprs] [jobspec ...]\n    Display status of jobs.\n    (recognized by this shell but not implemented)\n\n #IGNORE bash implements jobs"},
+	{"help -s ulimit", "ulimit: ulimit [-SHabcdefiklmnpqrstuvxPRT] [limit]\n"},
+	{"help ulimit", "ulimit: ulimit [-SHabcdefiklmnpqrstuvxPRT] [limit]\n    Modify or display shell resource limits.\n    (recognized by this shell but not implemented)\n\n #IGNORE bash implements ulimit"},
 
 	// times
 	{"times", "0m0.000s 0m0.000s\n0m0.000s 0m0.000s\n #IGNORE we report zeros; bash reports real CPU time"},
@@ -2074,6 +2074,30 @@ read -r l <err; echo "$l"`,
 	// $! stays a fake PID here because runTests installs exec middleware;
 	// TestBackgroundRealPID covers the default exec handler.
 	{"sleep 0.01 & case $! in g*) echo fake ;; *) echo real ;; esac; wait", "fake\n #IGNORE bash uses real PIDs"},
+	{"{ { sleep 0.1; echo child-finished; } & } & wait; sleep 0.3", "child-finished\n"},
+
+	// job control
+	{"jobs", ""},
+	{"jobs -Z", "jobs: invalid option \"-Z\"\nexit status 2 #JUSTERR"},
+	{"sleep 10 & jobs; kill %1", "[1]+  Running                    sleep 10 &\n"},
+	{"sleep 10 & sleep 10 & jobs; kill %1 %2", "[1]-  Running                    sleep 10 &\n[2]+  Running                    sleep 10 &\n"},
+	{"sleep 10 & p=$!; jobs -p >out; kill %%; [[ $(<out) == \"$p\" ]]", ""},
+	{"sleep 10 & sleep 10 & kill %sleep; echo $?; kill %1 %2", "kill: sleep: ambiguous job spec\n1\n #JUSTERR"},
+	{"sleep 10 & sleep 10 & kill %+ %-; jobs %1; wait %1; echo $?", "[1]-  Running                    sleep 10 &\n143\n"},
+	{"sleep 10 & p=$!; kill $p; wait $p; echo $?", "143\n"},
+	{"sleep 10 & kill -s TERM %1; wait %1; echo $?", "143\n"},
+	{"sleep 10 & kill -n 1 %1; wait $!; echo $?", "129\n #IGNORE bash prints a Hangup message"},
+	{"sleep 10 & kill -0 %1; echo $?; kill %1", "0\n"},
+	{"false & while kill -0 $! 2>/dev/null; do sleep 0.01; done; jobs; jobs", "[1]+  Exit 1                     false\n"},
+	{"true & wait; sleep 10 & jobs; kill %%", "[2]+  Running                    sleep 10 &\n #IGNORE bash reuses job numbers"},
+	{"sleep 0.1 & disown; jobs; wait; echo $?; kill %1", "0\nkill: %1: no such job\nexit status 1 #JUSTERR"},
+	{"kill %9", "kill: %9: no such job\nexit status 1 #JUSTERR"},
+	{"kill 1", "kill: 1: no such job\nexit status 1 #IGNORE only our own jobs can be signalled"},
+	{"wait %9", "wait: %9: no such job\nexit status 127 #JUSTERR"},
+	{"kill", "kill: usage: kill [-s sigspec | -n signum | -sigspec] pid | jobspec ... or kill -l [sigspec]\nexit status 2 #JUSTERR"},
+	{"kill -l 9; kill -l TERM", "KILL\n15\n"},
+	{"kill -l NOPE; kill -STOP %1", "kill: NOPE: invalid signal specification\nkill: STOP: invalid signal specification\nexit status 1 #JUSTERR"},
+	{"fg; sleep 0.01 & bg", "fg: no job control\nbg: no job control\nexit status 1 #JUSTERR"},
 	// The parent and child shells should not cause data races when setting env vars.
 	// Note that we can't use `echo $var`, as it seems to write newlines separately,
 	// which can cause them to get mixed up between concurrent subshells.
@@ -6027,21 +6051,25 @@ var testBuiltinsMap = map[string]func(interp.HandlerContext, []string) error{
 		}
 		return nil
 	},
-	"sleep": func(hc interp.HandlerContext, args []string) error {
-		for _, arg := range args {
-			// assume and default unit to be in seconds
-			d, err := time.ParseDuration(fmt.Sprintf("%ss", arg))
-			if err != nil {
-				return err
-			}
-			time.Sleep(d)
-		}
-		return nil
-	},
 }
 
 func testExecHandler(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 	return func(ctx context.Context, args []string) error {
+		if args[0] == "sleep" { // stops when cancelled, like a killed program
+			for _, arg := range args[1:] {
+				// assume and default unit to be in seconds
+				d, err := time.ParseDuration(arg + "s")
+				if err != nil {
+					return err
+				}
+				select {
+				case <-time.After(d):
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+			}
+			return nil
+		}
 		if fn := testBuiltinsMap[args[0]]; fn != nil {
 			return fn(interp.HandlerCtx(ctx), args[1:])
 		}

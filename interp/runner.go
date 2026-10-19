@@ -348,6 +348,15 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 		st2.Disown = false
 		r2.bgDropHolds = true
 		bg := r.newBgProc()
+		bgCtx, cancel := context.WithCancelCause(ctx)
+		bg.stmt, bg.cancel, bg.hidden = &st2, cancel, st.Disown
+		bg.num = 1
+		for _, prev := range slices.Backward(r.bgProcs) {
+			if !prev.procSubst {
+				bg.num = prev.num + 1
+				break
+			}
+		}
 		// A plain command call may amount to starting exactly one external
 		// program, in which case $! expands to its real PID like in other
 		// shells, which fork background statements as child processes.
@@ -360,12 +369,18 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 		}
 		r.bgProcs = append(r.bgProcs, bg)
 		r.bgJobs.Go(func() {
-			r2.Run(ctx, &st2)
+			r2.Run(bgCtx, &st2)
 			r2.reportBgStart(0) // in case we didn't get to start a program
 			r2.exitSubshell()
 			r2.releaseHolds(0)
+			if sig, ok := context.Cause(bgCtx).(killSignal); ok {
+				r2.exit = exitStatus{code: 128 + uint8(sig)} // like Bash
+			}
 			*bg.exit = r2.exit
 			close(bg.done)
+			if len(r2.bgProcs) == 0 {
+				cancel(nil) // otherwise, the jobs it started keep running
+			}
 		})
 	} else {
 		r.stmtSync(ctx, st)
@@ -684,14 +699,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				// Its background jobs are not the parent shell's,
 				// but keep waiting on any process substitutions it started.
 				// Forget those which finished, to not grow without bound.
-				r.pipeProcSubsts = slices.DeleteFunc(r.pipeProcSubsts, func(done chan struct{}) bool {
-					select {
-					case <-done:
-						return true
-					default:
-						return false
-					}
-				})
+				r.pipeProcSubsts = slices.DeleteFunc(r.pipeProcSubsts, isDone)
 				for _, bg := range r3.bgProcs {
 					if bg.procSubst {
 						r.pipeProcSubsts = append(r.pipeProcSubsts, bg.done)
