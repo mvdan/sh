@@ -240,17 +240,25 @@ func TestWaitBackgroundProcSubstCleanup(t *testing.T) {
 	}
 }
 
-// TestWaitBackgroundENOEXEC checks that WaitBackground covers the background
-// jobs of a script without a shebang line, which runs in a nested shell.
-func TestWaitBackgroundENOEXEC(t *testing.T) {
+// TestBackgroundENOEXEC checks that the background jobs of a script without a
+// shebang line, which runs in a nested shell, are covered by WaitBackground and
+// keep using the files inherited from the caller.
+func TestBackgroundENOEXEC(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	script := filepath.Join(dir, "script")
-	qt.Assert(t, qt.IsNil(os.WriteFile(script, []byte("(sleep 0.1; echo late) &\n"), 0o755)))
-	var out bytes.Buffer
-	runner, err := interp.New(interp.StdIO(nil, &out, &out))
+	qt.Assert(t, qt.IsNil(os.WriteFile(script, []byte("(read x; echo late) &\n"), 0o755)))
+	pr, pw, err := os.Pipe()
 	qt.Assert(t, qt.IsNil(err))
-	qt.Assert(t, qt.IsNil(runner.Run(t.Context(), parse(t, nil, script))))
+	defer pr.Close()
+	runner, err := interp.New(interp.Dir(dir), interp.StdIO(pr, nil, nil))
+	qt.Assert(t, qt.IsNil(err))
+	qt.Assert(t, qt.IsNil(runner.Run(t.Context(), parse(t, nil, "{ ./script; } >out"))))
+	// The job only writes once the caller is done with the file.
+	pw.Close()
 	runner.WaitBackground()
-	qt.Assert(t, qt.Equals(out.String(), "late\n"))
+	out, err := os.ReadFile(filepath.Join(dir, "out"))
+	qt.Assert(t, qt.IsNil(err))
+	// The file is closed before the job writes to it.
+	qt.Assert(t, qt.Equals(string(out), ""))
 }

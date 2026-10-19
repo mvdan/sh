@@ -1015,6 +1015,48 @@ func TestWaitBackground(t *testing.T) {
 	}
 }
 
+// TestBackgroundInheritedFiles checks that a background job keeps using the
+// files opened by the redirections of its parents once they are done with them,
+// including once Run returns, and that the files are closed once the job is done.
+func TestBackgroundInheritedFiles(t *testing.T) {
+	t.Parallel()
+	scripts := []string{
+		"{ late & } >out",
+		"exec >out; late &",
+		"(exec >out; late &)",
+	}
+	for _, script := range scripts {
+		t.Run(script, func(t *testing.T) {
+			t.Parallel()
+			proceed := make(chan struct{})
+			late := func(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+				return func(ctx context.Context, args []string) error {
+					<-proceed
+					_, err := io.WriteString(interp.HandlerCtx(ctx).Stdout, "late\n")
+					return err
+				}
+			}
+			dir := t.TempDir()
+			var open atomic.Int64
+			runner, err := interp.New(
+				interp.Dir(dir),
+				interp.ExecHandlers(late),
+				interp.OpenHandler(countOpen(&open)),
+			)
+			qt.Assert(t, qt.IsNil(err))
+			qt.Assert(t, qt.IsNil(runner.Run(t.Context(), parse(t, nil, script))))
+			// The job only writes once the shell is done with the file.
+			close(proceed)
+			runner.WaitBackground()
+			qt.Assert(t, qt.Equals(open.Load(), int64(0)))
+			out, err := os.ReadFile(filepath.Join(dir, "out"))
+			qt.Assert(t, qt.IsNil(err))
+			// The file is closed before the job writes to it.
+			qt.Assert(t, qt.Equals(string(out), ""))
+		})
+	}
+}
+
 // TestWaitBackgroundSubshell checks that the output of a background job has
 // fully arrived once WaitBackground returns, that a copy made via Subshell
 // waits for its own jobs rather than its parent's, and that a reset keeps
