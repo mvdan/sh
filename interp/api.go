@@ -136,10 +136,9 @@ type Runner struct {
 	// substitutions. It must be non-nil.
 	procSubstHandler ProcSubstHandlerFunc
 
-	// procSubstUses counts the users which may still open each process
-	// substitution expanded by the statements being run here or by a parent:
-	// the statement itself, and any background subshells started meanwhile.
-	procSubstUses []*procSubstUse
+	// holds are held by the statements being run here or by a parent;
+	// see [stmtHold]. Only a background subshell acquires its own.
+	holds []*stmtHold
 
 	// procSubsts tracks this runner's active process substitutions;
 	// see [procSubstRegistry]. It must be non-nil.
@@ -224,6 +223,10 @@ type Runner struct {
 	// the runner reports through it once via [Runner.reportBgStart].
 	bgStarted chan int
 
+	// bgDropHolds is set on a background job until its statement has set
+	// its standard streams; see [Runner.dropUnusedHolds].
+	bgDropHolds bool
+
 	opts runnerOpts
 
 	origDir    string
@@ -248,7 +251,7 @@ type Runner struct {
 	// keptFiles holds the files opened by redirections which were kept
 	// by "exec", to be closed when the shell or subshell exits.
 	// TODO: close a file once "exec" replaces it, like other shells do.
-	keptFiles []io.Closer
+	keptFiles []*stmtHold
 
 	// Fake signal callbacks
 	callbackErr  string
@@ -1064,6 +1067,7 @@ func (r *Runner) Reset() {
 		procSubstHandler:     r.procSubstHandler,
 		procSubsts:           r.procSubsts,
 		bgJobs:               r.bgJobs,
+		holds:                r.holds, // only set mid-statement, for a nested shell
 
 		// These can be set by functions like [Dir] or [Params], but
 		// builtins can overwrite them; reset the fields to whatever the
@@ -1237,7 +1241,8 @@ func IsExitStatus(err error) (status uint8, ok bool) {
 // run.
 //
 // Run does not wait for background shells or process substitutions, which may
-// keep running and writing output after it returns; see [Runner.WaitBackground].
+// keep running after it returns, writing output and holding the files they
+// inherited open; see [Runner.WaitBackground].
 func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	if !r.didReset {
 		r.Reset()
@@ -1253,9 +1258,9 @@ func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 		r.stmt(ctx, node)
 		r.endDiscard()
 	case syntax.Command:
-		n := len(r.procSubstUses)
+		n := len(r.holds)
 		r.cmd(ctx, node)
-		r.releaseProcSubsts(n) // a bare Command bypasses stmt
+		r.releaseHolds(n) // a bare Command bypasses stmt
 		r.endDiscard()
 	default:
 		return fmt.Errorf("node can only be File, Stmt, or Command: %T", node)
@@ -1338,11 +1343,13 @@ func (r *Runner) WaitBackground() {
 func (r *Runner) Subshell() *Runner {
 	r2 := r.subshell(true)
 	r2.bgJobs = new(sync.WaitGroup)
+	r2.holds = nil // no statement is in progress, and a copy never releases
 	return r2
 }
 
 // subshell is like [Runner.Subshell], but allows skipping some allocations and copies
 // when creating subshells which will not be used concurrently with the parent shell.
+// A subshell which may outlive the current statement must use [Runner.bgSubshell].
 // TODO(v4): rename Subshell to Clone, making its deep copy explicit and
 // leaving room for exposing this cheaper variant under a name of its own,
 // if a use case for it ever appears.
@@ -1379,7 +1386,7 @@ func (r *Runner) subshell(background bool) *Runner {
 		callDepth:            r.callDepth,
 		evalDepth:            r.evalDepth,
 		stmtDepth:            r.stmtDepth,
-		procSubstUses:        slices.Clip(r.procSubstUses),
+		holds:                r.inheritedHolds(),
 
 		origStdout: r.origStdout, // used for process substitutions
 	}

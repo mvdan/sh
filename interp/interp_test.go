@@ -2068,18 +2068,9 @@ read -r l <err; echo "$l"`,
 	{"echo foo | false | true & wait $!", ""},
 	{"f() { false & true; }; f; wait $!", "exit status 1"},
 	// Background jobs keep using the files redirected by their parents.
-	{
-		"{ (sleep 0.01; echo foo) & } >a; wait; cat a",
-		" #IGNORE the file is closed while the job still runs",
-	},
-	{
-		"f() { (sleep 0.01; echo foo) & }; f >a; wait; cat a",
-		" #IGNORE the file is closed while the job still runs",
-	},
-	{
-		`{ (sleep 0.01; read x; echo "$x") & } <<< foo; wait`,
-		"\n #IGNORE the here-string is closed while the job still runs",
-	},
+	{"{ (sleep 0.01; echo foo) & } >a; wait; cat a", "foo\n"},
+	{"f() { (sleep 0.01; echo foo) & }; f >a; wait; cat a", "foo\n"},
+	{`{ (sleep 0.01; read x; echo "$x") & } <<< foo; wait`, "foo\n"},
 	// $! stays a fake PID here because runTests installs exec middleware;
 	// TestBackgroundRealPID covers the default exec handler.
 	{"sleep 0.01 & case $! in g*) echo fake ;; *) echo real ;; esac; wait", "fake\n #IGNORE bash uses real PIDs"},

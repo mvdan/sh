@@ -15,6 +15,7 @@ import (
 	"maps"
 	"math"
 	"os"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -93,14 +94,11 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			}
 			r.procSubsts.add(psf)
 
-			r2 := r.subshell(true)
-			r2.holdProcSubsts()
+			r2 := r.bgSubshell()
 			// Nothing may ever open the process substitution,
 			// so it is only waited on while it may still be used.
 			openCtx, cancel := context.WithCancel(ctx)
-			use := &procSubstUse{cancel: cancel}
-			use.users.Store(1) // released once the statement is done
-			r.procSubstUses = append(r.procSubstUses, use)
+			r.hold(cancelCloser(cancel), nil)
 			stdout := r.origStdout
 			// TODO: note that `man bash` mentions that `wait` only waits for the last
 			// process substitution as long as it is $!; the logic here would mean we wait for all of them.
@@ -112,7 +110,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 					*bg.exit = r2.exit
 					close(bg.done)
 				}()
-				defer r2.releaseProcSubsts(0)
+				defer r2.releaseHolds(0)
 				defer func() {
 					r.procSubsts.remove(psf)
 					if psf.Cleanup == nil {
@@ -147,6 +145,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 					// Should only happen if we forgot a case above.
 					panic(fmt.Sprintf("unexpected process substitution operator: %q", ps.Op))
 				}
+				r2.dropUnusedHolds(len(r2.holds))
 				r2.stmts(ctx, ps.Stmts)
 				r2.exitSubshell()
 			})
@@ -341,13 +340,13 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 	}
 	r.stmtDepth++
 	defer func() { r.stmtDepth-- }()
-	defer r.releaseProcSubsts(len(r.procSubstUses))
 	r.exit = exitStatus{}
 	if st.Background || st.Disown {
-		r2 := r.subshell(true)
+		r2 := r.bgSubshell()
 		st2 := *st
 		st2.Background = false
 		st2.Disown = false
+		r2.bgDropHolds = true
 		bg := r.newBgProc()
 		// A plain command call may amount to starting exactly one external
 		// program, in which case $! expands to its real PID like in other
@@ -360,12 +359,11 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 			r2.bgStarted = bg.started
 		}
 		r.bgProcs = append(r.bgProcs, bg)
-		r2.holdProcSubsts()
 		r.bgJobs.Go(func() {
 			r2.Run(ctx, &st2)
 			r2.reportBgStart(0) // in case we didn't get to start a program
 			r2.exitSubshell()
-			r2.releaseProcSubsts(0)
+			r2.releaseHolds(0)
 			*bg.exit = r2.exit
 			close(bg.done)
 		})
@@ -375,34 +373,85 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 	r.lastExit = r.exit
 }
 
-// procSubstUse counts the users which may still open a process substitution;
-// the last release cancels its subshell's attempt to open it.
-type procSubstUse struct {
+// stmtHold is a file opened by a redirection, or a process substitution which
+// may still be opened, shared by its statement, by exec, and by background
+// subshells. The last user to release it closes it.
+type stmtHold struct {
 	users  atomic.Int32
-	cancel context.CancelFunc
+	closer io.Closer
+
+	// file is the stdin, stdout, or stderr value which uses the hold,
+	// or nil to always keep it, as process substitutions are opened by path.
+	file any
 }
 
-// releaseProcSubsts releases the process substitutions
-// expanded since there were n of them, as their statement is done.
-func (r *Runner) releaseProcSubsts(n int) {
-	for _, use := range r.procSubstUses[n:] {
-		if use.users.Add(-1) == 0 {
-			use.cancel()
+func (h *stmtHold) acquire() { h.users.Add(1) }
+
+func (h *stmtHold) release() {
+	if h.users.Add(-1) == 0 {
+		h.closer.Close()
+	}
+}
+
+// cancelCloser lets a process substitution be held like a file.
+type cancelCloser context.CancelFunc
+
+func (c cancelCloser) Close() error { c(); return nil }
+
+// hold records a new hold for the current statement.
+func (r *Runner) hold(closer io.Closer, file any) *stmtHold {
+	h := &stmtHold{closer: closer, file: file}
+	h.acquire()
+	r.holds = append(r.holds, h)
+	return h
+}
+
+// releaseHolds releases the holds recorded since there were n of them,
+// as their statement is done.
+func (r *Runner) releaseHolds(n int) {
+	for _, h := range r.holds[n:] {
+		h.release()
+	}
+	r.holds = slices.Delete(r.holds, n, len(r.holds))
+}
+
+// inheritedHolds returns the holds a subshell inherits, including exec's.
+func (r *Runner) inheritedHolds() []*stmtHold {
+	if len(r.keptFiles) == 0 {
+		return slices.Clip(r.holds)
+	}
+	return slices.Concat(r.holds, r.keptFiles)
+}
+
+// bgSubshell creates a background subshell which holds what it inherits
+// until it calls [Runner.releaseHolds] with zero.
+func (r *Runner) bgSubshell() *Runner {
+	r2 := r.subshell(true)
+	// Its own list, as the parent releases its holds while the subshell runs.
+	r2.holds = slices.Clone(r2.holds)
+	for _, h := range r2.holds {
+		h.acquire()
+	}
+	return r2
+}
+
+// dropUnusedHolds releases the holds before index n which a background
+// subshell does not use as stdin, stdout, or stderr, so that e.g. a FIFO's
+// reader can see EOF, and returns how many are left.
+func (r *Runner) dropUnusedHolds(n int) int {
+	kept := r.holds[:0]
+	for _, h := range r.holds[:n] {
+		switch {
+		case h.file == nil,
+			!reflect.ValueOf(h.file).Comparable(), // comparing it could panic
+			h.file == any(r.stdin), h.file == any(r.stdout), h.file == any(r.stderr):
+			kept = append(kept, h)
+		default:
+			h.release()
 		}
 	}
-	r.procSubstUses = slices.Delete(r.procSubstUses, n, len(r.procSubstUses))
-}
-
-// holdProcSubsts is called on a background subshell before it starts,
-// holding on to the process substitutions it inherits until it is done
-// and calls [Runner.releaseProcSubsts] with zero.
-func (r *Runner) holdProcSubsts() {
-	// Stop sharing the list with the parent, which releases its own
-	// process substitutions while the subshell may still be running.
-	r.procSubstUses = slices.Clone(r.procSubstUses)
-	for _, use := range r.procSubstUses {
-		use.users.Add(1)
-	}
+	r.holds = slices.Delete(r.holds, len(kept), n)
+	return len(kept)
 }
 
 // reportBgStart is called by a background subshell once we first know whether
@@ -425,12 +474,14 @@ func (r *Runner) reportBgStart(pid int) {
 
 func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 	oldIn, oldOut, oldErr := r.stdin, r.stdout, r.stderr
-	var closers []io.Closer
+	n := len(r.holds)
+	defer func() { r.releaseHolds(n) }()
+	var files []*stmtHold // excluding process substitutions, for exec
 	if len(st.Redirs) > 0 {
 		r.reportBgStart(0) // opening a file may block
 	}
 	for _, rd := range st.Redirs {
-		cls, err := r.redir(ctx, rd)
+		h, err := r.redir(ctx, rd)
 		if err != nil {
 			if !r.exit.fatalExit {
 				// A fatal error from a handler is reported by [Runner.Run].
@@ -439,9 +490,14 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 			r.exit.code = 1
 			break
 		}
-		if cls != nil {
-			closers = append(closers, cls)
+		if h != nil {
+			files = append(files, h)
 		}
+	}
+	if r.bgDropHolds {
+		// The job's own redirections may replace what it inherited.
+		r.bgDropHolds = false
+		n = r.dropUnusedHolds(n)
 	}
 	if r.exit.ok() && st.Cmd != nil {
 		r.cmd(ctx, st.Cmd)
@@ -468,14 +524,14 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 	}
 	if r.keepRedirs {
 		// The exec builtin made this statement's redirections apply to the
-		// shell itself, so don't undo them and keep their files open.
+		// shell itself, so don't undo them, and give it a hold on their files.
 		r.keepRedirs = false
-		r.keptFiles = append(r.keptFiles, closers...)
+		for _, h := range files {
+			h.acquire()
+		}
+		r.keptFiles = append(r.keptFiles, files...)
 	} else if len(st.Redirs) > 0 {
 		r.stdin, r.stdout, r.stderr = oldIn, oldOut, oldErr
-		for _, cls := range closers {
-			cls.Close()
-		}
 	}
 }
 
@@ -488,9 +544,10 @@ func (r *Runner) exitSubshell() {
 }
 
 // closeKeptFiles closes the files kept open by "exec", as the shell exits.
+// A background subshell which inherited one keeps it open until it is done.
 func (r *Runner) closeKeptFiles() {
-	for _, cls := range r.keptFiles {
-		cls.Close()
+	for _, h := range r.keptFiles {
+		h.release()
 	}
 	r.keptFiles = nil
 }
@@ -1410,7 +1467,8 @@ func hdocNeedsNewline(rd *syntax.Redirect) bool {
 	return !ok || !strings.HasSuffix(lit.Value, "\n")
 }
 
-func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, error) {
+// redir applies a redirection, returning a hold on the file it opened, if any.
+func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (*stmtHold, error) {
 	// Note that Hdoc is nil for an empty here-document.
 	if rd.Op == syntax.Hdoc || rd.Op == syntax.DashHdoc {
 		pr, err := r.hdocReader(rd)
@@ -1418,7 +1476,7 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 			return nil, err
 		}
 		r.stdin = pr
-		return pr, nil
+		return r.hold(pr, pr), nil
 	}
 
 	orig := &r.stdout
@@ -1450,7 +1508,7 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 			io.WriteString(pw, "\n")
 			pw.Close()
 		}()
-		return pr, nil
+		return r.hold(pr, pr), nil
 	case syntax.DplOut:
 		switch arg {
 		case "1":
@@ -1495,6 +1553,7 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 			return nil, err
 		}
 		r.stdin = stdin
+		return r.hold(f, stdin), nil
 	case syntax.RdrOut, syntax.AppOut:
 		*orig = f
 	case syntax.RdrAll, syntax.AppAll:
@@ -1503,7 +1562,7 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (io.Closer, err
 	default:
 		return nil, fmt.Errorf("unhandled redirect op: %v", rd.Op)
 	}
-	return f, nil
+	return r.hold(f, f), nil
 }
 
 func (r *Runner) loopStmtsBroken(ctx context.Context, stmts []*syntax.Stmt) bool {

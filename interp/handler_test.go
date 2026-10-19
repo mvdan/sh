@@ -1018,19 +1018,28 @@ func TestWaitBackground(t *testing.T) {
 // TestBackgroundInheritedFiles checks that a background job keeps using the
 // files opened by the redirections of its parents once they are done with them,
 // including once Run returns, and that the files are closed once the job is done.
+// The job does not keep open the files it replaced with others, which may be
+// FIFOs whose readers would otherwise wait for the job to finish.
 func TestBackgroundInheritedFiles(t *testing.T) {
 	t.Parallel()
 	scripts := []string{
 		"{ late & } >out",
 		"exec >out; late &",
 		"(exec >out; late &)",
+		"{ { late & } >out; } >other",
+		"{ late >out & } >other",
+		"exec >other; late >out &",
+		"{ true < <(late >out); } >other",
 	}
 	for _, script := range scripts {
 		t.Run(script, func(t *testing.T) {
+			skipIfUnsupported(t, script)
 			t.Parallel()
+			started := make(chan struct{})
 			proceed := make(chan struct{})
 			late := func(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 				return func(ctx context.Context, args []string) error {
+					close(started)
 					<-proceed
 					_, err := io.WriteString(interp.HandlerCtx(ctx).Stdout, "late\n")
 					return err
@@ -1045,14 +1054,16 @@ func TestBackgroundInheritedFiles(t *testing.T) {
 			)
 			qt.Assert(t, qt.IsNil(err))
 			qt.Assert(t, qt.IsNil(runner.Run(t.Context(), parse(t, nil, script))))
+			// Only the file which the job uses is left open.
+			<-started
+			qt.Assert(t, qt.Equals(open.Load(), int64(1)))
 			// The job only writes once the shell is done with the file.
 			close(proceed)
 			runner.WaitBackground()
 			qt.Assert(t, qt.Equals(open.Load(), int64(0)))
 			out, err := os.ReadFile(filepath.Join(dir, "out"))
 			qt.Assert(t, qt.IsNil(err))
-			// The file is closed before the job writes to it.
-			qt.Assert(t, qt.Equals(string(out), ""))
+			qt.Assert(t, qt.Equals(string(out), "late\n"))
 		})
 	}
 }

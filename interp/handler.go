@@ -254,7 +254,8 @@ func runScriptENOEXEC(ctx context.Context, hc HandlerContext, killTimeout time.D
 		return err
 	}
 	r.Params = args[1:]
-	r.bgJobs = hc.runner.bgJobs // its background jobs may outlive it too
+	r.bgJobs = hc.runner.bgJobs          // its background jobs may outlive it too
+	r.holds = hc.runner.inheritedHolds() // and they inherit the caller's files
 	return r.Run(ctx, file)
 }
 
@@ -405,6 +406,9 @@ func pathExts(env expand.Environ) []string {
 //
 // Note that implementations which do not return [os.File] will cause
 // extra files and goroutines for input redirections; see [StdIO].
+//
+// A file used by a background job may be closed after [Runner.Run] returns,
+// from another goroutine; see [Runner.WaitBackground].
 type OpenHandlerFunc func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error)
 
 // TODO(v4): paths passed to [OpenHandlerFunc] should be cleaned.

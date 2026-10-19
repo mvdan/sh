@@ -259,6 +259,5 @@ func TestBackgroundENOEXEC(t *testing.T) {
 	runner.WaitBackground()
 	out, err := os.ReadFile(filepath.Join(dir, "out"))
 	qt.Assert(t, qt.IsNil(err))
-	// The file is closed before the job writes to it.
-	qt.Assert(t, qt.Equals(string(out), ""))
+	qt.Assert(t, qt.Equals(string(out), "late\n"))
 }
