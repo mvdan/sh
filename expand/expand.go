@@ -1218,35 +1218,39 @@ var (
 
 // pathJoin2 is a simpler version of [filepath.Join] without cleaning the result,
 // since that's needed for globbing.
-func pathJoin2(elem1, elem2 string) string {
+func pathJoin2(sep, elem1, elem2 string) string {
 	if elem1 == "" {
 		return elem2
 	}
-	if strings.HasSuffix(elem1, string(filepath.Separator)) {
+	if strings.HasSuffix(elem1, sep) {
 		return elem1 + elem2
 	}
-	return elem1 + string(filepath.Separator) + elem2
+	return elem1 + sep + elem2
 }
 
 // pathSplit splits a file path into its elements, retaining empty ones. Before
-// splitting, slashes are replaced with [filepath.Separator], so that splitting
-// Unix paths on Windows works as well.
-func pathSplit(path string) []string {
-	path = filepath.FromSlash(path)
-	return strings.Split(path, string(filepath.Separator))
+// splitting, slashes are replaced with the OS separator, so that splitting
+// Unix paths on Windows works as well, unless sep is a slash already.
+func pathSplit(sep, path string) []string {
+	if sep != "/" {
+		path = filepath.FromSlash(path)
+	}
+	return strings.Split(path, sep)
 }
 
 func (e *expander) glob(base, pat string) ([]string, error) {
-	parts := pathSplit(pat)
+	ps := internal.PathsFor(base)
+	sep := ps.Separator()
+	parts := pathSplit(sep, pat)
 	matches := []string{""}
-	if filepath.IsAbs(pat) {
+	if ps.IsAbs(pat) {
 		if parts[0] == "" {
 			// unix-like
-			matches[0] = string(filepath.Separator)
+			matches[0] = sep
 		} else {
 			// windows (for some reason it won't work without the
 			// trailing separator)
-			matches[0] = parts[0] + string(filepath.Separator)
+			matches[0] = parts[0] + sep
 		}
 		parts = parts[1:]
 	}
@@ -1267,17 +1271,17 @@ func (e *expander) glob(base, pat string) ([]string, error) {
 		switch {
 		case part == "", part == ".", part == "..":
 			for i, dir := range matches {
-				matches[i] = pathJoin2(dir, part)
+				matches[i] = pathJoin2(sep, dir, part)
 			}
 			continue
 		case !pattern.HasMeta(part, 0):
 			var newMatches []string
 			for _, dir := range matches {
 				match := dir
-				if !filepath.IsAbs(match) {
-					match = filepath.Join(base, match)
+				if !ps.IsAbs(match) {
+					match = ps.Join(base, match)
 				}
-				match = pathJoin2(match, part)
+				match = pathJoin2(sep, match, part)
 				// We can't use [Config.ReadDir2] on the parent and match the directory
 				// entry by name, because short paths on Windows break that.
 				// Our only option is to [Config.ReadDir2] on the directory entry itself,
@@ -1296,7 +1300,7 @@ func (e *expander) glob(base, pat string) ([]string, error) {
 						continue // exists but not a directory
 					}
 				}
-				newMatches = append(newMatches, pathJoin2(dir, part))
+				newMatches = append(newMatches, pathJoin2(sep, dir, part))
 			}
 			matches = newMatches
 			continue
@@ -1323,7 +1327,7 @@ func (e *expander) glob(base, pat string) ([]string, error) {
 			for _, match := range slices.Backward(matches) {
 				// "a/**" should match "a/ a/b a/b/cfg ...";
 				// note how the zero-match case there has a trailing separator.
-				stack = append(stack, walkDir{path: pathJoin2(match, "")})
+				stack = append(stack, walkDir{path: pathJoin2(sep, match, "")})
 			}
 			// Like Bash, don't walk symbolic links, which may form loops,
 			// and only match them when "**" is the last path element.
@@ -1343,7 +1347,7 @@ func (e *expander) glob(base, pat string) ([]string, error) {
 					rx = rxGlobStarDotGlob.MatchString
 				}
 				n := len(stack)
-				e.globDir(base, dir.path, rx, wantDir, last, func(path string, link bool) {
+				e.globDir(ps, base, dir.path, rx, wantDir, last, func(path string, link bool) {
 					stack = append(stack, walkDir{path: path, link: link})
 				})
 				slices.Reverse(stack[n:])
@@ -1366,7 +1370,7 @@ func (e *expander) glob(base, pat string) ([]string, error) {
 		}
 		var newMatches []string
 		for _, dir := range matches {
-			if err := e.globDir(base, dir, matcher, wantDir, true, func(path string, _ bool) {
+			if err := e.globDir(ps, base, dir, matcher, wantDir, true, func(path string, _ bool) {
 				newMatches = append(newMatches, path)
 			}); err != nil {
 				return nil, err
@@ -1387,10 +1391,10 @@ func (e *expander) glob(base, pat string) ([]string, error) {
 // globDir calls match with the path of each entry in dir accepted by matcher,
 // only including directories if wantDir is set and symbolic links if links is set,
 // and whether the entry is a symbolic link.
-func (e *expander) globDir(base, dir string, matcher func(string) bool, wantDir, links bool, match func(path string, link bool)) error {
+func (e *expander) globDir(ps internal.Paths, base, dir string, matcher func(string) bool, wantDir, links bool, match func(path string, link bool)) error {
 	fullDir := dir
-	if !filepath.IsAbs(dir) {
-		fullDir = filepath.Join(base, dir)
+	if !ps.IsAbs(dir) {
+		fullDir = ps.Join(base, dir)
 	}
 	infos, err := e.readDir2(fullDir)
 	if err != nil {
@@ -1411,7 +1415,7 @@ func (e *expander) globDir(base, dir string, matcher func(string) bool, wantDir,
 			// does not follow symlinks for each of the directory entries.
 			// ReadDir is somewhat wasteful here, as we only want its error result,
 			// but we could try to reuse its result as per the TODO in [expander.glob].
-			if _, err := e.readDir2(filepath.Join(fullDir, info.Name())); err != nil {
+			if _, err := e.readDir2(ps.Join(fullDir, info.Name())); err != nil {
 				continue
 			}
 		} else if !mode.IsDir() {
@@ -1419,7 +1423,7 @@ func (e *expander) globDir(base, dir string, matcher func(string) bool, wantDir,
 			continue
 		}
 		if matcher(name) {
-			match(pathJoin2(dir, name), link)
+			match(pathJoin2(ps.Separator(), dir, name), link)
 		}
 	}
 	return nil

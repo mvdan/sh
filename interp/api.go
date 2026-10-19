@@ -75,7 +75,8 @@ type Runner struct {
 	// slash-separated paths with a volume prefix such as C:/foo or //srv/share,
 	// treating backslashes only as escapes, and convert at the OS boundary.
 	// Environment values imported from the OS stay as-is; see the TODO on
-	// [expand.Config.ReadDir2] for the globbing side.
+	// [expand.Config.ReadDir2] for the globbing side. [internal.PathsFor]
+	// already applies this model to a virtual filesystem's Unix paths.
 	Dir string
 
 	// tempDir is either $TMPDIR from [Runner.Env], or [os.TempDir].

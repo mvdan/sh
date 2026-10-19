@@ -159,17 +159,6 @@ func virtualUnixDir(r *interp.Runner) error {
 	return nil
 }
 
-var virtualUnixPathsWant = func() string {
-	if runtime.GOOS == "windows" {
-		// The paths are resolved as OS paths with backslashes; see #1433.
-		return "cd: no such file or directory: \"/tmp\"\n" +
-			"cd: no such file or directory: \"..\"\n" +
-			"cd: no such file or directory: \"etc\"\n" +
-			"open \\: file does not exist\n"
-	}
-	return "/tmp\n/\n/etc\nfound\n/etc/hosts hosts\n"
-}()
-
 func execPrint(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 	return func(ctx context.Context, args []string) error {
 		hc := interp.HandlerCtx(ctx)
@@ -667,7 +656,7 @@ var modCases = []struct {
 		},
 		src: `cd /tmp && echo "$PWD"; cd .. && echo "$PWD"; cd etc && echo "$PWD"
 [ -f /etc/hosts ] && echo found; echo /etc/* *`,
-		want: virtualUnixPathsWant,
+		want: "/tmp\n/\n/etc\nfound\n/etc/hosts hosts\n",
 	},
 	{
 		name: "ProcSubstVirtualIn",

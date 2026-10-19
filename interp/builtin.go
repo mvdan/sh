@@ -19,6 +19,7 @@ import (
 	"golang.org/x/term"
 
 	"mvdan.cc/sh/v3/expand"
+	"mvdan.cc/sh/v3/internal"
 	"mvdan.cc/sh/v3/syntax"
 )
 
@@ -1189,12 +1190,13 @@ func absPath(dir, path string) string {
 	if path == "" {
 		return ""
 	}
-	if !filepath.IsAbs(path) {
-		path = filepath.Join(dir, path)
+	ps := internal.PathsFor(dir)
+	if !ps.IsAbs(path) {
+		path = ps.Join(dir, path)
 	}
 	// Note that [filepath.Join] cleans its result, but an already absolute
 	// path needs cleaning too, such as turning "/a/../b" into "/b".
-	return filepath.Clean(path)
+	return ps.Clean(path)
 }
 
 func (r *Runner) absPath(path string) string {

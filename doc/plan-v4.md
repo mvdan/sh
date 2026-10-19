@@ -404,6 +404,15 @@ Runner state and options:
   `expand` and the `FileSystem` methods use the same model, so there is one
   kind of path across the module. On Unix these are the native paths.
 
+  v3 already resolves paths this way for virtual filesystems on Windows
+  (#1433), via `internal.Paths`, which `interp` and `expand` share: a
+  slash-rooted `Dir` without a volume can only be set by the caller, since
+  `os.Getwd` and `filepath.Abs` always return one. In v4 that detection goes
+  away and `Paths` becomes the whole model, with `IsAbs` also accepting a
+  volume prefix, and on Plan 9 a leading `#`, which `filepath.IsAbs` treats
+  as absolute there. The conversion to an OS path for the default
+  `FileSystem` belongs next to it.
+
 ### pattern
 
 - Flip `NoGlobStar` to an opt-in `GlobStar`, matching Bash.

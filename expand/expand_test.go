@@ -6,7 +6,6 @@ package expand
 import (
 	"io/fs"
 	"os"
-	"runtime"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -209,12 +208,6 @@ func Test_globUnixPaths(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.base+" "+tc.pat, func(t *testing.T) {
 			got, err := newExpander(cfg).glob(tc.base, tc.pat)
-			if runtime.GOOS == "windows" {
-				// The base and pattern are resolved as OS paths with
-				// backslashes, so nothing matches; see #1433.
-				qt.Assert(t, qt.IsNil(got))
-				return
-			}
 			qt.Assert(t, qt.IsNil(err))
 			qt.Assert(t, qt.DeepEquals(got, tc.want))
 		})
