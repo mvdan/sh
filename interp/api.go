@@ -139,7 +139,7 @@ type Runner struct {
 	// procSubstUses counts the users which may still open each process
 	// substitution expanded by the statements being run here or by a parent:
 	// the statement itself, and any background subshells started meanwhile.
-	procSubstUses []*sync.WaitGroup
+	procSubstUses []*procSubstUse
 
 	// procSubsts tracks this runner's active process substitutions;
 	// see [procSubstRegistry]. It must be non-nil.
@@ -207,6 +207,12 @@ type Runner struct {
 	// Note that each shell only tracks its direct children;
 	// subshells do not share nor inherit the background PIDs they can wait for.
 	bgProcs []bgProc
+
+	// bgJobs counts the goroutines for background shells and process
+	// substitutions, which may outlive [Runner.Run]; see [Runner.WaitBackground].
+	// Copies made via [Runner.Subshell] have their own, as they may start
+	// jobs while this runner waits. It must be non-nil.
+	bgJobs *sync.WaitGroup
 
 	// pipeProcSubsts holds the done channels of the process substitutions
 	// started by the last command of a pipeline, which runs in a subshell.
@@ -416,6 +422,7 @@ func New(opts ...RunnerOption) (*Runner, error) {
 		accessHandler:        DefaultAccessHandler(),
 		procSubstHandler:     DefaultProcSubstHandler(),
 		procSubsts:           &procSubstRegistry{},
+		bgJobs:               new(sync.WaitGroup),
 
 		// Options like Params("-o") may print before StdIO is applied.
 		stdout: io.Discard,
@@ -1056,6 +1063,7 @@ func (r *Runner) Reset() {
 		accessHandler:        r.accessHandler,
 		procSubstHandler:     r.procSubstHandler,
 		procSubsts:           r.procSubsts,
+		bgJobs:               r.bgJobs,
 
 		// These can be set by functions like [Dir] or [Params], but
 		// builtins can overwrite them; reset the fields to whatever the
@@ -1227,6 +1235,9 @@ func IsExitStatus(err error) (status uint8, ok bool) {
 //
 // Calling Run on an entire [*File] implies an exit, meaning that an exit trap may
 // run.
+//
+// Run does not wait for background shells or process substitutions, which may
+// keep running and writing output after it returns; see [Runner.WaitBackground].
 func (r *Runner) Run(ctx context.Context, node syntax.Node) error {
 	if !r.didReset {
 		r.Reset()
@@ -1302,6 +1313,18 @@ func (r *Runner) unshareAlias() {
 	}
 }
 
+// WaitBackground waits for all background shells and process substitutions
+// started by this runner or its subshells. Unlike the wait builtin, it covers
+// jobs started by subshells such as `(cmd &)`, and it does not affect the exit
+// status. It does not cover processes left behind by external programs,
+// nor the jobs of copies made via [Runner.Subshell].
+//
+// Call it after [Runner.Run] returns. To stop the jobs rather than wait for
+// them to finish, cancel the context given to Run first.
+func (r *Runner) WaitBackground() {
+	r.bgJobs.Wait()
+}
+
 // Subshell makes a copy of the given [Runner], suitable for use concurrently
 // with the original. The copy will have the same environment, including
 // variables and functions, but they can all be modified without affecting the
@@ -1313,7 +1336,9 @@ func (r *Runner) unshareAlias() {
 // To replace e.g. stdin/out/err, do [StdIO](r.stdin, r.stdout, r.stderr)(r) on
 // the copy.
 func (r *Runner) Subshell() *Runner {
-	return r.subshell(true)
+	r2 := r.subshell(true)
+	r2.bgJobs = new(sync.WaitGroup)
+	return r2
 }
 
 // subshell is like [Runner.Subshell], but allows skipping some allocations and copies
@@ -1340,6 +1365,7 @@ func (r *Runner) subshell(background bool) *Runner {
 		accessHandler:        r.accessHandler,
 		procSubstHandler:     r.procSubstHandler,
 		procSubsts:           r.procSubsts,
+		bgJobs:               r.bgJobs,
 		stdin:                r.stdin,
 		stdout:               r.stdout,
 		stderr:               r.stderr,

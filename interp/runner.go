@@ -19,6 +19,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"mvdan.cc/sh/v3/expand"
@@ -97,17 +98,16 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 			// Nothing may ever open the process substitution,
 			// so it is only waited on while it may still be used.
 			openCtx, cancel := context.WithCancel(ctx)
-			users := new(sync.WaitGroup)
-			users.Add(1) // done once the statement is done
-			go func() { users.Wait(); cancel() }()
-			r.procSubstUses = append(r.procSubstUses, users)
+			use := &procSubstUse{cancel: cancel}
+			use.users.Store(1) // released once the statement is done
+			r.procSubstUses = append(r.procSubstUses, use)
 			stdout := r.origStdout
 			// TODO: note that `man bash` mentions that `wait` only waits for the last
 			// process substitution as long as it is $!; the logic here would mean we wait for all of them.
 			bg := r.newBgProc()
 			bg.procSubst = true
 			r.bgProcs = append(r.bgProcs, bg)
-			go func() {
+			r.bgJobs.Go(func() {
 				defer func() {
 					*bg.exit = r2.exit
 					close(bg.done)
@@ -149,7 +149,7 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 				}
 				r2.stmts(ctx, ps.Stmts)
 				r2.exitSubshell()
-			}()
+			})
 			return psf.Path, nil
 		},
 	}
@@ -361,25 +361,34 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 		}
 		r.bgProcs = append(r.bgProcs, bg)
 		r2.holdProcSubsts()
-		go func() {
+		r.bgJobs.Go(func() {
 			r2.Run(ctx, &st2)
 			r2.reportBgStart(0) // in case we didn't get to start a program
 			r2.exitSubshell()
 			r2.releaseProcSubsts(0)
 			*bg.exit = r2.exit
 			close(bg.done)
-		}()
+		})
 	} else {
 		r.stmtSync(ctx, st)
 	}
 	r.lastExit = r.exit
 }
 
+// procSubstUse counts the users which may still open a process substitution;
+// the last release cancels its subshell's attempt to open it.
+type procSubstUse struct {
+	users  atomic.Int32
+	cancel context.CancelFunc
+}
+
 // releaseProcSubsts releases the process substitutions
 // expanded since there were n of them, as their statement is done.
 func (r *Runner) releaseProcSubsts(n int) {
-	for _, users := range r.procSubstUses[n:] {
-		users.Done()
+	for _, use := range r.procSubstUses[n:] {
+		if use.users.Add(-1) == 0 {
+			use.cancel()
+		}
 	}
 	r.procSubstUses = slices.Delete(r.procSubstUses, n, len(r.procSubstUses))
 }
@@ -391,8 +400,8 @@ func (r *Runner) holdProcSubsts() {
 	// Stop sharing the list with the parent, which releases its own
 	// process substitutions while the subshell may still be running.
 	r.procSubstUses = slices.Clone(r.procSubstUses)
-	for _, users := range r.procSubstUses {
-		users.Add(1)
+	for _, use := range r.procSubstUses {
+		use.users.Add(1)
 	}
 }
 

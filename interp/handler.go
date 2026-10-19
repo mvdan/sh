@@ -254,6 +254,7 @@ func runScriptENOEXEC(ctx context.Context, hc HandlerContext, killTimeout time.D
 		return err
 	}
 	r.Params = args[1:]
+	r.bgJobs = hc.runner.bgJobs // its background jobs may outlive it too
 	return r.Run(ctx, file)
 }
 

@@ -966,3 +966,81 @@ func TestBackgroundRedirFIFO(t *testing.T) {
 		t.Fatalf("unexpected output: %q", got)
 	}
 }
+
+// execStall returns an exec handler which blocks until the context is
+// cancelled, closing started once it is called and setting finished once it
+// is done, so that tests can tell whether a background job has been joined.
+func execStall(started chan<- struct{}, finished *atomic.Bool) func(interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+	return func(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+		return func(ctx context.Context, args []string) error {
+			close(started)
+			<-ctx.Done()
+			finished.Store(true)
+			return nil
+		}
+	}
+}
+
+// TestWaitBackground checks that WaitBackground joins background jobs and
+// process substitutions which outlive Run, wherever they were started.
+func TestWaitBackground(t *testing.T) {
+	t.Parallel()
+	scripts := []string{
+		"stall &",
+		"(stall &)",
+		"true | { stall & }",
+		": < <(stall)",
+	}
+	for _, script := range scripts {
+		t.Run(script, func(t *testing.T) {
+			t.Parallel()
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			started := make(chan struct{})
+			var finished atomic.Bool
+			runner, err := interp.New(
+				interp.ExecHandlers(execStall(started, &finished)),
+				interp.ProcSubstHandler(virtualProcSubst),
+			)
+			qt.Assert(t, qt.IsNil(err))
+			qt.Assert(t, qt.IsNil(runner.Run(ctx, parse(t, nil, script))))
+
+			// Run returned without waiting for the job,
+			// which only finishes once the context is cancelled.
+			<-started
+			cancel()
+			runner.WaitBackground()
+			qt.Assert(t, qt.IsTrue(finished.Load()))
+		})
+	}
+}
+
+// TestWaitBackgroundSubshell checks that the output of a background job has
+// fully arrived once WaitBackground returns, that a copy made via Subshell
+// waits for its own jobs rather than its parent's, and that a reset keeps
+// waiting for the jobs started before it.
+func TestWaitBackgroundSubshell(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	started := make(chan struct{})
+	var finished atomic.Bool
+	var out bytes.Buffer
+	runner, err := interp.New(
+		interp.ExecHandlers(execStall(started, &finished)),
+		interp.StdIO(nil, &out, &out),
+	)
+	qt.Assert(t, qt.IsNil(err))
+	qt.Assert(t, qt.IsNil(runner.Run(ctx, parse(t, nil, "stall &"))))
+	<-started
+
+	sub := runner.Subshell()
+	qt.Assert(t, qt.IsNil(sub.Run(t.Context(), parse(t, nil, "(echo sub) &"))))
+	sub.WaitBackground()
+	qt.Assert(t, qt.Equals(out.String(), "sub\n"))
+
+	runner.Reset()
+	cancel()
+	runner.WaitBackground()
+	qt.Assert(t, qt.IsTrue(finished.Load()))
+}

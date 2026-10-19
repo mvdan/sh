@@ -18,6 +18,8 @@ import (
 	"time"
 
 	"github.com/creack/pty"
+	"github.com/go-quicktest/qt"
+	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/interp"
 )
 
@@ -213,4 +215,42 @@ func TestRunnerCommandProcSubst(t *testing.T) {
 	if err := ctx.Err(); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// TestWaitBackgroundProcSubstCleanup checks that the FIFO of a process
+// substitution has been removed once WaitBackground returns,
+// whether or not anything opened it.
+func TestWaitBackgroundProcSubstCleanup(t *testing.T) {
+	t.Parallel()
+	for _, script := range []string{
+		": < <(echo opened)",
+		"echo <(echo unopened) >/dev/null",
+	} {
+		t.Run(script, func(t *testing.T) {
+			t.Parallel()
+			tempDir := t.TempDir()
+			runner, err := interp.New(interp.Env(expand.ListEnviron("TMPDIR=" + tempDir)))
+			qt.Assert(t, qt.IsNil(err))
+			qt.Assert(t, qt.IsNil(runner.Run(t.Context(), parse(t, nil, script))))
+			runner.WaitBackground()
+			entries, err := os.ReadDir(tempDir)
+			qt.Assert(t, qt.IsNil(err))
+			qt.Assert(t, qt.HasLen(entries, 0))
+		})
+	}
+}
+
+// TestWaitBackgroundENOEXEC checks that WaitBackground covers the background
+// jobs of a script without a shebang line, which runs in a nested shell.
+func TestWaitBackgroundENOEXEC(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	script := filepath.Join(dir, "script")
+	qt.Assert(t, qt.IsNil(os.WriteFile(script, []byte("(sleep 0.1; echo late) &\n"), 0o755)))
+	var out bytes.Buffer
+	runner, err := interp.New(interp.StdIO(nil, &out, &out))
+	qt.Assert(t, qt.IsNil(err))
+	qt.Assert(t, qt.IsNil(runner.Run(t.Context(), parse(t, nil, script))))
+	runner.WaitBackground()
+	qt.Assert(t, qt.Equals(out.String(), "late\n"))
 }
