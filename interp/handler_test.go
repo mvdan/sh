@@ -114,6 +114,62 @@ func virtualDirAccess(ctx context.Context, path string, mode interp.AccessMode) 
 	return interp.DefaultAccessHandler()(ctx, path, mode)
 }
 
+// virtualUnixFS is a virtual filesystem with Unix paths, such as a remote
+// Linux machine, which must resolve as such on every OS; see issue #1433.
+var virtualUnixFS = fstest.MapFS{
+	"tmp/file":  {},
+	"etc/hosts": {},
+}
+
+func virtualUnixName(path string) (string, error) {
+	if path == "/" {
+		return ".", nil
+	}
+	if !strings.HasPrefix(path, "/") {
+		return "", &fs.PathError{Op: "open", Path: path, Err: fs.ErrNotExist}
+	}
+	return path[1:], nil
+}
+
+func virtualUnixStat(ctx context.Context, path string, followSymlinks bool) (fs.FileInfo, error) {
+	name, err := virtualUnixName(path)
+	if err != nil {
+		return nil, err
+	}
+	return fs.Stat(virtualUnixFS, name)
+}
+
+func virtualUnixAccess(ctx context.Context, path string, mode interp.AccessMode) error {
+	_, err := virtualUnixStat(ctx, path, true)
+	return err
+}
+
+func virtualUnixReadDir(ctx context.Context, path string) ([]fs.DirEntry, error) {
+	name, err := virtualUnixName(path)
+	if err != nil {
+		return nil, err
+	}
+	return fs.ReadDir(virtualUnixFS, name)
+}
+
+// virtualUnixDir sets Runner.Dir directly, as interp.Dir would resolve "/"
+// as an OS path and stat it.
+func virtualUnixDir(r *interp.Runner) error {
+	r.Dir = "/"
+	return nil
+}
+
+var virtualUnixPathsWant = func() string {
+	if runtime.GOOS == "windows" {
+		// The paths are resolved as OS paths with backslashes; see #1433.
+		return "cd: no such file or directory: \"/tmp\"\n" +
+			"cd: no such file or directory: \"..\"\n" +
+			"cd: no such file or directory: \"etc\"\n" +
+			"open \\: file does not exist\n"
+	}
+	return "/tmp\n/\n/etc\nfound\n/etc/hosts hosts\n"
+}()
+
 func execPrint(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 	return func(ctx context.Context, args []string) error {
 		hc := interp.HandlerCtx(ctx)
@@ -600,6 +656,18 @@ var modCases = []struct {
 		},
 		src:  "cd vdir && echo ok",
 		want: "ok\n",
+	},
+	{
+		name: "VirtualUnixPaths",
+		opts: []interp.RunnerOption{
+			interp.StatHandler(virtualUnixStat),
+			interp.AccessHandler(virtualUnixAccess),
+			interp.ReadDirHandler2(virtualUnixReadDir),
+			virtualUnixDir,
+		},
+		src: `cd /tmp && echo "$PWD"; cd .. && echo "$PWD"; cd etc && echo "$PWD"
+[ -f /etc/hosts ] && echo found; echo /etc/* *`,
+		want: virtualUnixPathsWant,
 	},
 	{
 		name: "ProcSubstVirtualIn",

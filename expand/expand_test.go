@@ -6,8 +6,10 @@ package expand
 import (
 	"io/fs"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"github.com/go-quicktest/qt"
 	"mvdan.cc/sh/v3/syntax"
@@ -168,6 +170,52 @@ func Test_glob(t *testing.T) {
 			if err != nil {
 				t.Fatalf("did not want error, got %v", err)
 			}
+			qt.Assert(t, qt.DeepEquals(got, tc.want))
+		})
+	}
+}
+
+// Test_globUnixPaths globs a virtual filesystem with Unix paths, which must
+// not be resolved as OS paths on Windows: "/etc/*" is absolute, and the
+// directories read and the matches use slashes.
+func Test_globUnixPaths(t *testing.T) {
+	fsys := fstest.MapFS{
+		"tmp/file":  {},
+		"etc/hosts": {},
+	}
+	cfg := &Config{
+		ReadDir2: func(path string) ([]fs.DirEntry, error) {
+			if path == "/" {
+				return fs.ReadDir(fsys, ".")
+			}
+			if !strings.HasPrefix(path, "/") {
+				return nil, &fs.PathError{Op: "readdir", Path: path, Err: fs.ErrNotExist}
+			}
+			return fs.ReadDir(fsys, path[1:])
+		},
+	}
+
+	tests := []struct {
+		base, pat string
+		want      []string
+	}{
+		{"/", "/etc/*", []string{"/etc/hosts"}},
+		{"/", "etc/*", []string{"etc/hosts"}},
+		{"/", "*/hosts", []string{"etc/hosts"}},
+		{"/", "/*/", []string{"/etc/", "/tmp/"}},
+		{"/tmp", "*", []string{"file"}},
+		{"/tmp", "../etc/*", []string{"../etc/hosts"}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.base+" "+tc.pat, func(t *testing.T) {
+			got, err := newExpander(cfg).glob(tc.base, tc.pat)
+			if runtime.GOOS == "windows" {
+				// The base and pattern are resolved as OS paths with
+				// backslashes, so nothing matches; see #1433.
+				qt.Assert(t, qt.IsNil(got))
+				return
+			}
+			qt.Assert(t, qt.IsNil(err))
 			qt.Assert(t, qt.DeepEquals(got, tc.want))
 		})
 	}
