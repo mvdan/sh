@@ -625,22 +625,20 @@ func (e *expander) replaceElems(repl *syntax.Replace, elems []string) ([]string,
 	if err != nil {
 		return nil, err
 	}
-	n := 1
-	if repl.All {
-		n = -1
+	rx := compilePattern(orig)
+	if rx == nil {
+		return elems, nil
 	}
 	out := make([]string, len(elems))
 	for i, elem := range elems {
-		locs := findAllIndex(orig, elem, n)
-		sb := e.strBuilder()
-		last := 0
-		for _, loc := range locs {
-			sb.WriteString(elem[last:loc[0]])
-			sb.WriteString(with)
-			last = loc[1]
+		if !repl.All {
+			if loc := rx.FindStringIndex(elem); loc != nil {
+				elem = elem[:loc[0]] + with + elem[loc[1]:]
+			}
+		} else {
+			elem = rx.ReplaceAllLiteralString(elem, with)
 		}
-		sb.WriteString(elem[last:])
-		out[i] = sb.String()
+		out[i] = elem
 	}
 	return out, nil
 }

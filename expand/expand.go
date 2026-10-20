@@ -1199,7 +1199,9 @@ func (e *expander) expandUser(field string, moreFields bool) (prefix, rest strin
 	return u.HomeDir, rest
 }
 
-func findAllIndex(pat, name string, n int) [][]int {
+// compilePattern compiles a shell pattern into a regular expression,
+// or returns nil if it cannot.
+func compilePattern(pat string) *regexp.Regexp {
 	expr, err := pattern.Regexp(pat, 0)
 	if err != nil {
 		return nil
@@ -1208,7 +1210,7 @@ func findAllIndex(pat, name string, n int) [][]int {
 	if err != nil {
 		return nil
 	}
-	return rx.FindAllStringIndex(name, n)
+	return rx
 }
 
 var (
