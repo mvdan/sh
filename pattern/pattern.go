@@ -547,25 +547,8 @@ func HasMeta(pat string, mode Mode) bool {
 //
 // The [Mode] parameter is unused, and will be removed in v4.
 func QuoteMeta(pat string, mode Mode) string {
-	needsEscaping := false
-loop:
-	for _, r := range pat {
-		switch r {
-		case '*', '?', '[', '\\':
-			needsEscaping = true
-			break loop
-		}
-	}
-	if !needsEscaping { // short-cut without a string copy
-		return pat
-	}
-	var sb strings.Builder
-	for _, r := range pat {
-		switch r {
-		case '*', '?', '[', '\\':
-			sb.WriteByte('\\')
-		}
-		sb.WriteRune(r)
-	}
-	return sb.String()
+	return metaReplacer.Replace(pat)
 }
+
+// metaReplacer replaces bytes rather than runes, keeping invalid UTF-8 as-is.
+var metaReplacer = strings.NewReplacer("*", `\*`, "?", `\?`, "[", `\[`, `\`, `\\`)

@@ -1276,6 +1276,10 @@ var runTests = []runTest{
 	{`[[ 'ab\c' == *\\* ]]`, ""},
 	{`[[ foo/bar == foo* ]]`, ""},
 	{"[[ a == [ab ]]", "exit status 1"},
+	{
+		`x=$'\xff*'; [[ $x == "$x" ]]; echo $?; case $x in "$x") echo yes;; *) echo no;; esac`,
+		"0\nyes\n",
+	},
 	{`HOME='/*'; echo ~; echo "$HOME"`, "/*\n/*\n"},
 	{`test -d ~`, ""},
 	{
