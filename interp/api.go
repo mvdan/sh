@@ -16,6 +16,8 @@
 // Note that hanlders do not provide a sandbox or any other sort of OS-level isolation.
 // For example, an [OpenHandler] refusing access to the /etc directory
 // can be foiled by [ExecHandler] allowing access to external programs like cat.
+// Expansions and the values of variables are limited in size; see [expand].
+// Scripts can still use unbounded memory or time over many commands.
 //
 // The interpreter currently aims to behave like a non-interactive shell,
 // which is how most shells run scripts, and is more useful to machines.
@@ -231,6 +233,10 @@ type Runner struct {
 	// bgDropHolds is set on a background job until its statement has set
 	// its standard streams; see [Runner.dropUnusedHolds].
 	bgDropHolds bool
+
+	// cmdSubst is the innermost command substitution this runner is within,
+	// if any, which stops the runner once it fails; see [Runner.stop].
+	cmdSubst *cmdSubstWriter
 
 	opts runnerOpts
 
@@ -1425,6 +1431,7 @@ func (r *Runner) subshell(background bool) *Runner {
 		evalDepth:            r.evalDepth,
 		stmtDepth:            r.stmtDepth,
 		holds:                r.inheritedHolds(),
+		cmdSubst:             r.cmdSubst,
 
 		origStdout: r.origStdout, // used for process substitutions
 	}

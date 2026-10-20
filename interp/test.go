@@ -99,6 +99,10 @@ func (r *Runner) regexpWord(word *syntax.Word) string {
 func (r *Runner) binTest(ctx context.Context, op syntax.BinTestOperator, x, y string) bool {
 	switch op {
 	case syntax.TsReMatch:
+		if len(y) > internal.MaxPatternSize {
+			r.expandErr(internal.ErrPatternTooLarge)
+			return false
+		}
 		re, err := regexp.Compile(y)
 		if err != nil {
 			r.exit.code = 2

@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"mvdan.cc/sh/v3/internal"
 	"mvdan.cc/sh/v3/syntax"
 )
 
@@ -54,18 +55,17 @@ func BracesSeq(cfg *Config, word *syntax.Word) iter.Seq2[*syntax.Word, error] {
 // bracesSeq implements [BracesSeq], also yielding the depth of recursion
 // at which each word is yielded. It returns false if iteration stopped early.
 func bracesSeq(word *syntax.Word, yield func(w *syntax.Word, depth int, err error) bool) bool {
-	// 16Ki expanded elements is more than any script should need in practice,
-	// but it's small enough where we don't waste too much memory and CPU.
-	const limit = 16 << 10
 	count := 0
 	return bracesSeqRec(nil, word.Parts, nil, 0, func(w *syntax.Word, depth int, err error) bool {
 		if err != nil {
 			yield(nil, depth, err)
 			return false
 		}
+		// Like the fields of an expansion, so that a word like {1..1000000}
+		// works, while one like {1..10}{1..10000000} fails quickly.
 		count++
-		if count > limit {
-			yield(nil, depth, fmt.Errorf("brace expansion would exceed %d elements", limit))
+		if count > internal.MaxExpandFields {
+			yield(nil, depth, errTooManyFields)
 			return false
 		}
 		return yield(w, depth, nil)

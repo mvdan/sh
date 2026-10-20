@@ -4,6 +4,7 @@
 package expand
 
 import (
+	"io"
 	"io/fs"
 	"os"
 	"strings"
@@ -70,6 +71,17 @@ func TestMirBSDKornHash(t *testing.T) {
 	word := parseWord(t, "${foo@#}", syntax.Variant(syntax.LangMirBSDKorn))
 	_, err := Literal(nil, word)
 	qt.Assert(t, qt.ErrorMatches(err, "unsupported"))
+}
+
+func TestCmdSubstTooLarge(t *testing.T) {
+	t.Parallel()
+	cfg := &Config{CmdSubst: func(w io.Writer, cs *syntax.CmdSubst) error {
+		// The expansion fails even if the handler ignores the write error.
+		io.WriteString(w, strings.Repeat("x", 16<<20+1))
+		return nil
+	}}
+	_, err := Literal(cfg, parseWord(t, "$(foo)"))
+	qt.Assert(t, qt.ErrorMatches(err, "expansion would exceed 16777216 bytes"))
 }
 
 func TestFieldsIdempotency(t *testing.T) {

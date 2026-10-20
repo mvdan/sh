@@ -328,17 +328,18 @@ func TestBracesSeq(t *testing.T) {
 func TestBracesSeqError(t *testing.T) {
 	t.Parallel()
 	tests := []string{
-		"{1..100000}",
+		"{1..2000000}",
 		"a{0..9223372036854775807}b",
 		"{-9223372036854775808..9223372036854775807}",
 		"{1..1000000000..1}",
-		"{1..100}{1..100}{1..100}",
+		"{1..200}{1..100}{1..100}",
 		"{a,b,c,d}{1..100}{1..100}{1..50}",
 		strings.Repeat("{", 10_001) + "a" + strings.Repeat(",b}", 10_001),
 		strings.Repeat("{a,b}", 10_001),
 	}
 	for _, in := range tests {
 		t.Run(in[:min(len(in), 50)], func(t *testing.T) {
+			t.Parallel()
 			word := &syntax.Word{Parts: []syntax.WordPart{lit(in)}}
 			syntax.SplitBraces(word)
 			var gotErr error

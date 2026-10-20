@@ -3,7 +3,10 @@
 
 package internal
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 // FatalError is an expansion error which exits a non-interactive shell in
 // Bash, such as an invalid indirect expansion or an arithmetic error, so
@@ -37,3 +40,23 @@ func Fatal(err error) error {
 	}
 	return FatalError{Err: err}
 }
+
+// MaxExpandSize and MaxExpandFields limit the size of any string and the
+// number of fields that an expansion may produce, as well as the values
+// of variables, so that a script cannot grow a string or an array
+// exponentially until memory runs out.
+// MaxPatternSize limits the patterns and regular expressions which may be
+// compiled, as that takes hundreds of bytes per input byte.
+const (
+	MaxExpandSize   = 16 << 20
+	MaxExpandFields = 1 << 20
+	MaxPatternSize  = 64 << 10
+)
+
+// Fatalf formats a [FatalError].
+func Fatalf(format string, args ...any) error {
+	return FatalError{Err: fmt.Errorf(format, args...)}
+}
+
+// ErrPatternTooLarge is returned when a pattern exceeds [MaxPatternSize].
+var ErrPatternTooLarge = Fatalf("pattern would exceed %d bytes", MaxPatternSize)

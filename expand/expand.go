@@ -51,7 +51,8 @@ type Config struct {
 	// TODO(v4): CmdSubst, ProcSubst, and ReadDir2 should take a context.
 
 	// CmdSubst expands a command substitution node, writing its standard
-	// output to the provided [io.Writer].
+	// output to the provided [io.Writer]. Writes fail once the output
+	// is too large, failing the expansion too.
 	//
 	// If nil, encountering a command substitution will result in an
 	// UnexpectedCommandError.
@@ -147,15 +148,61 @@ type expander struct {
 	// depth counts the levels of recursion in the expansion,
 	// reported to [Config.CmdSubst] via [internal.NestingWriter].
 	depth int
+
+	// fields counts the fields produced so far, including glob matches,
+	// which may not exceed [internal.MaxExpandFields].
+	fields int
+
+	// substFailed records a failed write by [nestingWriter],
+	// in case [Config.CmdSubst] ignores the error.
+	substFailed bool
 }
 
-// nestingWriter is the [internal.NestingWriter] given to [Config.CmdSubst].
-type nestingWriter struct {
-	*strings.Builder
-	depth int
+var (
+	errTooLarge      = internal.Fatalf("expansion would exceed %d bytes", internal.MaxExpandSize)
+	errTooManyFields = internal.Fatalf("expansion would exceed %d fields", internal.MaxExpandFields)
+)
+
+// joinLimited is like [strings.Join], failing if the result would exceed
+// [internal.MaxExpandSize].
+func joinLimited(strs []string, sep string) (string, error) {
+	size := -len(sep)
+	for _, s := range strs {
+		if size += len(sep) + len(s); size > internal.MaxExpandSize {
+			return "", errTooLarge
+		}
+	}
+	return strings.Join(strs, sep), nil
 }
 
-func (w nestingWriter) Nesting() int { return w.depth }
+// nestingWriter is the [internal.NestingWriter] given to [Config.CmdSubst],
+// which writes to the expander's buffer, failing once the output would
+// exceed [internal.MaxExpandSize].
+type nestingWriter struct{ e *expander }
+
+func (w nestingWriter) Write(p []byte) (int, error) {
+	if !w.fits(len(p)) {
+		return 0, errTooLarge
+	}
+	return w.e.bufferAlloc.Write(p)
+}
+
+func (w nestingWriter) WriteString(s string) (int, error) {
+	if !w.fits(len(s)) {
+		return 0, errTooLarge
+	}
+	return w.e.bufferAlloc.WriteString(s)
+}
+
+func (w nestingWriter) fits(n int) bool {
+	if w.e.bufferAlloc.Len()+n > internal.MaxExpandSize {
+		w.e.substFailed = true
+		return false
+	}
+	return true
+}
+
+func (w nestingWriter) Nesting() int { return w.e.depth }
 
 // expanderPool avoids allocating an expander for each expansion call,
 // as the interpreter makes many of them.
@@ -222,14 +269,14 @@ func (e *expander) ifsWhitespace(r rune) bool {
 	return (r == ' ' || r == '\t' || r == '\n') && e.ifsRune(r)
 }
 
-func (e *expander) ifsJoin(strs []string) string {
+func (e *expander) ifsJoin(strs []string) (string, error) {
 	sep := ""
 	if e.ifs != "" {
 		// The separator is the first character of IFS, not the first byte.
 		_, size := utf8.DecodeRuneInString(e.ifs)
 		sep = e.ifs[:size]
 	}
-	return strings.Join(strs, sep)
+	return joinLimited(strs, sep)
 }
 
 func (e *expander) strBuilder() *strings.Builder {
@@ -279,7 +326,7 @@ func (e *expander) literal(word *syntax.Word) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return e.fieldJoin(field), nil
+	return e.fieldJoin(field)
 }
 
 // Document expands a single shell word as if it were a here-document body.
@@ -298,7 +345,7 @@ func Document(cfg *Config, word *syntax.Word) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return e.fieldJoin(field), nil
+	return e.fieldJoin(field)
 }
 
 // Pattern expands a single shell word as a pattern, using [pattern.QuoteMeta]
@@ -328,6 +375,9 @@ func (e *expander) pattern(word *syntax.Word) (string, error) {
 		} else {
 			sb.WriteString(part.val)
 		}
+	}
+	if sb.Len() > internal.MaxPatternSize {
+		return "", internal.ErrPatternTooLarge
 	}
 	return sb.String(), nil
 }
@@ -491,10 +541,20 @@ func formatInto(sb *strings.Builder, format string, args []string) (int, error) 
 					farg = arg
 				}
 				if farg != nil {
+					// Go's fmt prints an error for widths over about ten million;
+					// fail properly on those over the limit.
+					width, _ := strconv.Atoi(strings.TrimLeft(string(fmts[1:]), "+- "))
+					if width > internal.MaxExpandSize {
+						return 0, errTooLarge
+					}
 					fmts = append(fmts, c)
 					fmt.Fprintf(sb, string(fmts), farg)
 				}
 				fmts = nil
+				// A format can repeat a large argument or width many times.
+				if sb.Len() > internal.MaxExpandSize {
+					return 0, errTooLarge
+				}
 			default:
 				return 0, fmt.Errorf("invalid format char: %c", c)
 			}
@@ -512,18 +572,26 @@ func formatInto(sb *strings.Builder, format string, args []string) (int, error) 
 	return initialArgs - len(args), nil
 }
 
-func (e *expander) fieldJoin(parts []fieldPart) string {
+// fieldJoin joins the parts of a field, failing if the result would exceed
+// [internal.MaxExpandSize].
+func (e *expander) fieldJoin(parts []fieldPart) (string, error) {
+	size := 0
+	for _, part := range parts {
+		if size += len(part.val); size > internal.MaxExpandSize {
+			return "", errTooLarge
+		}
+	}
 	switch len(parts) {
 	case 0:
-		return ""
+		return "", nil
 	case 1: // short-cut without a string copy
-		return parts[0].val
+		return parts[0].val, nil
 	}
 	sb := e.strBuilder()
 	for _, part := range parts {
 		sb.WriteString(part.val)
 	}
-	return sb.String()
+	return sb.String(), nil
 }
 
 func (e *expander) escapedGlobField(parts []fieldPart) (escaped string, glob bool) {
@@ -581,6 +649,20 @@ func FieldsSeq(cfg *Config, words ...*syntax.Word) iter.Seq2[string, error] {
 // alongside range-over-func loops would move more variables to the heap.
 func (e *expander) fieldsSeq(words []*syntax.Word, yield func(string, error) bool) {
 	dir := e.envGet("PWD")
+	// yieldField yields a field, failing once the fields would exceed
+	// [internal.MaxExpandSize] in total, as an expansion like {1..1000}$x
+	// can repeat a large value many times.
+	size := 0
+	yieldField := func(s string, err error) bool {
+		if size += len(s); err == nil && size > internal.MaxExpandSize {
+			err = errTooLarge
+		}
+		if err != nil {
+			yield("", err)
+			return false
+		}
+		return yield(s, nil)
+	}
 	expandWord := func(w *syntax.Word) (stop bool) {
 		wfields, err := e.wordFields(w.Parts)
 		if err != nil {
@@ -601,15 +683,20 @@ func (e *expander) fieldsSeq(words []*syntax.Word, yield func(string, error) boo
 						return true
 					}
 				} else if len(matches) > 0 || e.NullGlob {
+					// The matches replace the field, already counted.
+					if e.fields += len(matches) - 1; e.fields > internal.MaxExpandFields {
+						yield("", errTooManyFields)
+						return true
+					}
 					for _, m := range matches {
-						if !yield(m, nil) {
+						if !yieldField(m, nil) {
 							return true
 						}
 					}
 					continue
 				}
 			}
-			if !yield(e.fieldJoin(field), nil) {
+			if !yieldField(e.fieldJoin(field)) {
 				return true
 			}
 		}
@@ -752,8 +839,11 @@ func (e *expander) cmdSubst(cs *syntax.CmdSubst) (string, error) {
 		return "", UnexpectedCommandError{Node: cs}
 	}
 	sb := e.strBuilder()
-	if err := e.CmdSubst(nestingWriter{sb, e.depth}, cs); err != nil {
+	if err := e.CmdSubst(nestingWriter{e}, cs); err != nil {
 		return "", err
+	}
+	if e.substFailed {
+		return "", errTooLarge // even if the handler ignored the write error
 	}
 	out := sb.String()
 	out = strings.ReplaceAll(out, "\x00", "")
@@ -764,14 +854,18 @@ func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 	fields := e.fieldsAlloc[:0]
 	curField := e.fieldAlloc[:0]
 	allowEmpty := false
-	flush := func() {
-		if len(curField) == 0 {
-			return
+	// flush ends the current field, if any,
+	// reporting false once there are too many fields.
+	flush := func() bool {
+		if len(curField) > 0 {
+			fields = append(fields, curField)
+			curField = nil
+			e.fields++
 		}
-		fields = append(fields, curField)
-		curField = nil
+		return e.fields <= internal.MaxExpandFields
 	}
-	splitAdd := func(val string) {
+	// splitAdd adds val, split into fields, reporting false like flush.
+	splitAdd := func(val string) bool {
 		fieldStart := -1
 		for i, r := range val {
 			if e.ifsRune(r) {
@@ -779,7 +873,9 @@ func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 					curField = append(curField, fieldPart{val: val[fieldStart:i]})
 					fieldStart = -1
 				}
-				flush()
+				if !flush() {
+					return false
+				}
 			} else {
 				if fieldStart < 0 { // starting a new field
 					fieldStart = i
@@ -789,6 +885,7 @@ func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 		if fieldStart >= 0 { // ending a field without IFS
 			curField = append(curField, fieldPart{val: val[fieldStart:]})
 		}
+		return true
 	}
 	for i, wp := range wps {
 		switch wp := wp.(type) {
@@ -869,8 +966,8 @@ func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 							listElems = listElems || len(elems) > 0
 						}
 						for k, elem := range elems {
-							if k > 0 {
-								flush()
+							if k > 0 && !flush() {
+								return errTooManyFields
 							}
 							curField = append(curField, fieldPart{
 								quote: quoteDouble,
@@ -905,10 +1002,9 @@ func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 				// element; joining and re-splitting them would lose
 				// fields when IFS is empty.
 				for j, elem := range elems {
-					if j > 0 {
-						flush()
+					if j > 0 && !flush() || !splitAdd(elem) {
+						return nil, errTooManyFields
 					}
-					splitAdd(elem)
 				}
 				continue
 			}
@@ -916,13 +1012,17 @@ func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 			if err != nil {
 				return nil, err
 			}
-			splitAdd(val)
+			if !splitAdd(val) {
+				return nil, errTooManyFields
+			}
 		case *syntax.CmdSubst:
 			val, err := e.cmdSubst(wp)
 			if err != nil {
 				return nil, err
 			}
-			splitAdd(val)
+			if !splitAdd(val) {
+				return nil, errTooManyFields
+			}
 		case *syntax.ArithmExp:
 			n, err := e.arithmExp(wp.X)
 			if err != nil {
@@ -934,7 +1034,9 @@ func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 			if err != nil {
 				return nil, err
 			}
-			splitAdd(path)
+			if !splitAdd(path) {
+				return nil, errTooManyFields
+			}
 		case *syntax.ExtGlob:
 			if !e.ExtGlob {
 				return nil, fmt.Errorf("extended globbing operator used without the \"extglob\" option set")
@@ -951,9 +1053,11 @@ func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 			panic(fmt.Sprintf("unhandled word part: %T", wp))
 		}
 	}
-	flush()
 	if allowEmpty && len(fields) == 0 {
-		fields = append(fields, curField)
+		curField = append(curField, fieldPart{}) // an empty field
+	}
+	if !flush() {
+		return nil, errTooManyFields
 	}
 	return fields, nil
 }
@@ -1069,7 +1173,7 @@ func (e *expander) quotedElemFields(pe *syntax.ParamExp, p param) (elems []strin
 		switch op := pe.Exp.Op; op {
 		case syntax.ErrorUnset, syntax.ErrorUnsetOrNull:
 			// Like in [expander.operandWord], the list is tested as a whole.
-			null := op == syntax.ErrorUnsetOrNull && e.joinElems(elems, star) == ""
+			null := op == syntax.ErrorUnsetOrNull && e.joinsNull(elems, star)
 			if testParamOp(op, len(elems) > 0, null) == testFail {
 				return nil, false, UnsetParameterError{Node: pe, Message: arg}
 			}
@@ -1090,7 +1194,8 @@ func (e *expander) quotedElemFields(pe *syntax.ParamExp, p param) (elems []strin
 		return nil, false, err
 	}
 	if star {
-		return []string{e.ifsJoin(elems)}, true, nil
+		joined, err := e.ifsJoin(elems)
+		return []string{joined}, true, err
 	}
 	return elems, false, nil
 }
@@ -1367,7 +1472,11 @@ func (e *expander) glob(base, pat string) ([]string, error) {
 			mode |= pattern.ExtendedOperators
 		}
 		matcher, err := internal.ExtendedPatternMatcher(part, mode)
-		if err != nil {
+		if err == internal.ErrPatternTooLarge {
+			// No file name is nearly as long as a pattern which cannot be
+			// compiled, so treat it like any other without matches.
+			return nil, nil
+		} else if err != nil {
 			return nil, err
 		}
 		var newMatches []string

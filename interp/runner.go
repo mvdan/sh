@@ -40,6 +40,37 @@ const (
 	shellReplyVar = "REPLY"
 )
 
+// cmdSubstWriter collects the output of a command substitution, which may
+// be written concurrently or after it is done, such as by background jobs.
+// Once a write fails, such as over the limits in [expand], every runner
+// within it stops; see [Runner.stop].
+type cmdSubstWriter struct {
+	parent *cmdSubstWriter // the enclosing command substitution, if any
+	failed atomic.Bool
+
+	mu sync.Mutex
+	w  io.Writer // [io.Discard] once the substitution is done
+}
+
+func (cw *cmdSubstWriter) Write(p []byte) (int, error) {
+	return cw.write(func(w io.Writer) (int, error) { return w.Write(p) })
+}
+
+// WriteString avoids copying s, as builtins like echo write strings.
+func (cw *cmdSubstWriter) WriteString(s string) (int, error) {
+	return cw.write(func(w io.Writer) (int, error) { return io.WriteString(w, s) })
+}
+
+func (cw *cmdSubstWriter) write(fn func(io.Writer) (int, error)) (int, error) {
+	cw.mu.Lock()
+	defer cw.mu.Unlock()
+	n, err := fn(cw.w)
+	if err != nil {
+		cw.failed.Store(true)
+	}
+	return n, err
+}
+
 func (r *Runner) fillExpandConfig(ctx context.Context) {
 	r.ectx = ctx
 	r.ecfg = &expand.Config{
@@ -71,9 +102,13 @@ func (r *Runner) fillExpandConfig(ctx context.Context) {
 				return err
 			}
 			r2 := r.subshell(false)
-			r2.stdout = w
+			cw := &cmdSubstWriter{parent: r.cmdSubst, w: w}
+			r2.stdout, r2.cmdSubst = cw, cw
 			r2.stmts(ctx, cs.Stmts)
 			r2.exitSubshell()
+			cw.mu.Lock()
+			cw.w = io.Discard // w may be reused once we return
+			cw.mu.Unlock()
 			r.lastExpandExit = r2.exit
 			if r2.exit.fatalExit {
 				return r2.exit.err // surface fatal errors immediately
@@ -314,6 +349,11 @@ func (r *Runner) stop(ctx context.Context) bool {
 	// Some traps trigger on exit, so we do want those to run.
 	if r.exit.discarding || !r.handlingTrap && (r.exit.returning || r.exit.exiting) {
 		return true
+	}
+	for cw := r.cmdSubst; cw != nil; cw = cw.parent {
+		if cw.failed.Load() {
+			return true
+		}
 	}
 	if err := ctx.Err(); err != nil {
 		r.exit.fatal(err)
@@ -1081,7 +1121,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				}
 			}
 			if err := r.setVarIn(name, vr, scope); err != nil {
-				r.errf("%s: %v\n", cm.Variant.Value, err)
+				r.varErr(fmt.Errorf("%s: %w", cm.Variant.Value, err))
 				r.exit.code = 1
 			}
 		}

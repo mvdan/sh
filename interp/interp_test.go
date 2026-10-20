@@ -1637,6 +1637,102 @@ var runTests = []runTest{
 		`x='eval "$x"'; eval "$x"; echo unreachable`,
 		"eval: maximum nesting level exceeded (1000) #IGNORE bash has no limit by default",
 	},
+	// memory limits: strings, arrays, and command substitutions growing without bound
+	{
+		"s=x; for i in {1..25}; do s=$s$s; done; echo ${#s}",
+		"expansion would exceed 16777216 bytes\nexit status 1 #IGNORE bash has no limit",
+	},
+	{
+		"s=x; for i in {1..24}; do s=$s$s; done; t=${s:0:256}; t=${t//x/$s}",
+		"expansion would exceed 16777216 bytes\nexit status 1 #IGNORE bash has no limit",
+	},
+	{
+		`s=x; for i in {1..20}; do s=$s$s; done; : {1..15}"$s"; echo ok; : {1..17}"$s"; echo unreachable`,
+		"ok\nexpansion would exceed 16777216 bytes\nexit status 1 #IGNORE bash has no limit",
+	},
+	{
+		`s=x; for i in {1..10}; do s="$s $s"; done; a=({1..300}$s); echo ${#a[@]}`,
+		"307200\n",
+	},
+	{
+		`s=x; for i in {1..10}; do s="$s $s"; done; a=({1..1024}); (: {1..1025}$s); : {1..1025}"${a[@]}"`,
+		"expansion would exceed 1048576 fields\nexpansion would exceed 1048576 fields\nexit status 1 #IGNORE bash has no limit",
+	},
+	{
+		`a=({1..1024}); w=; for i in {1..1024}; do w+='${a[@]}'; done; f() { echo $#; }; eval "f \"$w\"; f \"$w\${a[@]}\""`,
+		"1047553\nexpansion would exceed 1048576 fields\nexit status 1 #IGNORE bash has no limit",
+	},
+	{
+		`s=x; for i in {1..19}; do s="$s $s"; done; a=($s); a+=($s); echo ${#a[@]}; a+=(x); echo unreachable`,
+		"1048576\na: value would exceed 1048576 elements\nexit status 1 #IGNORE bash has no limit",
+	},
+	{
+		"a=({1..600000} {1..600000} $(echo unreachable >&2))",
+		"a: value would exceed 1048576 elements\nexit status 1 #IGNORE bash has no limit",
+	},
+	{
+		`f() { echo $#; }; f ""{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}; f ""{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,} ""{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}{,}; echo unreachable`,
+		"524288\nexpansion would exceed 1048576 fields\nexit status 1 #IGNORE bash has no limit",
+	},
+	{
+		`s=x; for i in {1..22}; do s=$s$s; done; a=("$s" "$s" "$s" "$s" "$s"); echo ${#a[@]}
+f() { echo $#; }; f "${a[@]:2}"; f "${a[@]}"; echo unreachable`,
+		"5\n3\nexpansion would exceed 16777216 bytes\nexit status 1 #IGNORE bash has no limit",
+	},
+	{
+		`s=x; for i in {1..20}; do s=$s$s; done; for i in {1..20}; do a+=("$s"); done
+(b="${a[*]}"); b=("${a[@]/x/y}")`,
+		"expansion would exceed 16777216 bytes\nexpansion would exceed 16777216 bytes\nexit status 1 #IGNORE bash has no limit",
+	},
+	{
+		`s=x; for i in {1..20}; do s=$s$s; done; for i in {1..1024}; do a+=("$s"); done
+(: "${a[@]@U}"); (: "${a[@]^^}"); : ${a[*],,}`,
+		"expansion would exceed 16777216 bytes\nexpansion would exceed 16777216 bytes\nexpansion would exceed 16777216 bytes\nexit status 1 #IGNORE bash has no limit",
+	},
+	{
+		`s=x; for i in {1..20}; do s=$s$s; done; for i in {1..20}; do a+=("$s"); done; x=${!a[@]}; echo ${#x}`,
+		"49\n",
+	},
+	{
+		`s=y; for i in {1..22}; do s=$s$s; done; for i in {1..5}; do a+=("x$s"); done
+echo ${a[@]+set} ${a[*]:+set}; [[ ${a[@]:+y} == y ]] && echo y; x=${a[@]:0:1}; echo ${#x}; x=${a[@]?}; b=${a[@]:-x}`,
+		"set set\ny\n4194305\nexpansion would exceed 16777216 bytes\nexit status 1 #IGNORE bash has no limit",
+	},
+	{
+		`s=x; for i in {1..23}; do s=$s$s; done; for i in 1 2 3; do echo $s; done >f
+(x=$(<f)); x=$(echo $s; echo $s; echo $s)`,
+		"expansion would exceed 16777216 bytes\nexpansion would exceed 16777216 bytes\nexit status 1 #IGNORE bash has no limit",
+	},
+	{
+		"s=x; for i in {1..20}; do s=$s$s; done; x=$( (while :; do echo $s; done) & : $(while :; do : | :; done))",
+		"expansion would exceed 16777216 bytes\nexit status 1 #IGNORE bash has no limit",
+	},
+	{
+		`s=x; for i in {1..22}; do s=$s$s; done; t=$s$s$s; t+=$s; echo ${#t}; (a[1]=$t; a[1]+=x); t+=x; echo unreachable`,
+		"16777216\na: value would exceed 16777216 bytes\nt: value would exceed 16777216 bytes\nexit status 1 #IGNORE bash has no limit",
+	},
+	{
+		`(printf %99999999999s x); f=%999999s; for i in {1..10}; do f=$f$f; done; printf "$f"; echo unreachable`,
+		"printf: expansion would exceed 16777216 bytes\nprintf: expansion would exceed 16777216 bytes\nexit status 1 #IGNORE bash has no limit",
+	},
+	{
+		`s=x; for i in {1..15}; do s=$s$s; done; for i in {1..600}; do echo $s; done >f; mapfile a <f; echo unreachable`,
+		"mapfile: input would exceed 16777216 bytes\nexit status 1 #IGNORE bash has no limit",
+	},
+	{
+		`touch x1 x2; s="x*"; for i in {1..19}; do s="$s $s"; done; f() { echo $#; }; set -f; f $s; set +f; f $s; echo unreachable`,
+		"524288\nexpansion would exceed 1048576 fields\nexit status 1 #IGNORE bash has no limit",
+	},
+	// Patterns are compiled into regular expressions, taking far more memory.
+	{
+		`s=x; for i in {1..17}; do s=$s$s; done; x=$(echo $s*); echo ${#x}
+(: ${s//"$s"/y}); ([[ $s =~ "$s" ]]); [[ x == $s* ]]; echo unreachable`,
+		"131073\npattern would exceed 65536 bytes\npattern would exceed 65536 bytes\npattern would exceed 65536 bytes\nexit status 1 #IGNORE bash has no limit",
+	},
+	{
+		"s=x; for i in {1..22}; do s=$s$s; done; y=${x:-${x:-${x:-${x:-$s}}}}; echo ${#y}",
+		"4194304\n",
+	},
 	{
 		`f() { if (($1 > 0)); then eval "f $(($1 - 1))"; fi; }; f 900; echo done`,
 		"done\n",
@@ -3799,6 +3895,7 @@ done <<< 2`,
 
 	// operators transforming each element of a list
 	{`a=(ab cd); printf "<%s>" "${a[@]@U}" "${a[@]@u}" "${a[@]@L}" "${a[@]@E}"; echo`, "<AB><CD><Ab><Cd><ab><cd><ab><cd>\n"},
+	{`a=(ab cd); printf "<%s>" ${a[@]@U} ${a[*]@U}; echo`, "<AB><CD><AB><CD>\n"},
 	{`a=(a b); printf "<%s>" "${a[@]@Q}"; echo`, "<a><b>\n #IGNORE bash quotes the values"},
 	{`a=(x y); echo "${a[@]@a}" "${a[*]@a}"; declare -Ar m=([k]=v); echo "${m[@]@a}"`, "a a a a\nAr\n"},
 
@@ -4791,12 +4888,12 @@ echo "${m[k]}"; declare -p a || echo unset`,
 	{`echo a{1\..2}b`, "a{1..2}b\n"},
 	{`echo \{\{iriname\}\}`, "{{iriname}}\n"},
 	{
-		"echo {1..100000}",
-		"brace expansion would exceed 16384 elements\n #IGNORE bash has no defensive limit below MaxInt",
+		"a=({1..100000}); echo ${#a[@]} ${a[-1]}",
+		"100000 100000\n",
 	},
 	{
 		"echo a{0..9999999999}b",
-		"brace expansion would exceed 16384 elements\n #IGNORE bash limits sequence bounds to a C long, so 32-bit bash leaves this literal",
+		"expansion would exceed 1048576 fields\nexit status 1 #IGNORE bash limits sequence bounds to a C long, so 32-bit bash leaves this literal",
 	},
 	{
 		"echo {9223372036854775806..9223372036854775807} {-9223372036854775807..-9223372036854775808} {1..10..9223372036854775807} {a..z..9223372036854775807}",
@@ -5189,6 +5286,13 @@ echo "${m[k]}"; declare -p a || echo unset`,
 }
 
 var runTestsUnix = []runTest{
+	{
+		// A background job may outlive its command substitution,
+		// where its output is discarded.
+		`x=$( { until [[ -e go ]]; do :; done; echo late | cat; echo "st $?" >done; } & echo hi )
+touch go; until [[ -s done ]]; do :; done; cat done; echo "$x"`,
+		"st 0\nhi\n #IGNORE bash waits for the job, which never ends",
+	},
 	{
 		// Like Bash, globstar does not walk symbolic links, which may form loops.
 		"shopt -s globstar; mkdir -p d/e; touch d/e/f; ln -s d l; ln -s . x; ln -s . y; echo **; echo **/; echo **//; echo **/f; echo */**/f",

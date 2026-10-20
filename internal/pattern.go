@@ -22,6 +22,9 @@ func ExtendedPatternMatcher(pat string, mode pattern.Mode) (func(string) bool, e
 		panic("ExtendedOperators is only supported with EntireString")
 	}
 
+	if len(pat) > MaxPatternSize {
+		return nil, ErrPatternTooLarge
+	}
 	// Extended pattern matching operators are always on outside of pathname expansion.
 	expr, err := pattern.Regexp(pat, mode)
 	if err != nil {

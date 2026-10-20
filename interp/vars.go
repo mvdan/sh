@@ -398,9 +398,12 @@ func (r *Runner) envGet(name string) string {
 }
 
 // varErr reports a variable error, if any, and returns it for the caller
-// to fail the command at hand.
+// to fail the command at hand. A fatal error, such as a value over the
+// limits in [expand], abandons the current commands like an expansion error.
 func (r *Runner) varErr(err error) error {
-	if err != nil {
+	if _, ok := errors.AsType[internal.FatalError](err); ok {
+		r.expandErr(err)
+	} else if err != nil {
 		r.errf("%v\n", err)
 	}
 	return err
@@ -511,6 +514,11 @@ const randomMax = 32768
 func (r *Runner) setVarIn(name string, vr expand.Variable, scope declScope) error {
 	if r.opts[optAllExport] {
 		vr.Exported = true
+	}
+	// An array is bounded like the fields of an expansion, as it can
+	// outgrow them via a+=(...). Strings are checked where they are built.
+	if len(vr.List) > internal.MaxExpandFields || len(vr.Map) > internal.MaxExpandFields {
+		return internal.Fatalf("%s: value would exceed %d elements", name, internal.MaxExpandFields)
 	}
 	var err error
 	switch scope {
@@ -753,6 +761,11 @@ func (r *Runner) assignVal(name string, prev expand.Variable, as *syntax.Assign,
 		}
 		prev.Kind, prev.Str = expand.String, str
 	}
+	// Appending can grow a value past the limits in [expand].
+	if len(str) > internal.MaxExpandSize {
+		r.expandErr(internal.Fatalf("%s: value would exceed %d bytes", name, internal.MaxExpandSize))
+		return name, prev, errAbandoned
+	}
 	prev.Set = true
 	return name, prev, nil
 }
@@ -842,6 +855,11 @@ func (r *Runner) assignArray(name string, prev expand.Variable, as *syntax.Assig
 		}
 		if abandoned() {
 			return prev, errAbandoned
+		}
+		// Each word may add a million elements, so stop before the next one;
+		// [Runner.setVarIn] fails on the result.
+		if len(list) > internal.MaxExpandFields {
+			break
 		}
 	}
 	if list == nil {

@@ -155,6 +155,11 @@ func (r *Runner) builtin(ctx context.Context, pos syntax.Pos, name string, args 
 		exit.code = code
 		return exit
 	}
+	// fatal reports an error like that of an expansion, such as a limit.
+	fatal := func(err error) exitStatus {
+		r.expandErr(fmt.Errorf("%s: %w", name, err))
+		return exit
+	}
 	// checkVar fails the builtin after a variable error, which is
 	// already reported; see [Runner.varErr].
 	checkVar := func(err error) {
@@ -295,7 +300,9 @@ dispatch:
 		format, args := args[0], args[1:]
 		for {
 			s, n, err := expand.Format(r.ecfg, format, args)
-			if err != nil {
+			if _, ok := errors.AsType[internal.FatalError](err); ok {
+				return fatal(err)
+			} else if err != nil {
 				return failf(1, "%v\n", err)
 			}
 			r.out(s)
@@ -782,6 +789,9 @@ dispatch:
 		} else {
 			line, err = r.readLine(ctx, raw)
 		}
+		if err == errReadTooLarge {
+			return fatal(err)
+		}
 		if readArray {
 			// read -a arrayname: split line into fields and assign to indexed array.
 			arrayName := shellReplyVar
@@ -1094,7 +1104,13 @@ dispatch:
 		vr := expand.Variable{Set: true, Kind: expand.Indexed}
 		scanner := bufio.NewScanner(r.stdin)
 		scanner.Split(mapfileSplit(delim[0], dropDelim))
+		size := 0
 		for scanner.Scan() {
+			if size += len(scanner.Bytes()); size > internal.MaxExpandSize {
+				return fatal(errReadTooLarge)
+			} else if len(vr.List) > internal.MaxExpandFields {
+				break // [Runner.setVarIn] fails
+			}
 			vr.List = append(vr.List, scanner.Text())
 		}
 		if err := scanner.Err(); err != nil {
@@ -1142,6 +1158,10 @@ func (r *Runner) printOptLine(name string, enabled, supported bool) {
 	r.outf("%s\t%s\t(%q not supported)\n", name, state, r.optStatusText(!enabled))
 }
 
+// errReadTooLarge is like the size limit of an expansion,
+// for builtins which read input into variables.
+var errReadTooLarge = internal.Fatalf("input would exceed %d bytes", internal.MaxExpandSize)
+
 func (r *Runner) readLine(ctx context.Context, raw bool) ([]byte, error) {
 	if r.stdin == nil {
 		return nil, errors.New("interp: can't read, there's no stdin")
@@ -1181,6 +1201,9 @@ func (r *Runner) readLine(ctx context.Context, raw bool) ([]byte, error) {
 			default:
 				line = append(line, b)
 				esc = false
+			}
+			if len(line) > internal.MaxExpandSize {
+				return nil, errReadTooLarge
 			}
 		}
 		if err != nil {
