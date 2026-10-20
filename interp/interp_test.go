@@ -4421,7 +4421,7 @@ declare -A m=([k]=old); m[k]=new$((1/0))
 m[$((1/0))]=new
 m[k$((1/0))]+=new
 echo "$x ${y-unset} ${a[@]} ${m[k]} ${!m[@]}"`,
-		"  o    k\n #IGNORE bash leaves each variable unchanged",
+		"old unset o p old k\n",
 	},
 	// The error abandons the rest of the line, including the declaration
 	// builtins' attributes and any other effect of the assignment.
@@ -4435,14 +4435,14 @@ w=old; declare -a w=(new $((1/0)))
 z=old; declare -r z=new$((1/0))
 z=2
 echo "$x $y $z $i"; declare -p v w; declare -p u || echo unset`,
-		" new  1\ndeclare -x v=\"\"\ndeclare -a w=([0]=\"new\")\ndeclare -x u=\"\"\n #IGNORE bash abandons the rest of the line and leaves each variable unchanged",
+		"old old 2 0\ndeclare -- v=\"old\"\ndeclare -- w=\"old\"\nunset\n",
 	},
 	{
 		`readonly r=1
 out=$( (r=$((1/0))) 2>&1 ); [[ $out == *readonly* ]] && echo readonly error
 out=$( (set -x; x=new$((1/0))) 2>&1 ); [[ $out == *+* ]] && echo traced
 echo done`,
-		"readonly error\ntraced\ndone\n #IGNORE bash neither assigns to r nor traces x",
+		"done\n",
 	},
 	// Any error expanding the elements of an array leaves it unchanged.
 	{
@@ -4453,7 +4453,14 @@ c=(old); c+=(new $((1/0)))
 declare -A m=([k]=old); m=([k]=new [j]=$((1/0)))
 declare -A n=([k]=old); n=(k new j $((1/0)))
 echo "${a[@]} ${b[@]} ${c[@]} ${m[@]} ${!m[@]} ${n[@]} ${!n[@]}"`,
-		"new x new  old new  new j k  new j k\n #IGNORE bash leaves each array unchanged",
+		"old old old old k old k\n",
+	},
+	{
+		`exec 2>/dev/null
+declare -A m=([k]=old); m+=([k]=new [j]=$((1/0)))
+unset a; a=(1 $((1/0)))
+echo "${m[k]}"; declare -p a || echo unset`,
+		"old\nunset\n #IGNORE bash keeps the elements assigned before the error in m, and declares a",
 	},
 	{
 		"readonly i=0; trap 'echo err' ERR\ni=1\nfalse\necho after",

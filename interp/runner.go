@@ -1266,7 +1266,9 @@ func (r *Runner) prefixAssigns(assigns []*syntax.Assign) *overlayEnviron {
 		name, prev := r.resolveName(as.Name.Value)
 		scalar := expand.Variable{Set: prev.IsSet(), Kind: expand.String, Str: prev.String()}
 		name, vr, err := r.assignVal(name, scalar, as, "")
-		if err != nil {
+		if err == errAbandoned {
+			break
+		} else if err != nil {
 			continue
 		}
 		vr.Exported = true // always exported
