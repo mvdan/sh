@@ -133,12 +133,12 @@ func (r *Runner) findJobs(name string, specs []string) (jobs []*bgProc, exit exi
 }
 
 func (r *Runner) jobsBuiltin(args []string) exitStatus {
-	pids := false
+	form := "" // like Bash, the last of -n and -p wins
 	fp := flagParser{remaining: args}
 	for fp.more() {
 		switch flag := fp.flag(); flag {
-		case "-p":
-			pids = true
+		case "-n", "-p":
+			form = flag
 		default:
 			r.errf("jobs: invalid option %q\n", flag)
 			return exitStatus{code: 2}
@@ -151,9 +151,12 @@ func (r *Runner) jobsBuiltin(args []string) exitStatus {
 	}
 	for _, bg := range jobs {
 		done := isDone(bg.done)
-		if pids {
+		if form == "-p" {
 			r.outf("%s\n", r.bgProcID(bg))
 			continue // like Bash, this does not count as reporting the job
+		}
+		if form == "-n" && !done && bg.notified {
+			continue
 		}
 		mark, status, suffix := " ", "Running", " &"
 		if n := len(all); bg == all[n-1] {
@@ -173,6 +176,7 @@ func (r *Runner) jobsBuiltin(args []string) exitStatus {
 			}
 		}
 		r.outf("[%d]%s  %-27s%s%s\n", bg.num, mark, status, jobText(bg), suffix)
+		bg.notified = true
 		if done {
 			bg.hidden = true // like Bash, only report finished jobs once
 		}

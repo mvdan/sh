@@ -375,10 +375,11 @@ type bgProc struct {
 
 	// The fields below are only set for jobs; see jobs.go.
 
-	num    int                     // the job number, starting at 1
-	stmt   *syntax.Stmt            // the statement run in the background
-	cancel context.CancelCauseFunc // used by kill, as a job is a goroutine
-	hidden bool                    // disowned, or finished and reported
+	num      int                     // the job number, starting at 1
+	stmt     *syntax.Stmt            // the statement run in the background
+	cancel   context.CancelCauseFunc // used by kill, as a job is a goroutine
+	hidden   bool                    // disowned, or finished and reported
+	notified bool                    // listed as running; see jobs -n
 }
 
 // newBgProc returns a background job with the next fake PID.
