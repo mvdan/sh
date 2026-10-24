@@ -153,26 +153,26 @@ func (r *Runner) jobsBuiltin(args []string) exitStatus {
 		done := isDone(bg.done)
 		if pids {
 			r.outf("%s\n", r.bgProcID(bg))
-		} else {
-			mark, status, suffix := " ", "Running", " &"
-			if n := len(all); bg == all[n-1] {
-				mark = "+"
-			} else if n > 1 && bg == all[n-2] {
-				mark = "-"
-			}
-			if done {
-				suffix = ""
-				switch code := bg.exit.code; {
-				case code == 0:
-					status = "Done"
-				case code > 128 && int(code-128) < len(signalNames) && signalNames[code-128] != "":
-					status = "Terminated"
-				default:
-					status = fmt.Sprintf("Exit %d", code)
-				}
-			}
-			r.outf("[%d]%s  %-27s%s%s\n", bg.num, mark, status, jobText(bg), suffix)
+			continue // like Bash, this does not count as reporting the job
 		}
+		mark, status, suffix := " ", "Running", " &"
+		if n := len(all); bg == all[n-1] {
+			mark = "+"
+		} else if n > 1 && bg == all[n-2] {
+			mark = "-"
+		}
+		if done {
+			suffix = ""
+			switch code := bg.exit.code; {
+			case code == 0:
+				status = "Done"
+			case code > 128 && int(code-128) < len(signalNames) && signalNames[code-128] != "":
+				status = "Terminated"
+			default:
+				status = fmt.Sprintf("Exit %d", code)
+			}
+		}
+		r.outf("[%d]%s  %-27s%s%s\n", bg.num, mark, status, jobText(bg), suffix)
 		if done {
 			bg.hidden = true // like Bash, only report finished jobs once
 		}
