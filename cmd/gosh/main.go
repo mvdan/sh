@@ -93,6 +93,10 @@ func runInteractive(r *interp.Runner, stdin io.Reader, stdout, stderr io.Writer)
 			fmt.Fprintf(stdout, "> ")
 			continue
 		}
+		// TODO: interrupt the line on ^C by cancelling its context, and use
+		// interp.BackgroundContext so that jobs outlive it, like in Bash.
+		// The terminal sends SIGINT to the whole foreground process group,
+		// so background programs would first need their own process group.
 		ctx := context.Background()
 		for _, stmt := range stmts {
 			err := r.Run(ctx, stmt)
