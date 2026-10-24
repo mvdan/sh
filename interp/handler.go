@@ -255,6 +255,7 @@ func runScriptENOEXEC(ctx context.Context, hc HandlerContext, killTimeout time.D
 	}
 	r.Params = args[1:]
 	r.bgJobs = hc.runner.bgJobs          // its background jobs may outlive it too
+	r.jobsCtx = hc.runner.jobsCtx        // and follow the same context
 	r.holds = hc.runner.inheritedHolds() // and they inherit the caller's files
 	return r.Run(ctx, file)
 }

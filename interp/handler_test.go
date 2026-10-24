@@ -1015,6 +1015,121 @@ func TestWaitBackground(t *testing.T) {
 	}
 }
 
+type ctxKey struct{}
+
+// TestBackgroundContext checks that with BackgroundContext, jobs outlive the
+// context given to Run, keeping its values, and that cancelling the given
+// context stops them all, wherever they were started.
+func TestBackgroundContext(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		script string
+		reset  bool // call Reset once the line has ended
+	}{
+		{script: "stall &"},
+		{script: "(stall &)"},
+		{script: "x=$(stall &)"},
+		{script: "true | { stall & }"},
+		{script: "{ stall & } &"},
+		{script: "{ { stall & } & } &"},
+		{script: "{ (stall &); } &"},
+		{script: "stall & disown"},
+		{script: "stall &", reset: true},
+		{script: "stall & wait"},
+		{script: "stall & wait %1"},
+		{script: "stall & wait $!"},
+	}
+	for _, test := range tests {
+		name := test.script
+		if test.reset {
+			name += " then Reset"
+		}
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			script := test.script
+			jobsCtx, stopJobs := context.WithCancel(t.Context())
+			defer stopJobs()
+			started := make(chan struct{})
+			var finished, sawValue atomic.Bool
+			runner, err := interp.New(
+				interp.ExecHandlers(func(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+					return func(ctx context.Context, args []string) error {
+						sawValue.Store(ctx.Value(ctxKey{}) == "run")
+						return next(ctx, args)
+					}
+				}, execStall(started, &finished)),
+				interp.BackgroundContext(jobsCtx),
+			)
+			qt.Assert(t, qt.IsNil(err))
+
+			ctx, cancel := context.WithCancel(context.WithValue(t.Context(), ctxKey{}, "run"))
+			if strings.Contains(script, "wait") {
+				go func() {
+					<-started
+					cancel() // the line is interrupted
+				}()
+				// wait is interrupted rather than waiting for the job.
+				err := runner.Run(ctx, parse(t, nil, script))
+				qt.Assert(t, qt.ErrorIs(err, context.Canceled))
+			} else {
+				qt.Assert(t, qt.IsNil(runner.Run(ctx, parse(t, nil, script))))
+				<-started
+				cancel() // the line has ended
+			}
+			if test.reset {
+				runner.Reset()
+			}
+			time.Sleep(10 * time.Millisecond) // give a wrongly cancelled job time to finish
+			qt.Assert(t, qt.IsFalse(finished.Load()))
+			qt.Assert(t, qt.IsTrue(sawValue.Load()))
+
+			stopJobs()
+			runner.WaitBackground()
+			qt.Assert(t, qt.IsTrue(finished.Load()))
+		})
+	}
+}
+
+// TestBackgroundContextKill checks that killing a job still stops the jobs it
+// started, as with the context given to Run.
+func TestBackgroundContextKill(t *testing.T) {
+	t.Parallel()
+	started := make(chan struct{})
+	var finished atomic.Bool
+	runner, err := interp.New(
+		interp.ExecHandlers(execStall(started, &finished)),
+		interp.BackgroundContext(t.Context()),
+	)
+	qt.Assert(t, qt.IsNil(err))
+	qt.Assert(t, qt.IsNil(runner.Run(t.Context(), parse(t, nil, "{ stall & wait; } &"))))
+	<-started
+	qt.Assert(t, qt.IsNil(runner.Run(t.Context(), parse(t, nil, "kill %1"))))
+	runner.WaitBackground()
+	qt.Assert(t, qt.IsTrue(finished.Load()))
+}
+
+// TestBackgroundContextHangup checks that the jobs stopped via
+// BackgroundContext exit like Bash's jobs on SIGHUP.
+func TestBackgroundContextHangup(t *testing.T) {
+	t.Parallel()
+	jobsCtx, stopJobs := context.WithCancel(t.Context())
+	started := make(chan struct{})
+	var finished atomic.Bool
+	var out bytes.Buffer
+	runner, err := interp.New(
+		interp.ExecHandlers(execStall(started, &finished)),
+		interp.BackgroundContext(jobsCtx),
+		interp.StdIO(nil, &out, &out),
+	)
+	qt.Assert(t, qt.IsNil(err))
+	qt.Assert(t, qt.IsNil(runner.Run(t.Context(), parse(t, nil, "stall &"))))
+	<-started
+	stopJobs()
+	runner.WaitBackground()
+	qt.Assert(t, qt.IsNil(runner.Run(t.Context(), parse(t, nil, "wait %1; echo $?"))))
+	qt.Assert(t, qt.Equals(out.String(), "129\n"))
+}
+
 // TestBackgroundInheritedFiles checks that a background job keeps using the
 // files opened by the redirections of its parents once they are done with them,
 // including once Run returns, and that the files are closed once the job is done.

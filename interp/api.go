@@ -214,6 +214,10 @@ type Runner struct {
 	// started within it. It must be non-nil.
 	bgJobs *sync.WaitGroup
 
+	// jobsCtx, when non-nil, is the context which ends background jobs
+	// instead of the one given to Run; see [BackgroundContext].
+	jobsCtx context.Context
+
 	// pipeProcSubsts holds the done channels of the process substitutions
 	// started by the last command of a pipeline, which runs in a subshell.
 	// They are not jobs of this shell, but a plain wait still waits for them.
@@ -527,6 +531,24 @@ func Dir(path string) RunnerOption {
 func Interactive(enabled bool) RunnerOption {
 	return func(r *Runner) error {
 		r.opts[optExpandAliases] = enabled
+		return nil
+	}
+}
+
+// BackgroundContext sets the context which background jobs follow, so that they
+// outlive the context given to [Runner.Run], such as one for each line typed at
+// an interactive prompt. Like in an interactive shell, interrupting a command
+// then stops neither the jobs it started nor those started earlier.
+// The jobs still see the values of the context given to Run.
+//
+// To stop the jobs, including disowned ones, cancel ctx and call
+// [Runner.WaitBackground]. They exit with status 129, like jobs sent SIGHUP
+// when a terminal hangs up.
+// Process substitutions still follow the context given to Run, as they are
+// part of the command which uses them.
+func BackgroundContext(ctx context.Context) RunnerOption {
+	return func(r *Runner) error {
+		r.jobsCtx = ctx
 		return nil
 	}
 }
@@ -1030,7 +1052,8 @@ const (
 //
 // Background jobs keep running, like those of a shell which exited, but they
 // are no longer known to builtins such as jobs or kill. To stop or join them,
-// cancel the context given to [Runner.Run] and call [Runner.WaitBackground].
+// cancel the context given to [Runner.Run], or the one given to
+// [BackgroundContext], and call [Runner.WaitBackground].
 func (r *Runner) Reset() {
 	if !r.usedNew {
 		panic("use interp.New to construct a Runner")
@@ -1078,6 +1101,7 @@ func (r *Runner) Reset() {
 		procSubstHandler:     r.procSubstHandler,
 		procSubsts:           r.procSubsts,
 		bgJobs:               r.bgJobs,
+		jobsCtx:              r.jobsCtx,
 		holds:                r.holds, // only set mid-statement, for a nested shell
 
 		// These can be set by functions like [Dir] or [Params], but
@@ -1336,7 +1360,8 @@ func (r *Runner) unshareAlias() {
 // nor the jobs of copies made via [Runner.Subshell].
 //
 // Call it after [Runner.Run] returns. To stop the jobs rather than wait for
-// them to finish, cancel the context given to Run first.
+// them to finish, cancel the context given to Run first, or the one given to
+// [BackgroundContext] if set.
 func (r *Runner) WaitBackground() {
 	r.bgJobs.Wait()
 }
@@ -1384,6 +1409,7 @@ func (r *Runner) subshell(background bool) *Runner {
 		procSubstHandler:     r.procSubstHandler,
 		procSubsts:           r.procSubsts,
 		bgJobs:               r.bgJobs,
+		jobsCtx:              r.jobsCtx,
 		stdin:                r.stdin,
 		stdout:               r.stdout,
 		stderr:               r.stderr,

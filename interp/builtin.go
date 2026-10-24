@@ -379,12 +379,16 @@ dispatch:
 			// Note that "wait" without arguments always returns exit status zero.
 			for i := range r.bgProcs {
 				if bg := &r.bgProcs[i]; !bg.hidden {
-					<-bg.done
+					if !waitDone(ctx, bg.done, &exit) {
+						return exit
+					}
 					bg.hidden = true
 				}
 			}
 			for _, done := range r.pipeProcSubsts {
-				<-done
+				if !waitDone(ctx, done, &exit) {
+					return exit
+				}
 			}
 			r.pipeProcSubsts = nil
 			break
@@ -399,7 +403,9 @@ dispatch:
 			} else if bg, _ = r.lookupBgProc(arg); bg == nil {
 				return failf(1, "wait: pid %s is not a child of this shell\n", arg)
 			}
-			<-bg.done
+			if !waitDone(ctx, bg.done, &exit) {
+				return exit
+			}
 			exit = *bg.exit
 			bg.hidden = true
 		}

@@ -349,7 +349,17 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 		st2.Disown = false
 		r2.bgDropHolds = true
 		bg := r.newBgProc()
-		bgCtx, cancel := context.WithCancelCause(ctx)
+		parent, stopAfter := ctx, func() bool { return false }
+		if r.jobsCtx != nil {
+			// The job outlives the statement, keeping only its values.
+			parent = context.WithoutCancel(ctx)
+		}
+		bgCtx, cancel := context.WithCancelCause(parent)
+		if r.jobsCtx != nil {
+			// Like the SIGHUP which Bash sends its jobs when its terminal hangs up.
+			stopAfter = context.AfterFunc(r.jobsCtx, func() { cancel(killSignal(1)) })
+			r2.jobsCtx = nil // nested jobs follow the job which started them
+		}
 		bg.stmt, bg.cancel, bg.hidden = &st2, cancel, st.Disown
 		bg.num = 1
 		for _, prev := range slices.Backward(r.bgProcs) {
@@ -383,6 +393,7 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 			// subshells, follow its context; release it once they are done.
 			// As each of them waits in turn, this covers all descendants.
 			r2.bgJobs.Wait()
+			stopAfter()
 			cancel(nil)
 		})
 	} else {

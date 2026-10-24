@@ -4,6 +4,7 @@
 package interp
 
 import (
+	"context"
 	"fmt"
 	"slices"
 	"strconv"
@@ -41,6 +42,19 @@ func isDone(done chan struct{}) bool {
 	case <-done:
 		return true
 	default:
+		return false
+	}
+}
+
+// waitDone waits for a job to finish, unless the context is cancelled first,
+// as a job may outlive it; see [BackgroundContext]. In that case, it sets exit
+// as fatal and returns false.
+func waitDone(ctx context.Context, done chan struct{}, exit *exitStatus) bool {
+	select {
+	case <-done:
+		return true
+	case <-ctx.Done():
+		exit.fatal(ctx.Err())
 		return false
 	}
 }
