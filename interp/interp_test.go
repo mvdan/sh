@@ -2076,10 +2076,10 @@ read -r l <err; echo "$l"`,
 	{"sleep 0.01 & case $! in g*) echo fake ;; *) echo real ;; esac; wait", "fake\n #IGNORE bash uses real PIDs"},
 	{"{ { sleep 0.1; echo child-finished; } & } & wait; sleep 0.3", "child-finished\n"},
 	{"{ { { sleep 0.1; echo child-finished; } & } & } & wait; sleep 0.3", "child-finished\n"},
-	{"{ ( { sleep 0.1; echo child-finished; } & ); } & wait; sleep 0.3", " #IGNORE a job ends the jobs started by its subshells"},
-	{"{ true | { { sleep 0.1; echo child-finished; } & }; } & wait; sleep 0.3", " #IGNORE a job ends the jobs started by its subshells"},
+	{"{ ( { sleep 0.1; echo child-finished; } & ); } & wait; sleep 0.3", "child-finished\n"},
+	{"{ true | { { sleep 0.1; echo child-finished; } & }; } & wait; sleep 0.3", "child-finished\n"},
 	{"{ : <({ sleep 0.1; echo child-finished >&2; } &); } & wait; sleep 0.3", "child-finished\n"},
-	{"{ x=$({ sleep 0.1; echo child-finished >&2; } &); } & wait; sleep 0.3", " #IGNORE a job ends the jobs started by its subshells"},
+	{"{ x=$({ sleep 0.1; echo child-finished >&2; } &); } & wait; sleep 0.3", "child-finished\n"},
 
 	// job control
 	{"jobs", ""},

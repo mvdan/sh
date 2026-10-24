@@ -343,6 +343,7 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 	r.exit = exitStatus{}
 	if st.Background || st.Disown {
 		r2 := r.bgSubshell()
+		r2.bgJobs = new(sync.WaitGroup)
 		st2 := *st
 		st2.Background = false
 		st2.Disown = false
@@ -378,9 +379,11 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 			}
 			*bg.exit = r2.exit
 			close(bg.done)
-			if len(r2.bgProcs) == 0 {
-				cancel(nil) // otherwise, the jobs it started keep running
-			}
+			// The jobs started within this one, including those of its
+			// subshells, follow its context; release it once they are done.
+			// As each of them waits in turn, this covers all descendants.
+			r2.bgJobs.Wait()
+			cancel(nil)
 		})
 	} else {
 		r.stmtSync(ctx, st)

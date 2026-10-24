@@ -210,7 +210,8 @@ type Runner struct {
 	// bgJobs counts the goroutines for background shells and process
 	// substitutions, which may outlive [Runner.Run]; see [Runner.WaitBackground].
 	// Copies made via [Runner.Subshell] have their own, as they may start
-	// jobs while this runner waits. It must be non-nil.
+	// jobs while this runner waits, and so does a job, to wait for the jobs
+	// started within it. It must be non-nil.
 	bgJobs *sync.WaitGroup
 
 	// pipeProcSubsts holds the done channels of the process substitutions
