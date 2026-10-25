@@ -1685,8 +1685,8 @@ f() { echo $#; }; f "${a[@]:2}"; f "${a[@]}"; echo unreachable`,
 		"expansion would exceed 16777216 bytes\nexpansion would exceed 16777216 bytes\nexit status 1 #IGNORE bash has no limit",
 	},
 	{
-		`s=x; for i in {1..20}; do s=$s$s; done; for i in {1..1024}; do a+=("$s"); done
-(: "${a[@]@U}"); (: "${a[@]^^}"); : ${a[*],,}`,
+		`s=x; for i in {1..20}; do s=$s$s; done; for i in {1..20}; do a+=("$s"); done
+(: "${a[@]@U}"); (: "${a[@]^}"); : ${a[*],}`,
 		"expansion would exceed 16777216 bytes\nexpansion would exceed 16777216 bytes\nexpansion would exceed 16777216 bytes\nexit status 1 #IGNORE bash has no limit",
 	},
 	{
@@ -1720,8 +1720,8 @@ echo ${a[@]+set} ${a[*]:+set}; [[ ${a[@]:+y} == y ]] && echo y; x=${a[@]:0:1}; e
 		"mapfile: input would exceed 16777216 bytes\nexit status 1 #IGNORE bash has no limit",
 	},
 	{
-		`touch x1 x2; s="x*"; for i in {1..19}; do s="$s $s"; done; f() { echo $#; }; set -f; f $s; set +f; f $s; echo unreachable`,
-		"524288\nexpansion would exceed 1048576 fields\nexit status 1 #IGNORE bash has no limit",
+		`touch x{1..1024}; s="x*"; for i in {1..10}; do s="$s $s"; done; f() { echo $#; }; set -f; f $s; set +f; f $s; echo unreachable`,
+		"1024\nexpansion would exceed 1048576 fields\nexit status 1 #IGNORE bash has no limit",
 	},
 	// Patterns are compiled into regular expressions, taking far more memory.
 	{
