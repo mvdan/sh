@@ -5289,8 +5289,8 @@ var runTestsUnix = []runTest{
 	{
 		// A background job may outlive its command substitution,
 		// where its output is discarded.
-		`x=$( { until [[ -e go ]]; do :; done; echo late | cat; echo "st $?" >done; } & echo hi )
-touch go; until [[ -s done ]]; do :; done; cat done; echo "$x"`,
+		`x=$( { until [[ -e go ]]; do :; done; echo late | cat; echo "st $?" >st; touch done; } & echo hi )
+touch go; until [[ -e done ]]; do :; done; cat st; echo "$x"`,
 		"st 0\nhi\n #IGNORE bash waits for the job, which never ends",
 	},
 	{
