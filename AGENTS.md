@@ -13,7 +13,7 @@ active user or contributor; detailed issues are preferred.
 ## Common Commands
 
 ```bash
-go test ./...                          # -short skips the slow bash confirmation tests
+go test ./...                          # -short skips the slow bash confirmation and expansion limit tests
 go test -run TestName ./syntax         # a single test
 go test -race ./...                    # race detector (Linux)
 REQUIRE_SHELLS=1 go test ./...         # fail rather than skip when external shells are missing

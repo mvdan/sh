@@ -5882,6 +5882,24 @@ func skipIfUnsupported(tb testing.TB, src string) {
 	}
 }
 
+// runsConcurrently reports whether a program runs any commands concurrently,
+// such as background jobs, pipelines, or process substitutions.
+func runsConcurrently(node syntax.Node) bool {
+	found := false
+	syntax.Walk(node, func(node syntax.Node) bool {
+		switch node := node.(type) {
+		case *syntax.Stmt:
+			found = found || node.Background || node.Coprocess
+		case *syntax.BinaryCmd:
+			found = found || node.Op == syntax.Pipe || node.Op == syntax.PipeAll
+		case *syntax.ProcSubst:
+			found = true
+		}
+		return !found
+	})
+	return found
+}
+
 func TestRunnerRun(t *testing.T) {
 	t.Parallel()
 
@@ -5893,6 +5911,18 @@ func TestRunnerRun(t *testing.T) {
 
 			// Parse first, as we reuse a single parser.
 			file := parse(t, p, c.in)
+
+			if strings.Contains(c.want, "would exceed") {
+				// Hitting the expansion limits allocates up to a million fields
+				// or 16MiB, which is many times slower with the race detector.
+				// Keep the concurrent cases there, as it may find bugs in them.
+				if testing.Short() {
+					t.Skip("skipping expansion limit test in short mode")
+				}
+				if raceEnabled && !runsConcurrently(file) {
+					t.Skip("skipping expansion limit test with the race detector")
+				}
+			}
 
 			t.Parallel()
 
