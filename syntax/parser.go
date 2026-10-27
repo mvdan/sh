@@ -553,6 +553,11 @@ type Parser struct {
 	accComs []Comment
 	curComs *[]Comment
 
+	// lineCom is the position of the comment which ended the logical line
+	// of the token before the current one, if any. Such a comment may be
+	// on a later line when it follows escaped newlines.
+	lineCom Pos
+
 	litBatch  []Lit
 	wordBatch []wordAlloc
 
@@ -2151,13 +2156,7 @@ func (p *Parser) doRedirect(s *Stmt) {
 		r.Word = p.followWordTok(token(r.Op), r.OpPos)
 		p.quote, p.forbidNested = old, false
 		if p.tok == _Newl {
-			if len(p.accComs) > 0 {
-				c := p.accComs[0]
-				if c.Pos().Line() == s.End().Line() {
-					s.Comments = append(s.Comments, c)
-					p.accComs = p.accComs[1:]
-				}
-			}
+			p.gotLineCom(s)
 			p.doHeredocs()
 		}
 	case WordHdoc:
@@ -2233,14 +2232,18 @@ func (p *Parser) getStmt(readEnd, binCmd, fnBody bool) *Stmt {
 			s.Disown = true
 		}
 	}
-	if len(p.accComs) > 0 && !binCmd && !fnBody {
-		c := p.accComs[0]
-		if c.Pos().Line() == s.End().Line() {
-			s.Comments = append(s.Comments, c)
-			p.accComs = p.accComs[1:]
-		}
+	if !binCmd && !fnBody {
+		p.gotLineCom(s)
 	}
 	return s
+}
+
+// gotLineCom attaches the comment which ended the logical line to s.
+func (p *Parser) gotLineCom(s *Stmt) {
+	if len(p.accComs) > 0 && p.accComs[0].Hash == p.lineCom {
+		s.Comments = append(s.Comments, p.accComs[0])
+		p.accComs = p.accComs[1:]
+	}
 }
 
 func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {

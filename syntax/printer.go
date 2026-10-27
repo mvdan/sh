@@ -1651,7 +1651,7 @@ func (p *Printer) stmtList(stmts []*Stmt, last []Comment) {
 		for _, c := range s.Comments {
 			// Comments after the end of this command. Note that
 			// this includes "<<EOF # comment".
-			if s.Cmd != nil && c.End().After(s.Cmd.End()) {
+			if c.Pos().After(pos) && (s.Cmd == nil || c.End().After(s.Cmd.End())) {
 				endComs = append(endComs, c)
 				break
 			}
@@ -1680,6 +1680,11 @@ func (p *Printer) stmtList(stmts []*Stmt, last []Comment) {
 		p.advanceLine(pos.Line())
 		p.comments(midComs...)
 		p.stmt(s)
+		for _, c := range endComs {
+			// A trailing comment may follow escaped newlines.
+			p.bslashNewlIfWanted(c.Pos())
+			p.advanceLine(c.Pos().Line())
+		}
 		p.comments(endComs...)
 		p.wantNewline = true
 	}

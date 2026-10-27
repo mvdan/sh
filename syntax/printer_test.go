@@ -613,6 +613,38 @@ var printTests = []printCase{
 	samePrint("f <<EOF # inline\n$(\n\t# inside\n)\nEOF\n# outside\nbar"),
 	samePrint("while foo; do\n\tbar\ndone <<-EOF # inline\n\tbaz\nEOF"),
 	samePrint("{\n\tcat <<EOF\nEOF\n\t# comment\n}"),
+	// A trailing comment may follow an escaped newline.
+	samePrint("foo \\\n\tbar \\\n\t# comment\n\nbaz"),
+	samePrint("foo \\\n\t# comment\nbar"),
+	samePrint("{\n\tfoo \\\n\t\tbar \\\n\t\t# comment\n}"),
+	samePrint("case x in\na)\n\tfoo \\\n\t\t# comment\n\t;;\nesac"),
+	samePrint("foo >bar \\\n\t# comment"),
+	samePrint("foo & \\\n\t# comment"),
+	samePrint("f() { foo; } \\\n\t# comment"),
+	samePrint("foo &&\n\tbar \\\n\t# comment"),
+	samePrint("foo |\n\tbar \\\n\t# comment"),
+	samePrint("cat <<EOF \\\n\t# comment\nbody\nEOF"),
+	samePrint("<<EOF \\\n\t# comment\nbody\nEOF"),
+	{
+		"foo <<EOF \\\n\tbar \\\n\t# comment\nbody\nEOF",
+		"foo \\\n\tbar <<EOF \\\n\t# comment\nbody\nEOF",
+	},
+	{
+		"foo; \\\n\t# comment",
+		"foo \\\n\t# comment",
+	},
+	{
+		"foo \\\n\\\n\t\t# comment",
+		"foo \\\n\t# comment",
+	},
+	{
+		"foo && \\\n\t# comment\n\tbar",
+		"foo &&\n\t# comment\n\tbar",
+	},
+	{
+		"a=(x \\\n\t# comment\n)",
+		"a=(x\n\t# comment\n)",
+	},
 	{
 		"if foo # inline\nthen\n\tbar\nfi",
 		"if foo; then # inline\n\tbar\nfi",
@@ -956,14 +988,8 @@ func TestPrintBinaryNextLine(t *testing.T) {
 			"echo $((a +\nb))",
 			"echo $((a \\\n\t+ b))",
 		},
-		{
-			"a \\\n\tb \\\n\tc \\\n\t# EOC",
-			"a \\\n\tb \\\n\tc\n# EOC",
-		},
-		{
-			"a \\\n\t| b \\\n\t| c \\\n\t# EOC",
-			"a \\\n\t| b \\\n\t| c\n# EOC",
-		},
+		samePrint("a \\\n\tb \\\n\tc \\\n\t# EOC"),
+		samePrint("a \\\n\t| b \\\n\t| c \\\n\t# EOC"),
 	}
 	parser := NewParser(KeepComments(true))
 	printer := NewPrinter(BinaryNextLine(true))
@@ -1308,6 +1334,10 @@ func TestPrintMinify(t *testing.T) {
 		{
 			"a=(b\n) >out",
 			"a=(b) >out",
+		},
+		{
+			"foo <<EOF \\\n\t# comment\nbody\nEOF",
+			"foo <<EOF\nbody\nEOF",
 		},
 	}
 	parser := NewParser(KeepComments(true))

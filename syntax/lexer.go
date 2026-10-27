@@ -241,6 +241,7 @@ func (p *Parser) nextKeepSpaces() {
 }
 
 func (p *Parser) next() {
+	p.lineCom = Pos{}
 	if p.r == runeEOF {
 		p.tok = _EOF
 		return
@@ -336,7 +337,11 @@ skipSpace:
 			} else {
 				p.litBs = nil
 			}
+			hash, trailing := p.pos, p.tok != _Newl
 			p.next()
+			if trailing {
+				p.lineCom = hash
+			}
 		case '[':
 			// `[` only starts an `[idx]=val` element when it begins a new word;
 			// otherwise it continues a glob like `foo[0-9]`.

@@ -6000,6 +6000,53 @@ var fileTestsKeepComments = []fileTestCase{
 		}),
 	),
 	fileTest(
+		[]string{
+			"foo # bar",
+			"foo \\\n# bar",
+			"foo \\\n\t# bar\n",
+			"foo \\\n\\\n# bar",
+		},
+		langFile(&File{
+			Stmts: []*Stmt{{
+				Comments: []Comment{{Text: " bar"}},
+				Cmd:      litCall("foo"),
+			}},
+		}),
+	),
+	fileTest(
+		[]string{
+			"foo bar <<EOF # c\nbody\nEOF",
+			"foo <<EOF bar # c\nbody\nEOF",
+			"foo <<EOF \\\n\tbar \\\n\t# c\nbody\nEOF",
+		},
+		langFile(&File{
+			Stmts: []*Stmt{{
+				Comments: []Comment{{Text: " c"}},
+				Cmd:      litCall("foo", "bar"),
+				Redirs: []*Redirect{{
+					Op:   Hdoc,
+					Word: litWord("EOF"),
+					Hdoc: litWord("body\n"),
+				}},
+			}},
+		}),
+	),
+	fileTest(
+		[]string{"foo &&\n\t# bar\n\tbaz", "foo &&\n# bar\nbaz"},
+		langFile(&File{
+			Stmts: []*Stmt{{
+				Cmd: &BinaryCmd{
+					Op: AndStmt,
+					X:  litStmt("foo"),
+					Y: &Stmt{
+						Comments: []Comment{{Text: " bar"}},
+						Cmd:      litCall("baz"),
+					},
+				},
+			}},
+		}),
+	),
+	fileTest(
 		[]string{"foo # bar # baz"},
 		langFile(&File{
 			Stmts: []*Stmt{{
