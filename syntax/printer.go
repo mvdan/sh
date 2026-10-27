@@ -1093,6 +1093,9 @@ func (p *Printer) arithmExprRecurse(expr ArithmExpr, compact, spacePlusMinus boo
 		}
 		p.w.WriteByte(')')
 	}
+	if expr != nil {
+		p.advanceLine(expr.End().Line())
+	}
 }
 
 func (p *Printer) testExpr(expr TestExpr) {
@@ -1144,6 +1147,7 @@ func (p *Printer) testExprSameLine(expr TestExpr) {
 		p.testExpr(expr.X)
 		p.w.WriteByte(')')
 	}
+	p.advanceLine(expr.End().Line())
 }
 
 func (p *Printer) word(w *Word) {
@@ -1257,6 +1261,7 @@ func (p *Printer) stmt(s *Stmt) {
 	var startRedirs int
 	if s.Cmd != nil {
 		startRedirs = p.command(s.Cmd, s.Redirs)
+		p.advanceLine(s.Cmd.End().Line())
 	}
 	p.incLevel()
 	for _, r := range s.Redirs[startRedirs:] {

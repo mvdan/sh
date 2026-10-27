@@ -467,27 +467,27 @@ var printTests = []printCase{
 	},
 	{
 		"[[ a\n]]; foo",
-		"[[ a ]] \\\n\t;\nfoo",
+		"[[ a ]]\nfoo",
 	},
 	{
 		"[[ a\n]] # comment",
-		"[[ a ]]\n# comment",
+		"[[ a ]] # comment",
 	},
 	{
 		"((a\n)) && b",
-		"((a)) &&\n\tb",
+		"((a)) && b",
 	},
 	{
 		"((a\n)) # comment",
-		"((a))\n# comment",
+		"((a)) # comment",
 	},
 	{
 		"((a + (1\n) + 2))",
-		"((a + (1) + \\\n2))",
+		"((a + (1) + 2))",
 	},
 	{
 		"[[ (a\n) && b ]]",
-		"[[ (a) &&\n\tb ]]",
+		"[[ (a) && b ]]",
 	},
 	samePrint("{\n\t[[ a || b ]]\n}"),
 	{
@@ -1299,15 +1299,15 @@ func TestPrintMinify(t *testing.T) {
 		samePrint("diff -y <(cat <<EOF\n1\n2\n3\nEOF\n) <(cat <<EOF\n1\n4\n3\nEOF\n)"),
 		{
 			"(a\n); foo",
-			"(a) \\\n;\nfoo",
+			"(a)\nfoo",
 		},
 		{
 			"(a\n) 3>&1",
-			"(a) 3>& \\\n1",
+			"(a) 3>&1",
 		},
 		{
 			"a=(b\n) >out",
-			"a=(b) > \\\nout",
+			"a=(b) >out",
 		},
 	}
 	parser := NewParser(KeepComments(true))
