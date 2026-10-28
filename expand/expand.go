@@ -1307,15 +1307,50 @@ func (e *expander) expandUser(field string, moreFields bool) (prefix, rest strin
 // compilePattern compiles a shell pattern into a regular expression,
 // or returns nil if it cannot.
 func compilePattern(pat string) *regexp.Regexp {
+	return compilePatternAnchored(pat, 0)
+}
+
+// compilePatternAnchored is like [compilePattern], but when anchor is '#' or '%'
+// the regexp is constrained to the start or end of the string (bash ${var/#pat/}
+// and ${var/%pat/}).
+func compilePatternAnchored(pat string, anchor byte) *regexp.Regexp {
 	expr, err := pattern.Regexp(pat, 0)
 	if err != nil {
 		return nil
+	}
+	switch anchor {
+	case '#', '%':
+		expr = anchorRegexp(expr, anchor == '#', anchor == '%')
 	}
 	rx, err := regexp.Compile(expr)
 	if err != nil {
 		return nil
 	}
 	return rx
+}
+
+// anchorRegexp inserts ^ and/or $ into a pattern.Regexp expression, placing them
+// after any leading (?flags) group so the flags still apply to the whole pattern.
+func anchorRegexp(expr string, start, end bool) string {
+	if strings.HasPrefix(expr, "(?") {
+		if i := strings.IndexByte(expr, ')'); i >= 0 {
+			flags, rest := expr[:i+1], expr[i+1:]
+			if start {
+				rest = "^" + rest
+			}
+			if end {
+				rest = rest + "$"
+			}
+			return flags + rest
+		}
+	}
+	if start {
+		expr = "^" + expr
+	}
+	if end {
+		expr = expr + "$"
+	}
+	return expr
 }
 
 var (

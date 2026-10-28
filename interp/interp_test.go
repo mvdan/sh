@@ -648,6 +648,18 @@ var runTests = []runTest{
 	{`a=xyz; echo "${a/y/a  b}"`, "xa  bz\n"},
 	{"a='foo/bar'; echo ${a//o*a/}", "fr\n"},
 	{"a=foobar; echo ${a//a/} ${a///b} ${a///}", "foobr foobar foobar\n"},
+	// ${var/#pat/repl} and ${var/%pat/repl} are anchored (issue #1442).
+	{"a='hello world'; echo ${a/#h/H}", "Hello world\n"},
+	{"a='hello world'; echo ${a/%d/D}", "hello worlD\n"},
+	{"a='hello world'; echo ${a/#*o/X}", "Xrld\n"},
+	{"p=x.tar.gz; echo ${p/%.*/}", "x\n"},
+	{`arr=(ab ba aab); echo "${arr[@]/#a/X}"`, "Xb ba Xab\n"},
+	{"a='hello world'; echo ${a/#/>}", ">hello world\n"},
+	{"e=; echo ${e/%/X}", "X\n"},
+	{`a='hello world'; echo ${a/#\#/X}`, "hello world\n"},
+	{`a="#hello"; echo ${a/#\#/X}`, "Xhello\n"},
+	{`a='hello world'; echo ${a/"#"h/X}`, "hello world\n"},
+	{"a='hello world'; echo ${a//#h/H}", "hello world\n"},
 	{
 		"echo ${a:-b}; echo $a; a=; echo ${a:-b}; a=c; echo ${a:-b}",
 		"b\n\nb\nc\n",

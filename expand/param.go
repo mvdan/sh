@@ -625,18 +625,49 @@ func (e *expander) expArg(exp *syntax.Expansion, quoted bool) (string, error) {
 
 // replaceElems applies a ${var/pattern/repl} replacement to each element.
 func (e *expander) replaceElems(repl *syntax.Replace, elems []string) ([]string, error) {
-	orig, err := e.pattern(repl.Orig)
+	origWord := repl.Orig
+	var anchor byte // '#' = match at start, '%' = match at end; only for single replace
+	if !repl.All && origWord != nil && len(origWord.Parts) > 0 {
+		if lit, ok := origWord.Parts[0].(*syntax.Lit); ok && lit.Value != "" {
+			switch c := lit.Value[0]; c {
+			case '#', '%':
+				anchor = c
+				// Shallow-copy the word so we do not mutate the AST.
+				stripped := *lit
+				stripped.Value = lit.Value[1:]
+				parts := make([]syntax.WordPart, len(origWord.Parts))
+				copy(parts, origWord.Parts)
+				parts[0] = &stripped
+				origWord = &syntax.Word{Parts: parts}
+			}
+		}
+	}
+	orig, err := e.pattern(origWord)
 	if err != nil {
 		return nil, err
-	}
-	if orig == "" {
-		return elems, nil // nothing to replace
 	}
 	with, err := e.literal(repl.With)
 	if err != nil {
 		return nil, err
 	}
-	rx := compilePattern(orig)
+	if orig == "" {
+		// Unanchored empty patterns are a no-op (existing behavior).
+		// Anchored empty patterns match at the start or end, so they
+		// prepend or append the replacement (bash ${var/#/x}, ${var/%/x}).
+		switch anchor {
+		case '#':
+			return mapElems(elems, func(elem string) (string, error) {
+				return with + elem, nil
+			})
+		case '%':
+			return mapElems(elems, func(elem string) (string, error) {
+				return elem + with, nil
+			})
+		default:
+			return elems, nil
+		}
+	}
+	rx := compilePatternAnchored(orig, anchor)
 	if rx == nil {
 		return elems, nil
 	}
