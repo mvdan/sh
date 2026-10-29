@@ -248,6 +248,13 @@ var runTests = []runTest{
 	// times
 	{"times", "0m0.000s 0m0.000s\n0m0.000s 0m0.000s\n #IGNORE we report zeros; bash reports real CPU time"},
 
+	// umask
+	{"umask", "0022\n"},
+	{"umask -S", "u=rwx,g=rx,o=rx\n"},
+	{"umask 077; umask", "0077\n"},
+	{"umask 077; umask -S", "u=rwx,g=,o=\n"},
+	{"umask 8", "umask: 8: octal number expected\nexit status 2 #IGNORE bash words the error differently"},
+
 	// exit status codes
 	{"exit 1", "exit status 1"},
 	{"exit -1", "exit status 255"},
@@ -6772,6 +6779,35 @@ func TestRunnerDir(t *testing.T) {
 			t.Fatalf("\nwant regexp: %q\ngot: %q", want, got)
 		}
 	})
+}
+
+func TestRunnerUmaskRedirect(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		src  string
+		want os.FileMode
+	}{
+		{"echo x >f", 0o644},
+		{"umask 077; echo x >f", 0o600},
+		{"umask 002; echo x >>f", 0o664},
+		{"umask 000; echo x &>f", 0o666},
+	}
+	for _, test := range tests {
+		t.Run(test.src, func(t *testing.T) {
+			t.Parallel()
+			var got os.FileMode
+			open := func(ctx context.Context, path string, flag int, perm os.FileMode) (io.ReadWriteCloser, error) {
+				got = perm
+				return interp.DefaultOpenHandler()(ctx, path, flag, perm)
+			}
+			file, err := syntax.NewParser().Parse(strings.NewReader(test.src), "")
+			qt.Assert(t, qt.IsNil(err))
+			r, err := interp.New(interp.Dir(t.TempDir()), interp.OpenHandler(open))
+			qt.Assert(t, qt.IsNil(err))
+			qt.Assert(t, qt.IsNil(r.Run(t.Context(), file)))
+			qt.Assert(t, qt.Equals(got, test.want))
+		})
+	}
 }
 
 func TestRunnerIncremental(t *testing.T) {
