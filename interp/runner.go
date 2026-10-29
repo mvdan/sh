@@ -1686,7 +1686,7 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 		r.exit.returning = false
 		return
 	}
-	if IsBuiltin(name) {
+	if IsBuiltin(name) && !r.builtinDisabled(name) {
 		r.reportBgStart(0) // not one external program
 		exiting := r.exit.exiting
 		exit := r.builtin(ctx, pos, name, args[1:])
