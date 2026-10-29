@@ -299,6 +299,10 @@ type Printer struct {
 
 	nestedBinary bool
 
+	// inArithm reports whether we are printing an arithmetic expression
+	// inside (( )) or $(( )), where newlines do not need to be escaped.
+	inArithm bool
+
 	// pendingHdocs is the list of pending heredocs to write.
 	pendingHdocs []*Redirect
 
@@ -800,7 +804,7 @@ func (p *Printer) wordPart(wp, next WordPart) {
 		if wp.Unsigned {
 			p.w.WriteString("# ")
 		}
-		p.arithmExpr(wp.X, false, false)
+		p.arithmExprNoEsc(wp.X)
 		p.w.WriteString("))")
 	case *ExtGlob:
 		p.w.WriteString(wp.Op.String())
@@ -1021,7 +1025,25 @@ func (p *Printer) arithmExpr(expr ArithmExpr, compact, spacePlusMinus bool) {
 	p.arithmExprRecurse(expr, compact, spacePlusMinus)
 }
 
+// arithmExprNoEsc prints an arithmetic expression inside (( )) or
+// $(( )), where newlines don't need to be escaped. Continued lines
+// are indented one level, like in [[ ]] tests.
+func (p *Printer) arithmExprNoEsc(expr ArithmExpr) {
+	inArithm := p.inArithm
+	p.inArithm = true
+	p.incLevel()
+	p.arithmExpr(expr, false, false)
+	p.decLevel()
+	p.inArithm = inArithm
+}
+
 func (p *Printer) arithmExprRecurse(expr ArithmExpr, compact, spacePlusMinus bool) {
+	if p.inArithm && expr != nil && !compact && !p.singleLine &&
+		expr.Pos().Line() > p.line {
+		// Multi-line arithmetic expressions don't need
+		// to escape newlines here.
+		p.newlines(expr.Pos())
+	}
 	switch expr := expr.(type) {
 	case *Word:
 		p.word(expr)
@@ -1037,6 +1059,9 @@ func (p *Printer) arithmExprRecurse(expr ArithmExpr, compact, spacePlusMinus boo
 			nextLine := p.binNextLine && expr.Op != Comma &&
 				p.wantsNewline(expr.Y.Pos(), true)
 			switch {
+			case nextLine && p.inArithm:
+				// No need to escape the newlines here.
+				p.newlines(expr.Y.Pos())
 			case nextLine:
 				p.incLevel()
 				p.bslashNewl()
@@ -1045,9 +1070,19 @@ func (p *Printer) arithmExprRecurse(expr ArithmExpr, compact, spacePlusMinus boo
 				p.space()
 			}
 			p.w.WriteString(expr.Op.String())
-			p.space()
+			if p.inArithm {
+				// Advance past the operator's own line, so that it
+				// isn't mistaken for an empty line before Y, and only
+				// leave a space if Y won't be on the next line.
+				p.advanceLine(expr.OpPos.Line())
+				if !p.wantsNewline(expr.Y.Pos(), false) {
+					p.space()
+				}
+			} else {
+				p.space()
+			}
 			p.arithmExprRecurse(expr.Y, compact, false)
-			if nextLine {
+			if nextLine && !p.inArithm {
 				p.decLevel()
 			}
 		}
@@ -1546,7 +1581,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		if cmd.Unsigned {
 			p.w.WriteString("# ")
 		}
-		p.arithmExpr(cmd.X, false, false)
+		p.arithmExprNoEsc(cmd.X)
 		p.w.WriteString("))")
 	case *TestClause:
 		p.w.WriteString("[[ ")
@@ -1764,6 +1799,8 @@ func (p *Printer) keepBlockNewline(startLine uint, pos Pos) bool {
 
 func (p *Printer) nestedStmts(stmts []*Stmt, last []Comment, closing Pos) {
 	p.incLevel()
+	inArithm := p.inArithm
+	p.inArithm = false
 	if p.stmtsForceNewline(stmts, last, closing) {
 		p.wantNewline = true
 	}
@@ -1771,6 +1808,7 @@ func (p *Printer) nestedStmts(stmts []*Stmt, last []Comment, closing Pos) {
 	if closing.IsValid() {
 		p.flushComments()
 	}
+	p.inArithm = inArithm
 	p.decLevel()
 }
 

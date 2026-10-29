@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.15.0] - 2026-10-29
+
+- **syntax**
+  - Don't escape newlines inside `(( ))` and `$(( ))`, where Bash doesn't need them - #1169
+
 ## [3.14.1] - 2026-09-06
 
 - **syntax**

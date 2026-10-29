@@ -528,32 +528,32 @@ var printTests = []printCase{
 		"(( ! 0 )) && echo true",
 		"((! 0)) && echo true",
 	},
-	// TODO: newlines don't need to be escaped inside (( )) and $(( )),
-	// as Bash accepts them as they are. The backslashes below are
-	// unnecessary, and should not be printed; see issue 1169.
+	// Newlines don't need to be escaped inside (( )) and $(( )),
+	// so they are left as they are; continued lines are indented
+	// one level, like in [[ ]] tests.
 	{
 		"((\na > 2\n&&\na < 10\n)) && echo in range",
-		"((\\\na > 2 && \\\na < 10)) && echo in range",
+		"((\n\ta > 2 &&\n\ta < 10)) && echo in range",
 	},
 	{
 		"((a &&\nb))",
-		"((a && \\\nb))",
+		"((a &&\n\tb))",
 	},
 	{
 		"((\n(a + b)\n* c\n))",
-		"(((\\\na + b) * \\\nc))",
+		"((\n\t(a + b) * c))",
 	},
 	{
 		"if ((\na > 2\n&&\na < 10\n)); then\necho yes\nfi",
-		"if ((\\\n\ta > 2 && \\\n\ta < 10)); then\n\techo yes\nfi",
+		"if ((\n\ta > 2 &&\n\ta < 10)); then\n\techo yes\nfi",
 	},
 	{
 		"x=$((\na > 2 &&\na < 10\n))",
-		"x=$((\\\n\ta > 2 && \\\n\ta < 10))",
+		"x=$((\n\ta > 2 &&\n\ta < 10))",
 	},
 	{
 		"echo $((a +\nb))",
-		"echo $((a + \\\nb))",
+		"echo $((a +\n\tb))",
 	},
 	// Escaped newlines are still necessary in C-style loops.
 	{
@@ -1003,22 +1003,22 @@ func TestPrintBinaryNextLine(t *testing.T) {
 			"if [[ a ||\nb ]]; then\nc\nfi",
 			"if [[ a\n\t|| b ]]; then\n\tc\nfi",
 		},
-		samePrint("((a \\\n\t|| b))"),
+		samePrint("((a\n\t|| b))"),
 		{
 			"((a &&\nb))",
-			"((a \\\n\t&& b))",
+			"((a\n\t&& b))",
 		},
 		{
 			"((a ||\nb ||\nc))",
-			"((a \\\n\t|| b \\\n\t|| c))",
+			"((a\n\t|| b\n\t|| c))",
 		},
 		{
 			"if ((a ||\nb)); then\nc\nfi",
-			"if ((a \\\n\t|| b)); then\n\tc\nfi",
+			"if ((a\n\t|| b)); then\n\tc\nfi",
 		},
 		{
 			"echo $((a +\nb))",
-			"echo $((a \\\n\t+ b))",
+			"echo $((a\n\t+ b))",
 		},
 		samePrint("a \\\n\tb \\\n\tc \\\n\t# EOC"),
 		samePrint("a \\\n\t| b \\\n\t| c \\\n\t# EOC"),
