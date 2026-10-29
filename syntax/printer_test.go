@@ -528,6 +528,38 @@ var printTests = []printCase{
 		"(( ! 0 )) && echo true",
 		"((! 0)) && echo true",
 	},
+	// TODO: newlines don't need to be escaped inside (( )) and $(( )),
+	// as Bash accepts them as they are. The backslashes below are
+	// unnecessary, and should not be printed; see issue 1169.
+	{
+		"((\na > 2\n&&\na < 10\n)) && echo in range",
+		"((\\\na > 2 && \\\na < 10)) && echo in range",
+	},
+	{
+		"((a &&\nb))",
+		"((a && \\\nb))",
+	},
+	{
+		"((\n(a + b)\n* c\n))",
+		"(((\\\na + b) * \\\nc))",
+	},
+	{
+		"if ((\na > 2\n&&\na < 10\n)); then\necho yes\nfi",
+		"if ((\\\n\ta > 2 && \\\n\ta < 10)); then\n\techo yes\nfi",
+	},
+	{
+		"x=$((\na > 2 &&\na < 10\n))",
+		"x=$((\\\n\ta > 2 && \\\n\ta < 10))",
+	},
+	{
+		"echo $((a +\nb))",
+		"echo $((a + \\\nb))",
+	},
+	// Escaped newlines are still necessary in C-style loops.
+	{
+		"for ((i = 0; i < 10 &&\nj < 5; i++)); do echo; done",
+		"for ((i = 0; i < 10 && \\\nj < 5; i++)); do echo; done",
+	},
 	{
 		"a=b \\\nc=d \\\nfoo",
 		"a=b \\\n\tc=d \\\n\tfoo",
