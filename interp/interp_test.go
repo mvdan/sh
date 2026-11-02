@@ -5648,19 +5648,19 @@ single quote
 	// command field quoting
 	{
 		`set -x; x=1; [ $x -le 5 ]`,
-		"+ x=1\n+ [ '1 -le 5 ]'\n #IGNORE fields are quoted together",
+		"+ x=1\n+ '[' 1 -le 5 ']'\n",
 	},
 	{
 		`set -x; echo "a b" c; echo "" x`,
-		"+ echo 'a b c'\na b c\n+ echo ' x'\n x\n #IGNORE fields are quoted together",
+		"+ echo 'a b' c\na b c\n+ echo '' x\n x\n",
 	},
 	{
 		`set -x; f() { :; }; f "a b" c`,
-		"+ f a b c\n+ :\n #IGNORE fields are quoted together",
+		"+ f 'a b' c\n+ :\n",
 	},
 	{
 		`set -x; : '*' '$x' ']'`,
-		"+ : '* $x ]'\n #IGNORE fields are quoted together",
+		"+ : '*' '$x' ']'\n",
 	},
 	// for trace
 	{

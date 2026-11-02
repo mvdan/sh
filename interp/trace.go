@@ -100,21 +100,15 @@ func quoteBash(s string) string {
 	return qs
 }
 
-// call prints a command and its arguments with varying formats depending on the cmd type,
-// for example, built-in command's arguments are printed enclosed in single quotes,
-// otherwise, call defaults to printing with double quotes.
-func (t *tracer) call(cmd string, args ...string) {
+// call prints the fields of a command, each quoted as a separate Bash word.
+func (t *tracer) call(fields []string) {
 	if t == nil {
 		return
 	}
-
-	s := strings.Join(args, " ")
-	if strings.TrimSpace(s) == "" {
-		// fields may be empty for function () {} declarations
-		t.string(cmd)
-	} else if IsBuiltin(cmd) {
-		t.stringf("%s %s", cmd, quoteBash(s))
-	} else {
-		t.stringf("%s %s", cmd, s)
+	for i, field := range fields {
+		if i > 0 {
+			t.string(" ")
+		}
+		t.string(quoteBash(field))
 	}
 }

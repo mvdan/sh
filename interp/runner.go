@@ -701,7 +701,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			r.writeEnv = r.prefixAssigns(cm.Assigns)
 		}
 
-		trace.call(fields[0], fields[1:]...)
+		trace.call(fields)
 		trace.newLineFlush()
 
 		r.call(ctx, cm.Args[0].Pos(), fields)
