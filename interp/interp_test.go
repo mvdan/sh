@@ -1307,6 +1307,11 @@ var runTests = []runTest{
 		"hello hello\nX \ncase\ntest\n",
 	},
 	{`HOME='#h'; a=hello; echo "${a/~/X}"`, "hello\n"},
+	{
+		`HOME=; x=~/foo y=~; echo "[$x] [$y]"; v=/foo; echo "${v#~/}"; [[ $v == ~/foo ]] && echo match`,
+		"[~/foo] [~]\n/foo\nexit status 1 #IGNORE an empty HOME does not expand in assignments or patterns",
+	},
+	{`HOME=; case /foo in ~/foo) echo match;; esac`, ""},
 	{`test -d ~`, ""},
 	{
 		`for flag in b c d e f g h k L p r s S u w x; do test -$flag ""; echo -n "$flag$? "; done`,
