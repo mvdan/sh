@@ -122,6 +122,8 @@ var printTests = []printCase{
 	{"foo <<EOF bar\nl1\nEOF", "foo bar <<EOF\nl1\nEOF"},
 	samePrint("foo <<\\\\\\\\EOF\nbar\n\\\\EOF"),
 	samePrint("foo <<\"\\EOF\"\nbar\n\\EOF"),
+	// The body is wrongly unquoted, duplicating the closing word.
+	{"foo <<'EOF'2\nbar\\\nEOF2", "foo <<'EOF'2\nbar\\\nEOF2\nEOF2"},
 	samePrint("foo <<\"EOF\"\nbar\nEOF\nbar"),
 	samePrint("foo <<EOF && bar\nl1\nEOF"),
 	samePrint("foo <<EOF &&\nl1\nEOF\n\tbar"),

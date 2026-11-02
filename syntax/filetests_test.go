@@ -1671,13 +1671,26 @@ var fileTests = []fileTestCase{
 		}),
 	),
 	fileTest(
-		[]string{"foo <<\"EOF\"2\nbar\nEOF2"},
+		[]string{"foo <<\"EOF\"2\n$bar\nEOF2"},
 		langFile(&Stmt{
 			Cmd: litCall("foo"),
 			Redirs: []*Redirect{{
 				Op:   Hdoc,
 				Word: word(dblQuoted(lit("EOF")), lit("2")),
-				Hdoc: litWord("bar\n"),
+				// The body is wrongly expanded.
+				Hdoc: word(litParamExp("bar"), lit("\n")),
+			}},
+		}),
+	),
+	fileTest(
+		[]string{"foo <<'EOF'2\n$bar\nEOF2"},
+		langFile(&Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   Hdoc,
+				Word: word(sglQuoted("EOF"), lit("2")),
+				// The body is wrongly expanded.
+				Hdoc: word(litParamExp("bar"), lit("\n")),
 			}},
 		}),
 	),
