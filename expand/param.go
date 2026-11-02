@@ -625,18 +625,31 @@ func (e *expander) expArg(exp *syntax.Expansion, quoted bool) (string, error) {
 
 // replaceElems applies a ${var/pattern/repl} replacement to each element.
 func (e *expander) replaceElems(repl *syntax.Replace, elems []string) ([]string, error) {
-	orig, err := e.pattern(repl.Orig)
+	if repl.Orig == nil {
+		return elems, nil // nothing to replace
+	}
+	field, err := e.wordField(repl.Orig.Parts, quoteNone)
 	if err != nil {
 		return nil, err
 	}
-	if orig == "" {
+	// Only a single replacement may be anchored; with //, Bash treats
+	// a leading '#' or '%' as part of the pattern.
+	var anchor byte
+	if !repl.All {
+		anchor = cutAnchor(field)
+	}
+	orig, err := e.patternField(field)
+	if err != nil {
+		return nil, err
+	}
+	if orig == "" && anchor == 0 {
 		return elems, nil // nothing to replace
 	}
 	with, err := e.literal(repl.With)
 	if err != nil {
 		return nil, err
 	}
-	rx := compilePattern(orig)
+	rx := compilePattern(orig, anchor)
 	if rx == nil {
 		return elems, nil
 	}
@@ -663,6 +676,22 @@ func (e *expander) replaceElems(repl *syntax.Replace, elems []string) ([]string,
 		}
 		return elem, nil
 	})
+}
+
+// cutAnchor removes and returns the first byte of an expanded pattern
+// if it is an unquoted '#' or '%', as in ${var/#pattern/string}.
+func cutAnchor(field []fieldPart) byte {
+	for i, part := range field {
+		if part.val == "" {
+			continue
+		}
+		if b := part.val[0]; part.quote == quoteNone && (b == '#' || b == '%') {
+			field[i].val = part.val[1:]
+			return b
+		}
+		break
+	}
+	return 0
 }
 
 // removePatternElems applies a pattern removal operator to each element.
@@ -705,7 +734,7 @@ func (e *expander) caseConvElems(op syntax.ParExpOperator, arg string, elems []s
 	all := op == syntax.UpperAll || op == syntax.LowerAll
 
 	// empty string means '?'; nothing to do there
-	rx := compilePattern(arg)
+	rx := compilePattern(arg, 0)
 	if rx == nil {
 		return elems, nil
 	}

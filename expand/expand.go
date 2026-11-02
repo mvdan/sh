@@ -368,6 +368,12 @@ func (e *expander) pattern(word *syntax.Word) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	return e.patternField(field)
+}
+
+// patternField joins an expanded field into a pattern, quoting the
+// metacharacters in its quoted parts.
+func (e *expander) patternField(field []fieldPart) (string, error) {
 	sb := e.strBuilder()
 	for _, part := range field {
 		if part.quote > quoteNone {
@@ -1306,11 +1312,18 @@ func (e *expander) expandUser(field string, moreFields bool) (prefix, rest strin
 }
 
 // compilePattern compiles a shell pattern into a regular expression,
-// or returns nil if it cannot.
-func compilePattern(pat string) *regexp.Regexp {
+// or returns nil if it cannot. An anchor of '#' or '%' anchors the
+// pattern at the start or end of the string.
+func compilePattern(pat string, anchor byte) *regexp.Regexp {
 	expr, err := pattern.Regexp(pat, 0)
 	if err != nil {
 		return nil
+	}
+	switch anchor {
+	case '#':
+		expr = "^(?:" + expr + ")"
+	case '%':
+		expr = "(?:" + expr + ")$"
 	}
 	rx, err := regexp.Compile(expr)
 	if err != nil {
