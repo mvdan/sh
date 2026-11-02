@@ -1693,6 +1693,19 @@ var fileTests = []fileTestCase{
 		}),
 	),
 	fileTest(
+		// Within double quotes, a backslash only escapes $, `, ", or \.
+		[]string{"foo <<\"EOF\\$\\`\\\"\\\\\\q\"\nbar\nEOF$`\"\\\\q\nEOF\\$\\`\\\"\\\\\\q"},
+		// The body wrongly ends at the delimiter as written.
+		langFile(&Stmt{
+			Cmd: litCall("foo"),
+			Redirs: []*Redirect{{
+				Op:   Hdoc,
+				Word: word(dblQuoted(lit("EOF\\$\\`\\\"\\\\\\q"))),
+				Hdoc: litWord("bar\nEOF$`\"\\\\q\n"),
+			}},
+		}),
+	),
+	fileTest(
 		[]string{"foo <<\\EOF\nbar\nEOF"},
 		langFile(&Stmt{
 			Cmd: litCall("foo"),

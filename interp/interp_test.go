@@ -2074,6 +2074,10 @@ read -r l <err; echo "$l"`,
 		"$x $(echo subst)\n",
 	},
 	{
+		"x=' after'; cat <<\"echo\\$x\"\nbody\necho\\$x\necho$x",
+		"body\nafter\n #IGNORE the body wrongly ends at the delimiter as written",
+	},
+	{
 		"cat <<EOF\nEOF",
 		"",
 	},
