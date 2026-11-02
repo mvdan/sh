@@ -962,6 +962,18 @@ var runTests = []runTest{
 		"declare -- a=\"hello\"\n",
 	},
 	{
+		"x='a$b`c\"d\\e'; declare -p x",
+		"declare -- x=\"a$b`c\\\"d\\\\e\"\n #IGNORE \"$\" and \"`\" are not escaped",
+	},
+	{
+		`x=$'a\nb\tc'; a=($'q\nr' 's$'); declare -p x a`,
+		"declare -- x=\"a\\nb\\tc\"\ndeclare -a a=([0]=\"q\\nr\" [1]=\"s$\")\n #IGNORE Go escapes are not valid in double quotes",
+	},
+	{
+		`declare -A m=(['a b']='$x' ['#k']=$'\n' ['x]']=y); s=$(declare -p m); unset m; eval "$s" 2>/dev/null; echo "${m['a b']}|${m['#k']}|${m['x]']}"`,
+		"||\n #IGNORE keys are not quoted",
+	},
+	{
 		`declare -a arr=(1 2 3); declare -p arr`,
 		"declare -a arr=([0]=\"1\" [1]=\"2\" [2]=\"3\")\n",
 	},
