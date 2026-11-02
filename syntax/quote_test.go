@@ -17,6 +17,9 @@ func TestQuote(t *testing.T) {
 		want any
 	}{
 		{"", LangBash, `''`},
+		{"foo", LangBash, `foo`},
+		{"a]b", LangBash, `'a]b'`},
+		{"a}b", LangBash, `'a}b'`},
 		{"\a", LangBash, `$'\a'`},
 		{"\b", LangBash, `$'\b'`},
 		{"\f", LangBash, `$'\f'`},

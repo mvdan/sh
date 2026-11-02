@@ -26,25 +26,17 @@ const (
 	quoteErrMksh  = "mksh cannot escape codepoints above 16 bits"
 )
 
-// Quote returns a quoted version of the input string,
-// so that the quoted version is expanded or interpreted
-// as the original string in the given language variant.
+// Quote returns s quoted as a single word which expands to s
+// in the given language variant, such as when building a script
+// from arbitrary strings. The result is also valid in an array subscript
+// like name[word], or in an unquoted parameter expansion like ${name:-word}.
 //
-// Quoting is necessary when using arbitrary literal strings
-// as words in a shell script or command.
-// Without quoting, one can run into syntax errors,
-// as well as the possibility of running unintended code.
+// The shortest quoting is chosen on a best-effort basis.
+// Strings which need no quoting are returned unchanged,
+// and may also be surrounded by single quotes.
 //
-// An error is returned when a string cannot be quoted for a variant.
-// For instance, POSIX lacks escape sequences for non-printable characters,
-// and no language variant can represent a string containing null bytes.
-// In such cases, the returned error type will be *QuoteError.
-//
-// The quoting strategy is chosen on a best-effort basis,
-// to minimize the amount of extra bytes necessary.
-//
-// Some strings do not require any quoting and are returned unchanged.
-// Those strings can be directly surrounded in single quotes as well.
+// A [*QuoteError] is returned when s cannot be quoted in lang,
+// such as null bytes in any variant, or non-printable characters in POSIX.
 //
 // To quote a list of arguments into a command line, see [mvdan.cc/sh/v3/shell.Join].
 func Quote(s string, lang LangVariant) (string, error) {
@@ -67,12 +59,12 @@ func Quote(s string, lang LangVariant) (string, error) {
 			'\\',
 			// Would start a comment unless quoted.
 			'#',
-			// Might result in brace expansion.
-			'{',
+			// Might result in brace expansion, or end a parameter expansion.
+			'{', '}',
 			// Might result in tilde expansion.
 			'~',
-			// Might result in globbing.
-			'*', '?', '[',
+			// Might result in globbing, or end an array subscript.
+			'*', '?', '[', ']',
 			// Might result in an assignment.
 			'=':
 			shellChars = true
