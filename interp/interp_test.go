@@ -2229,12 +2229,12 @@ read -r l <err; echo "$l"`,
 	// $! stays a fake PID here because runTests installs exec middleware;
 	// TestBackgroundRealPID covers the default exec handler.
 	{"sleep 0.01 & case $! in g*) echo fake ;; *) echo real ;; esac; wait", "fake\n #IGNORE bash uses real PIDs"},
-	{"{ { sleep 0.1; echo child-finished; } & } & wait; sleep 0.3", "child-finished\n"},
-	{"{ { { sleep 0.1; echo child-finished; } & } & } & wait; sleep 0.3", "child-finished\n"},
-	{"{ ( { sleep 0.1; echo child-finished; } & ); } & wait; sleep 0.3", "child-finished\n"},
-	{"{ true | { { sleep 0.1; echo child-finished; } & }; } & wait; sleep 0.3", "child-finished\n"},
-	{"{ : <({ sleep 0.1; echo child-finished >&2; } &); } & wait; sleep 0.3", "child-finished\n"},
-	{"{ x=$({ sleep 0.1; echo child-finished >&2; } &); } & wait; sleep 0.3", "child-finished\n"},
+	{"{ { sleep 0.1; echo child-finished; >done; } & } & wait; until [ -e done ]; do sleep 0.01; done", "child-finished\n"},
+	{"{ { { sleep 0.1; echo child-finished; >done; } & } & } & wait; until [ -e done ]; do sleep 0.01; done", "child-finished\n"},
+	{"{ ( { sleep 0.1; echo child-finished; >done; } & ); } & wait; until [ -e done ]; do sleep 0.01; done", "child-finished\n"},
+	{"{ true | { { sleep 0.1; echo child-finished; >done; } & }; } & wait; until [ -e done ]; do sleep 0.01; done", "child-finished\n"},
+	{"{ : <({ sleep 0.1; echo child-finished >&2; >done; } &); } & wait; until [ -e done ]; do sleep 0.01; done", "child-finished\n"},
+	{"{ x=$({ sleep 0.1; echo child-finished >&2; >done; } &); } & wait; until [ -e done ]; do sleep 0.01; done", "child-finished\n"},
 
 	// job control
 	{"jobs", ""},
