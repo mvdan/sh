@@ -1283,7 +1283,7 @@ var runTests = []runTest{
 	{`HOME='/*'; echo ~; echo "$HOME"`, "/*\n/*\n"},
 	{
 		`HOME='h*'; for v in hello 'h*'; do echo "${v/~/X}" "${v#~}"; case $v in ~) echo case;; esac; [[ $v == ~ ]] && echo test; done`,
-		"X ello\ncase\ntest\nX *\ncase\ntest\n #IGNORE tilde expansions in patterns are not quoted",
+		"hello hello\nX \ncase\ntest\n",
 	},
 	{`HOME='#h'; a=hello; echo "${a/~/X}"`, "hello\n"},
 	{`test -d ~`, ""},

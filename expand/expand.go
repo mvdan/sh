@@ -750,7 +750,8 @@ func (e *expander) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 			s := wp.Value
 			if i == 0 && ql == quoteNone {
 				if prefix, rest := e.expandUser(s, len(wps) > 1); prefix != "" {
-					field = append(field, fieldPart{val: prefix})
+					// Quoted, so that patterns match the home directory literally.
+					field = append(field, fieldPart{quote: quoteSingle, val: prefix})
 					s = rest
 				}
 			}
