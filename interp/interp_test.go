@@ -959,31 +959,31 @@ var runTests = []runTest{
 	},
 	{
 		`a=hello; declare -p a`,
-		"declare -- a=\"hello\"\n",
+		"declare -- a=hello\n #IGNORE declare -p quotes values differently",
 	},
 	{
 		"x='a$b`c\"d\\e'; declare -p x",
-		"declare -- x=\"a$b`c\\\"d\\\\e\"\n #IGNORE \"$\" and \"`\" are not escaped",
+		"declare -- x='a$b`c\"d\\e'\n #IGNORE declare -p quotes values differently",
 	},
 	{
 		`x=$'a\nb\tc'; a=($'q\nr' 's$'); declare -p x a`,
-		"declare -- x=\"a\\nb\\tc\"\ndeclare -a a=([0]=\"q\\nr\" [1]=\"s$\")\n #IGNORE Go escapes are not valid in double quotes",
+		"declare -- x=$'a\\nb\\tc'\ndeclare -a a=([0]=$'q\\nr' [1]='s$')\n #IGNORE declare -p quotes values differently",
 	},
 	{
 		`declare -A m=(['a b']='$x' ['#k']=$'\n' ['x]']=y); s=$(declare -p m); unset m; eval "$s" 2>/dev/null; echo "${m['a b']}|${m['#k']}|${m['x]']}"`,
-		"||\n #IGNORE keys are not quoted",
+		"$x|\n|y\n",
 	},
 	{
 		`declare -a arr=(1 2 3); declare -p arr`,
-		"declare -a arr=([0]=\"1\" [1]=\"2\" [2]=\"3\")\n",
+		"declare -a arr=([0]=1 [1]=2 [2]=3)\n #IGNORE declare -p quotes values differently",
 	},
 	{
 		`export e=1; declare -p e`,
-		"declare -x e=\"1\"\n",
+		"declare -x e=1\n #IGNORE declare -p quotes values differently",
 	},
 	{
 		`readonly c=immutable; declare -p c`,
-		"declare -r c=\"immutable\"\n",
+		"declare -r c=immutable\n #IGNORE declare -p quotes values differently",
 	},
 	{
 		`export e; declare -p e`,
@@ -1007,19 +1007,19 @@ var runTests = []runTest{
 	},
 	{
 		`foo=x; declare -a foo; declare -p foo`,
-		"declare -a foo=([0]=\"x\")\n",
+		"declare -a foo=([0]=x)\n #IGNORE declare -p quotes values differently",
 	},
 	{
 		`declare -a foo; foo=x; foo+=y; declare -p foo`,
-		"declare -a foo=([0]=\"xy\")\n",
+		"declare -a foo=([0]=xy)\n #IGNORE declare -p quotes values differently",
 	},
 	{
 		`f() { declare -a foo; foo=y; declare -p foo; }; f`,
-		"declare -a foo=([0]=\"y\")\n",
+		"declare -a foo=([0]=y)\n #IGNORE declare -p quotes values differently",
 	},
 	{
 		`declare foo; foo[2]=x; declare bar; bar+=(y); declare baz; : ${baz[1]:=z}; declare -p foo bar baz`,
-		"declare -a foo=([2]=\"x\")\ndeclare -a bar=([0]=\"y\")\ndeclare -a baz=([1]=\"z\")\n",
+		"declare -a foo=([2]=x)\ndeclare -a bar=([0]=y)\ndeclare -a baz=([1]=z)\n #IGNORE declare -p quotes values differently",
 	},
 	{
 		`declare -x foo; declare bar; export bar; $ENV_PROG | grep -E '^(foo|bar)='; echo $?`,
@@ -1047,15 +1047,15 @@ var runTests = []runTest{
 	},
 	{
 		`INTERP_X_s='a b'; export INTERP_X_x=1; export INTERP_X_xu; readonly INTERP_X_r=2; declare -a INTERP_X_a=(x); declare -A INTERP_X_m; declare -n INTERP_X_n=INTERP_X_s; declare INTERP_X_u; declare -p | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'`,
-		"declare -a INTERP_X_a=([0]=\"x\")\ndeclare -A INTERP_X_m\ndeclare -n INTERP_X_n=\"INTERP_X_s\"\ndeclare -r INTERP_X_r=\"2\"\ndeclare -- INTERP_X_s=\"a b\"\ndeclare -- INTERP_X_u\ndeclare -x INTERP_X_x=\"1\"\ndeclare -x INTERP_X_xu\n",
+		"declare -a INTERP_X_a=([0]=x)\ndeclare -A INTERP_X_m\ndeclare -n INTERP_X_n=INTERP_X_s\ndeclare -r INTERP_X_r=2\ndeclare -- INTERP_X_s='a b'\ndeclare -- INTERP_X_u\ndeclare -x INTERP_X_x=1\ndeclare -x INTERP_X_xu\n #IGNORE declare -p quotes values differently",
 	},
 	{
 		`INTERP_X_s=1; export INTERP_X_x=1; export INTERP_X_xu; readonly INTERP_X_r=2; declare -r -x INTERP_X_rx=3; export | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'; readonly -p | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'`,
-		"declare -rx INTERP_X_rx=\"3\"\ndeclare -x INTERP_X_x=\"1\"\ndeclare -x INTERP_X_xu\ndeclare -r INTERP_X_r=\"2\"\ndeclare -rx INTERP_X_rx=\"3\"\n",
+		"declare -rx INTERP_X_rx=3\ndeclare -x INTERP_X_x=1\ndeclare -x INTERP_X_xu\ndeclare -r INTERP_X_r=2\ndeclare -rx INTERP_X_rx=3\n #IGNORE declare -p quotes values differently",
 	},
 	{
 		`declare -a INTERP_X_a=(x); declare -a -x INTERP_X_ax; declare -A INTERP_X_m; declare -n INTERP_X_n=INTERP_X_a; export INTERP_X_x; readonly INTERP_X_r; declare -a | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'; declare -A -p | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'; declare -n | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'`,
-		"declare -a INTERP_X_a=([0]=\"x\")\ndeclare -ax INTERP_X_ax\ndeclare -A INTERP_X_m\ndeclare -n INTERP_X_n=\"INTERP_X_a\"\n",
+		"declare -a INTERP_X_a=([0]=x)\ndeclare -ax INTERP_X_ax\ndeclare -A INTERP_X_m\ndeclare -n INTERP_X_n=INTERP_X_a\n #IGNORE declare -p quotes values differently",
 	},
 	{
 		`declare -a INTERP_X_a=(x); declare -a -x INTERP_X_ax; export INTERP_X_x; readonly INTERP_X_r; declare -r -x | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'; declare -a -x | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'`,
@@ -1063,11 +1063,11 @@ var runTests = []runTest{
 	},
 	{
 		`INTERP_X_s=outer; f() { local; echo "rc=$?"; local INTERP_X_s=loc INTERP_X_l=1; local INTERP_X_u; local -x; g; }; g() { local INTERP_X_g=1; local; }; f`,
-		"rc=0\ndeclare -- INTERP_X_l=\"1\"\ndeclare -- INTERP_X_s=\"loc\"\ndeclare -- INTERP_X_u\ndeclare -- INTERP_X_g=\"1\"\n",
+		"rc=0\ndeclare -- INTERP_X_l=1\ndeclare -- INTERP_X_s=loc\ndeclare -- INTERP_X_u\ndeclare -- INTERP_X_g=1\n #IGNORE declare -p quotes values differently",
 	},
 	{
 		`export INTERP_X_x=1 INTERP_X_y=1; f() { local INTERP_X_x=shadow; unset INTERP_X_y; declare -x | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'; }; f; export | grep -E '^declare -[a-zA-Z-]+ INTERP_X_'`,
-		"declare -x INTERP_X_x=\"shadow\"\ndeclare -x INTERP_X_x=\"1\"\n",
+		"declare -x INTERP_X_x=shadow\ndeclare -x INTERP_X_x=1\n #IGNORE declare -p quotes values differently",
 	},
 
 	// if
@@ -3301,7 +3301,7 @@ set +o pipefail
 	{"declare x=5 a=($x); echo ${#a[@]}", "1\n #IGNORE values are expanded and assigned in turn; not worth implementing"},
 	{"x=(9); f() { local x=(1 2) y=(\"${x[@]}\"); echo ${y[@]}; }; f; echo ${x[@]}", "1 2\n9\n"},
 	// Flags may be combined, and -- ends them.
-	{"declare -rx y=1; declare -p y", "declare -rx y=\"1\"\n"},
+	{"declare -rx y=1; declare -p y", "declare -rx y=1\n #IGNORE declare -p quotes values differently"},
 	{"declare -- x=1; echo $x", "1\n"},
 	{"declare -- -y; echo $?; declare -r -- -x >/dev/null; echo $?", "declare: invalid name \"-y\"\n1\ndeclare: invalid name \"-x\"\n1\n #JUSTERR"},
 	{"f() { local -- -y; echo $?; }; f; export -- -y; echo $?; readonly -- -y; echo $?", "declare: invalid name \"-y\"\n1\ndeclare: invalid name \"-y\"\n1\ndeclare: invalid name \"-y\"\n1\n #JUSTERR"},
@@ -3317,24 +3317,24 @@ set +o pipefail
 	{"f() { echo \"$x\"; }; x=1; x=2 f; x+=3 f", "2\n13\n"},
 	// Including for declaration builtins.
 	{`f() { IFS=: local x=1 y=(a b); echo "$x ${y[1]}"; }; f`, "1 b\n"},
-	{`x=1 declare -p x; echo "[$x]"`, "declare -x x=\"1\"\n[]\n"},
+	{`x=1 declare -p x; echo "[$x]"`, "declare -x x=1\n[]\n #IGNORE declare -p quotes values differently"},
 	{`x=1 declare y=2; echo "[$x] $y"`, "[] 2\n"},
 	{`x=1 export y=3; echo "[$x] $y"`, "[] 3\n"},
 	{`f() { IFS=: local x=($(echo a:b)); echo ${#x[@]}; }; f`, "1\n"},
 	{`x=0; x=1 export y=$x; echo "[$y]"`, "[0]\n"},
 	{`y=1; y=2 declare z=$y y=3; echo "[$y] $z"`, "[1] 1\n"},
 	{`x=1 declare x; echo "[$x]"`, "[]\n"},
-	{`x=1 export x; echo "[$x]"; declare -p x`, "[1]\ndeclare -x x=\"1\"\n"},
+	{`x=1 export x; echo "[$x]"; declare -p x`, "[1]\ndeclare -x x=1\n #IGNORE declare -p quotes values differently"},
 	{`x=0; x=1 export x=2; echo "[$x]"`, "[2]\n"},
-	{`x=1 readonly x; declare -p x`, "declare -rx x=\"1\"\n"},
+	{`x=1 readonly x; declare -p x`, "declare -rx x=1\n #IGNORE declare -p quotes values differently"},
 	{`x=1 declare -x x; echo "[$x]"`, "[1]\n"},
 	{`case $(xx=1 declare -p; xx=1 export -p) in *-x\ x[x]=*) echo found ;; esac; echo end`, "end\n"},
 	{`f() { x=1 local x=2; echo "[$x]"; }; f; echo "[$x]"`, "[2]\n[]\n"},
-	{`f() { x=1 local x; declare -p x; }; f`, "declare -x x=\"1\"\n"},
+	{`f() { x=1 local x; declare -p x; }; f`, "declare -x x=1\n #IGNORE declare -p quotes values differently"},
 	{`f() { local x=0; x=1 export x; echo "[$x]"; }; f; echo "[$x]"`, "[1]\n[]\n"},
 	// A local declared under a temporary environment, like in eval or
 	// source, belongs to the function.
-	{`f() { x=1 eval 'local y=2; declare -a q=(1 2)'; echo "[$y]"; declare -p q; }; f; echo "[$y]"`, "[2]\ndeclare -a q=([0]=\"1\" [1]=\"2\")\n[]\n"},
+	{`f() { x=1 eval 'local y=2; declare -a q=(1 2)'; echo "[$y]"; declare -p q; }; f; echo "[$y]"`, "[2]\ndeclare -a q=([0]=1 [1]=2)\n[]\n #IGNORE declare -p quotes values differently"},
 	// Each prefix assignment sees the earlier ones.
 	{"x=old; f() { echo $x $y; }; x=new y=$x f", "new new\n"},
 	{"x=old; f() { echo $x; }; x=new x+=! f; echo $x", "new!\nold\n"},
@@ -3734,11 +3734,11 @@ done <<< 2`,
 	},
 	{
 		"a=(1 2); ((a++)); declare -p a",
-		"declare -a a=([0]=\"2\" [1]=\"2\")\n",
+		"declare -a a=([0]=2 [1]=2)\n #IGNORE declare -p quotes values differently",
 	},
 	{
 		"s=7; ((s[0]+=1)); ((s[2]=4)); declare -p s",
-		"declare -a s=([0]=\"8\" [2]=\"4\")\n",
+		"declare -a s=([0]=8 [2]=4)\n #IGNORE declare -p quotes values differently",
 	},
 	{
 		`declare -A m; ((m[k]+=2)); ((m[k]++)); ((m[foo-bar]=3)); echo ${m[k]} ${m["foo-bar"]}`,
@@ -3973,13 +3973,13 @@ done <<< 2`,
 	{"x=1; x+=; echo \"[$x]\"", "[1]\n"},
 	{"a=(x y); a[1]+=Q; echo ${a[@]}", "x yQ\n"},
 	{"a=(1 2 3); a[-1]+=x; echo ${a[@]}", "1 2 3x\n"},
-	{"a=(1 2); a=; declare -p a", "declare -a a=([0]=\"\" [1]=\"2\")\n"},
-	{"a=([1]=x); a+=; declare -p a", "declare -a a=([0]=\"\" [1]=\"x\")\n"},
-	{"s=x; s+=(y); declare -p s", "declare -a s=([0]=\"x\" [1]=\"y\")\n"},
-	{"declare -a x=1; declare -p x", "declare -a x=([0]=\"1\")\n"},
-	{"declare -A x=1; declare -p x", "declare -A x=([0]=\"1\")\n #IGNORE bash prints a trailing space"},
-	{"declare a[2]=x; declare -p a", "declare -a a=([2]=\"x\")\n"},
-	{"x=1; declare -A x; declare -p x", "declare -A x=([0]=\"1\")\n #IGNORE bash prints a trailing space"},
+	{"a=(1 2); a=; declare -p a", "declare -a a=([0]='' [1]=2)\n #IGNORE declare -p quotes values differently"},
+	{"a=([1]=x); a+=; declare -p a", "declare -a a=([0]='' [1]=x)\n #IGNORE declare -p quotes values differently"},
+	{"s=x; s+=(y); declare -p s", "declare -a s=([0]=x [1]=y)\n #IGNORE declare -p quotes values differently"},
+	{"declare -a x=1; declare -p x", "declare -a x=([0]=1)\n #IGNORE declare -p quotes values differently"},
+	{"declare -A x=1; declare -p x", "declare -A x=([0]=1)\n #IGNORE bash prints a trailing space"},
+	{"declare a[2]=x; declare -p a", "declare -a a=([2]=x)\n #IGNORE declare -p quotes values differently"},
+	{"x=1; declare -A x; declare -p x", "declare -A x=([0]=1)\n #IGNORE bash prints a trailing space"},
 	{"declare -A A=([k]=v); A[k]+=w; echo ${A[k]}", "vw\n"},
 	{"declare -A A=([k]=v); A+=([j]=1); echo ${A[j]}${A[k]}", "1v\n"},
 	{"declare -A A=([k]=v); A+=x; echo ${A[0]}${A[k]}", "xv\n"},
@@ -3988,11 +3988,11 @@ done <<< 2`,
 	{"declare -A A; A=(a 1 b); echo ${A[b]-unset}", "\n"},
 	{
 		"a=(1 2); declare -A a; echo st=$?; declare -p a",
-		"declare: a: cannot convert indexed to associative array\nst=1\ndeclare -a a=([0]=\"1\" [1]=\"2\")\n #JUSTERR",
+		"declare: a: cannot convert indexed to associative array\nst=1\ndeclare -a a=([0]=1 [1]=2)\n #JUSTERR",
 	},
 	{
 		"declare -A m=([k]=v); declare -a m; echo st=$?; declare -p m",
-		"declare: m: cannot convert associative to indexed array\nst=1\ndeclare -A m=([k]=\"v\")\n #JUSTERR",
+		"declare: m: cannot convert associative to indexed array\nst=1\ndeclare -A m=([k]=v)\n #JUSTERR",
 	},
 	{
 		"a=(1); a[-5]=x; echo after",
@@ -4014,7 +4014,7 @@ done <<< 2`,
 	{"a[5]=x; echo ${#a[@]} ${a[@]} ${!a[@]}", "1 x 5\n"},
 	{"a=([5]=x [2]=y); echo ${!a[@]}; echo ${a[@]}", "2 5\ny x\n"},
 	{"a=([5]=x y z); echo ${!a[@]}", "5 6 7\n"},
-	{"a[5]=x; a[2]=y; declare -p a", "declare -a a=([2]=\"y\" [5]=\"x\")\n"},
+	{"a[5]=x; a[2]=y; declare -p a", "declare -a a=([2]=y [5]=x)\n #IGNORE declare -p quotes values differently"},
 	{"a[5]=x; echo ${a[0]-unset} ${a[5]}; echo \"${a[@]}\"", "unset x\nx\n"},
 	{"a=(x y z); unset 'a[1]'; echo ${#a[@]} ${!a[@]} ${a[@]}", "2 0 2 x z\n"},
 	{"a=(x y z); unset 'a[2]'; echo ${#a[@]} ${!a[@]} ${a[@]}", "2 0 1 x y\n"},
@@ -4031,8 +4031,8 @@ done <<< 2`,
 	{"a=([2]=x [5]=y); echo $a ${a[0]-unset}", "unset\n"},
 	{"a=([0]=x [5]=y); echo $a", "x\n"},
 	{"a=([5]=x); echo ${a+set} ${a-unset}", "unset\n"},
-	{"a=(x y); : \"${a[5]=z}\"; declare -p a", "declare -a a=([0]=\"x\" [1]=\"y\" [5]=\"z\")\n"},
-	{"s=x; : \"${s[1]=z}\"; declare -p s", "declare -a s=([0]=\"x\" [1]=\"z\")\n"},
+	{"a=(x y); : \"${a[5]=z}\"; declare -p a", "declare -a a=([0]=x [1]=y [5]=z)\n #IGNORE declare -p quotes values differently"},
+	{"s=x; : \"${s[1]=z}\"; declare -p s", "declare -a s=([0]=x [1]=z)\n #IGNORE declare -p quotes values differently"},
 	{"declare -A m=([k]=v); : \"${m[j]=z}\"; echo ${m[j]} ${m[k]}", "z v\n"},
 	// unquoted keys which parse as arithmetic expressions
 	{`declare -A m; m[foo-bar]=1; m[a/b]=2; echo "${m["foo-bar"]}" "${m["a/b"]}"`, "1 2\n"},
@@ -4048,13 +4048,13 @@ done <<< 2`,
 		"declare -A m=([x]=1 a 1)",
 		"m: a: must use subscript when assigning associative array\nexit status 1 #JUSTERR",
 	},
-	{"a=([5]=b [-1]=c d); declare -p a", "declare -a a=([5]=\"c\" [6]=\"d\")\n"},
+	{"a=([5]=b [-1]=c d); declare -p a", "declare -a a=([5]=c [6]=d)\n #IGNORE declare -p quotes values differently"},
 	{"a=(1 2 3); echo ${a[-1]} ${a[-3]}", "3 1\n"},
-	{"a=(x); unset 'a[]'; echo $?; declare -p a", "0\ndeclare -a a=([0]=\"x\")\n"},
+	{"a=(x); unset 'a[]'; echo $?; declare -p a", "0\ndeclare -a a=([0]=x)\n #IGNORE declare -p quotes values differently"},
 	{"s=x; unset 's[0]'; echo ${s-unset}", "unset\n"},
 	{"s=x; unset 's[5]'; echo $s", "unset: s: not an array variable\nx\n #JUSTERR"},
 	{"a=([5]=x); (a[2]=y; echo ${!a[@]}); echo ${!a[@]}", "2 5\n5\n"},
-	{"a=([1]=y [0]=x); declare -p a", "declare -a a=([0]=\"x\" [1]=\"y\")\n"},
+	{"a=([1]=y [0]=x); declare -p a", "declare -a a=([0]=x [1]=y)\n #IGNORE declare -p quotes values differently"},
 	{"declare -n r=a; a=(1 2 3); unset 'r[1]'; echo ${!a[@]}", "0 2\n"},
 
 	// declare
@@ -4074,7 +4074,7 @@ done <<< 2`,
 	// Flags are only parsed before the first name, and other names are
 	// still declared after an invalid one.
 	{`declare x=1 -r z=3; echo "$? $x $z"; x=2; echo $x`, "declare: invalid name \"-r\"\n1 1 3\n2\n #JUSTERR"},
-	{`v=1y=2; declare -x a=1 "$v" -r b=2; echo $?; declare -p a b`, "declare: invalid name \"1y\"\ndeclare: invalid name \"-r\"\n1\ndeclare -x a=\"1\"\ndeclare -x b=\"2\"\n #JUSTERR"},
+	{`v=1y=2; declare -x a=1 "$v" -r b=2; echo $?; declare -p a b`, "declare: invalid name \"1y\"\ndeclare: invalid name \"-r\"\n1\ndeclare -x a=1\ndeclare -x b=2\n #JUSTERR"},
 
 	// export
 	{"declare foo=bar; $ENV_PROG | grep '^foo='", "exit status 1"},
@@ -4151,11 +4151,11 @@ done <<< 2`,
 	},
 	{
 		`foo=x; f() { local foo; echo "${foo+set}|${foo-unset}"; declare -p foo; }; f; declare -p foo`,
-		"|unset\ndeclare -- foo\ndeclare -- foo=\"x\"\n",
+		"|unset\ndeclare -- foo\ndeclare -- foo=x\n #IGNORE declare -p quotes values differently",
 	},
 	{
 		`export foo=x; f() { local foo; declare -p foo; $ENV_PROG >env.txt; grep '^foo=' <env.txt; foo=y; $ENV_PROG | grep '^foo='; }; f; declare -p foo`,
-		"declare -x foo\nfoo=x\nfoo=y\ndeclare -x foo=\"x\"\n",
+		"declare -x foo\nfoo=x\nfoo=y\ndeclare -x foo=x\n #IGNORE declare -p quotes values differently",
 	},
 	{
 		`readonly foo=x; f() { local foo 2>/dev/null; echo "$? ${foo+set}"; }; f`,
@@ -4163,7 +4163,7 @@ done <<< 2`,
 	},
 	{
 		`foo=(a b); declare -A bar=([k]=v); f() { local foo bar; declare -p foo bar; }; f; declare -p foo`,
-		"declare -- foo\ndeclare -- bar\ndeclare -a foo=([0]=\"a\" [1]=\"b\")\n",
+		"declare -- foo\ndeclare -- bar\ndeclare -a foo=([0]=a [1]=b)\n #IGNORE declare -p quotes values differently",
 	},
 	{
 		`foo=x; f() { declare foo; echo "${foo+set}|"; }; f; echo "$foo"`,
@@ -4293,8 +4293,8 @@ done <<< 2`,
 	{"a=3; declare -n r=a; echo $((r+1)); ((r++)); echo $a", "4\n4\n"},
 	{"declare -n r=x; x=1; read r <<< 7; echo $x; mapfile -t r <<< 8; echo ${x[@]}", "7\n8\n"},
 	// A for loop makes a nameref refer to each word in turn.
-	{`a=1 b=2 x=0; declare -n r=x; for r in a b; do echo "$r"; done; declare -p r x`, "1\n2\ndeclare -n r=\"b\"\ndeclare -- x=\"0\"\n"},
-	{"declare -n r=x; x=1; unset r; echo \"[${x-unset}] [${r-unset}]\"; declare -p r", "[unset] [unset]\ndeclare -n r=\"x\"\n"},
+	{`a=1 b=2 x=0; declare -n r=x; for r in a b; do echo "$r"; done; declare -p r x`, "1\n2\ndeclare -n r=b\ndeclare -- x=0\n #IGNORE declare -p quotes values differently"},
+	{"declare -n r=x; x=1; unset r; echo \"[${x-unset}] [${r-unset}]\"; declare -p r", "[unset] [unset]\ndeclare -n r=x\n #IGNORE declare -p quotes values differently"},
 	{"declare -n r=x; x=1; unset -n r; echo \"[${x-unset}] [${r-unset}]\"", "[1] [unset]\n"},
 	{
 		"declare -n r=x; x=1; readonly r; x=2; echo after",
@@ -4351,18 +4351,18 @@ done <<< 2`,
 	{`declare -n r=y; y=v; echo "${!r}" "${!r:-d}"`, "y y\n"},
 	{`n=LINENO; echo ${!n}`, "1\n"},
 	// A nameref declared without a target gets one from its first assignment.
-	{`declare -n ref; ref=x; x=5; echo "${!ref} $ref"; declare -p ref`, "x 5\ndeclare -n ref=\"x\"\n"},
+	{`declare -n ref; ref=x; x=5; echo "${!ref} $ref"; declare -p ref`, "x 5\ndeclare -n ref=x\n #IGNORE declare -p quotes values differently"},
 	{`f() { local -n ref; ref=$1; ref=9; }; f x; echo "[$x]"`, "[9]\n"},
 	// Like an assignment, read and getopts set its target.
-	{`x=0; declare -n r; read r <<< x; r=5; echo $x; declare -n q; getopts a q -a; declare -p q`, "5\ndeclare -n q=\"a\"\n"},
+	{`x=0; declare -n r; read r <<< x; r=5; echo $x; declare -n q; getopts a q -a; declare -p q`, "5\ndeclare -n q=a\n #IGNORE declare -p quotes values differently"},
 	// Setting the target of a nameref checks that it is a valid name.
 	{
 		"declare -n r=x; for r in 'bad name' b; do echo in; done; echo st=$?; declare -p r",
-		"`bad name': not a valid identifier\nst=1\ndeclare -n r=\"x\"\n #JUSTERR",
+		"`bad name': not a valid identifier\nst=1\ndeclare -n r=x\n #JUSTERR",
 	},
 	{
 		"declare -n r=x; for r in r b; do echo in; done; echo st=$?; declare -p r",
-		"r: nameref variable self references not allowed\nst=1\ndeclare -n r=\"x\"\n #JUSTERR",
+		"r: nameref variable self references not allowed\nst=1\ndeclare -n r=x\n #JUSTERR",
 	},
 	{
 		"declare -n r; read r <<< 'bad name'; echo st=$?; declare -p r",
@@ -4374,7 +4374,7 @@ done <<< 2`,
 	},
 	{
 		"a=(x y); declare -n r s\nr='a[1]'; echo same\nr=z; echo \"<$r>\"; declare -p a\nfor s in 'a[0]'; do echo \"<$s>\"; done; echo st=$?",
-		"a[1]: invalid variable name for name reference\n<>\ndeclare -a a=([0]=\"x\" [1]=\"y\")\na[0]: invalid variable name for name reference\nst=1\n #IGNORE namerefs to array elements are not supported",
+		"a[1]: invalid variable name for name reference\n<>\ndeclare -a a=([0]=x [1]=y)\na[0]: invalid variable name for name reference\nst=1\n #IGNORE namerefs to array elements are not supported",
 	},
 	// The subscript of an indirect expansion is an associative key or an
 	// arithmetic expression, depending on the array.
@@ -4537,19 +4537,19 @@ done <<< 2`,
 	// even in an arithmetic command, without modifying the array.
 	{
 		"a=(1 2)\na[08]=5; echo same\nx=1+\n{ a[x]=5; echo same; }\necho after; declare -p a",
-		"08: value too great for base\n1+: arithmetic syntax error in expression\nafter\ndeclare -a a=([0]=\"1\" [1]=\"2\")\n #JUSTERR",
+		"08: value too great for base\n1+: arithmetic syntax error in expression\nafter\ndeclare -a a=([0]=1 [1]=2)\n #JUSTERR",
 	},
 	{
 		"a=(1 2)\nunset 'a[08]'; echo same\ndeclare a[08]=5; echo same\na+=([1/0]=3); echo same\necho after; declare -p a",
-		"08: value too great for base\n08: value too great for base\ndivision by zero\nafter\ndeclare -a a=([0]=\"1\" [1]=\"2\")\n #JUSTERR",
+		"08: value too great for base\n08: value too great for base\ndivision by zero\nafter\ndeclare -a a=([0]=1 [1]=2)\n #JUSTERR",
 	},
 	{
 		"a=(1 2)\n((a[08] = 3)); echo same\nlet 'a[1/0] = 3' b=4; echo same\n((a[1/0])); echo same\necho ${a[1/0]}; echo same\necho after $b; declare -p a",
-		"08: value too great for base\ndivision by zero\ndivision by zero\ndivision by zero\nafter\ndeclare -a a=([0]=\"1\" [1]=\"2\")\n #JUSTERR",
+		"08: value too great for base\ndivision by zero\ndivision by zero\ndivision by zero\nafter\ndeclare -a a=([0]=1 [1]=2)\n #JUSTERR",
 	},
 	{
 		"exec 2>/dev/null; a=(1 2)\na[08]=5; echo same\n((a[1/0] = 3)); echo same\necho after $?; declare -p a",
-		"after 1\ndeclare -a a=([0]=\"1\" [1]=\"2\")\n",
+		"after 1\ndeclare -a a=([0]=1 [1]=2)\n #IGNORE declare -p quotes values differently",
 	},
 	{
 		"exec 2>/dev/null; a=(1)\ndeclare a[1/0]=x c=2; echo same\necho ${c-unset}",
@@ -4579,7 +4579,7 @@ w=old; declare -a w=(new $((1/0)))
 z=old; declare -r z=new$((1/0))
 z=2
 echo "$x $y $z $i"; declare -p v w; declare -p u || echo unset`,
-		"old old 2 0\ndeclare -- v=\"old\"\ndeclare -- w=\"old\"\nunset\n",
+		"old old 2 0\ndeclare -- v=old\ndeclare -- w=old\nunset\n #IGNORE declare -p quotes values differently",
 	},
 	{
 		`readonly r=1

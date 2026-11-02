@@ -90,7 +90,7 @@ func (t *tracer) newLineFlush() {
 	t.needsPlus = true
 }
 
-// quoteBash quotes a string so that it can be traced as a single Bash word.
+// quoteBash quotes s as a single Bash word.
 // Null bytes are dropped, as Bash strings cannot hold them.
 func quoteBash(s string) string {
 	qs, err := syntax.Quote(strings.ReplaceAll(s, "\x00", ""), syntax.LangBash)

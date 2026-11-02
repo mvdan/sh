@@ -1153,10 +1153,8 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 
 // printDeclare prints a declare command which recreates a variable,
 // like Bash's `declare -p`.
-// Values may be quoted differently than in Bash.
-//
-// TODO: quote values as valid shell input, as %q does not escape "$" or "`"
-// and uses Go escapes for non-printable characters.
+// Values are quoted differently than in Bash,
+// and associative array keys are sorted.
 func (r *Runner) printDeclare(name string, vr expand.Variable) {
 	flags := vr.Flags()
 	if flags == "" {
@@ -1178,19 +1176,19 @@ func (r *Runner) printDeclare(name string, vr expand.Variable) {
 			if vr.Indexes != nil {
 				idx = vr.Indexes[i]
 			}
-			r.outf("[%d]=%q", idx, v)
+			r.outf("[%d]=%s", idx, quoteBash(v))
 		}
 		r.out(")\n")
 	case expand.Associative:
 		r.out("=(")
 		sep := ""
-		for k, v := range vr.Map {
-			r.outf("%s[%s]=%q", sep, k, v)
+		for _, k := range slices.Sorted(maps.Keys(vr.Map)) {
+			r.outf("%s[%s]=%s", sep, quoteBash(k), quoteBash(vr.Map[k]))
 			sep = " "
 		}
 		r.out(")\n")
 	default:
-		r.outf("=%q\n", vr.Str)
+		r.outf("=%s\n", quoteBash(vr.Str))
 	}
 }
 
