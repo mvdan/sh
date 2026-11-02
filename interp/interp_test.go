@@ -1309,9 +1309,9 @@ var runTests = []runTest{
 	{`HOME='#h'; a=hello; echo "${a/~/X}"`, "hello\n"},
 	{
 		`HOME=; x=~/foo y=~; echo "[$x] [$y]"; v=/foo; echo "${v#~/}"; [[ $v == ~/foo ]] && echo match`,
-		"[~/foo] [~]\n/foo\nexit status 1 #IGNORE an empty HOME does not expand in assignments or patterns",
+		"[/foo] []\nfoo\nmatch\n",
 	},
-	{`HOME=; case /foo in ~/foo) echo match;; esac`, ""},
+	{`HOME=; case /foo in ~/foo) echo match;; esac`, "match\n #IGNORE bash leaks its \177 quoted-null marker here, matching $'\177/foo' instead"},
 	{`test -d ~`, ""},
 	{
 		`for flag in b c d e f g h k L p r s S u w x; do test -$flag ""; echo -n "$flag$? "; done`,
