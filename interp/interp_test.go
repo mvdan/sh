@@ -2067,11 +2067,11 @@ read -r l <err; echo "$l"`,
 	},
 	{
 		"x=val; cat <<'EOF'2\n$x $(echo subst)\nEOF2",
-		"val subst\n #IGNORE the body is wrongly expanded",
+		"$x $(echo subst)\n",
 	},
 	{
 		"x=val; cat <<\"EOF\"2\n$x $(echo subst)\nEOF2",
-		"val subst\n #IGNORE the body is wrongly expanded",
+		"$x $(echo subst)\n",
 	},
 	{
 		"cat <<EOF\nEOF",

@@ -1451,6 +1451,7 @@ func (r *Runner) hdocReader(rd *syntax.Redirect) (stdinFile, error) {
 
 // hdocQuotedDelim reports whether a here-document delimiter word is quoted,
 // as in "<<'EOF'" or "<<\EOF", which makes its body literal.
+// Keep in sync with unquotedWordBytes in the syntax package.
 func hdocQuotedDelim(word *syntax.Word) bool {
 	for _, wp := range word.Parts {
 		switch wp := wp.(type) {
@@ -1468,8 +1469,6 @@ func hdocQuotedDelim(word *syntax.Word) bool {
 // hdocWord returns a here-document body, or one of its lines, as a string.
 // A quoted delimiter, as in "<<'EOF'", makes the body literal,
 // in which case the parser only gives us literal parts.
-// Note that a partly quoted delimiter, such as "<<'A'B",
-// is not spotted by the parser either, so we still expand its body.
 func (r *Runner) hdocWord(word *syntax.Word, quoted bool) string {
 	if quoted {
 		if lit := word.Lit(); lit != "" {

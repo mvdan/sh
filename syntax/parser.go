@@ -746,15 +746,14 @@ func (p *Parser) postNested(s saveState) {
 	p.quote, p.buriedHdocs = s.quote, s.buriedHdocs
 }
 
-func unquotedWordBytes(w *Word) ([]byte, bool) {
-	buf := make([]byte, 0, 4)
-	didUnquote := false
+func unquotedWordBytes(w *Word) (buf []byte, quoted bool) {
+	buf = make([]byte, 0, 4)
 	for _, wp := range w.Parts {
-		// TODO: a partly quoted word such as 'A'B is quoted,
-		// but this only reports whether its last part is.
-		buf, didUnquote = unquotedWordPart(buf, wp, false)
+		var partQuoted bool
+		buf, partQuoted = unquotedWordPart(buf, wp, false)
+		quoted = quoted || partQuoted
 	}
-	return buf, didUnquote
+	return buf, quoted
 }
 
 func unquotedWordPart(buf []byte, wp WordPart, quotes bool) (_ []byte, quoted bool) {

@@ -1677,8 +1677,7 @@ var fileTests = []fileTestCase{
 			Redirs: []*Redirect{{
 				Op:   Hdoc,
 				Word: word(dblQuoted(lit("EOF")), lit("2")),
-				// The body is wrongly expanded.
-				Hdoc: word(litParamExp("bar"), lit("\n")),
+				Hdoc: litWord("$bar\n"),
 			}},
 		}),
 	),
@@ -1689,8 +1688,7 @@ var fileTests = []fileTestCase{
 			Redirs: []*Redirect{{
 				Op:   Hdoc,
 				Word: word(sglQuoted("EOF"), lit("2")),
-				// The body is wrongly expanded.
-				Hdoc: word(litParamExp("bar"), lit("\n")),
+				Hdoc: litWord("$bar\n"),
 			}},
 		}),
 	),
