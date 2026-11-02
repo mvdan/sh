@@ -5255,6 +5255,55 @@ echo "${m[k]}"; declare -p a || echo unset`,
 		"y",
 	},
 
+	// read -d
+	{`read -d : x <<< 'a:b'; echo "[$x]"; read -d :: x <<< 'c:d'; echo "[$x]"`, "[a]\n[c]\n"},
+	{`printf 'a:b' | { read -d: x; read -rd: y; echo "[$x][$y]"; }`, "[a][b]\n"},
+	{`printf 'a\0b' | { read -d '' x; echo "$? [$x]"; read -d '' y; echo "$? [$y]"; }`, "0 [a]\n1 [b]\n"},
+	{`printf 'a,b\0c,d\0' | while IFS=, read -rd '' x y; do echo "[$x][$y]"; done`, "[a][b]\n[c][d]\n"},
+	{`printf 'a\nb:c' | { read -d : x; read y; echo "[$x][$y]"; }`, "[a\nb][c]\n"},
+	{`printf 'a\nb:c' | { read -d : x y; echo "[$x][$y]"; }`, "[a][b]\n"},
+	{`printf 'a:b\n' | { read -d ''; echo "$? [$REPLY]"; }`, "1 [a:b\n]\n"},
+	{`read -d : x <<< 'abc'; echo "$? [$x]"`, "1 [abc]\n"},
+	// A backslash escapes the delimiter, and still continues a line.
+	{`read -d : x <<< 'a\:b:c'; echo "[$x]"; read -rd : x <<< 'a\:b:c'; echo "[$x]"`, "[a:b]\n[a\\]\n"},
+	{`printf 'a\\\nb:c' | { read -d : x; echo "[$x]"; }`, "[ab]\n"},
+	{`printf 'a\\b:c' | { read -d '\' x; echo "[$x]"; read -rd '\' x; echo "[$x]"; }`, "[ab:c]\n[]\n"},
+	{"read -d", "read: -d: option requires an argument\nexit status 2 #JUSTERR"},
+
+	// read -n and -N
+	{`read -n 3 x <<< abcdef; echo "[$x]"; read -n3 x <<< abcdef; echo "[$x]"; read -rn1 x <<< abc; echo "[$x]"`, "[abc]\n[abc]\n[a]\n"},
+	{`printf 'abcd' | { read -n 2 x; read y; echo "[$x][$y]"; }`, "[ab][cd]\n"},
+	{`printf 'ab\ncd' | { read -n 5 x; read y; echo "[$x][$y]"; }`, "[ab][cd]\n"},
+	{`printf 'ab:cd' | { read -n 5 -d : x; read y; echo "[$x][$y]"; }`, "[ab][cd]\n"},
+	{`read -n 3 x <<< ab; echo "$? [$x]"; printf ab | { read -n 3 x; echo "$? [$x]"; }`, "0 [ab]\n1 [ab]\n"},
+	{`printf ' a b ' | { read -n 5 x y; echo "[$x][$y]"; }`, "[a][b]\n"},
+	{`printf 'a b c d' | { read -n 7 -a arr; echo "${#arr[@]} [${arr[0]}]"; }`, "4 [a]\n"},
+	{`printf 'x y\n' | { while read -n1 c; do printf '<%s>' "$c"; done; echo; }`, "<x><><y><>\n"},
+	{`x=foo; printf 'abc' | { read -n 0 x; echo "$? [$x]"; read -N 0 x; read y; echo "[$x][$y]"; }`, "0 []\n[][abc]\n"},
+	{`printf 'a\nbcd' | { read -N 3 x; read y; echo "[$x][$y]"; }`, "[a\nb][cd]\n"},
+	{`printf 'ab:cd' | { read -N 5 -d : x; read -d : -N 1 y; echo "$? [$x][$y]"; }`, "0 [ab][c]\n #IGNORE bash ignores -d after -N"},
+	{`printf 'ab' | { read -N 3 x; echo "$? [$x]"; }`, "1 [ab]\n"},
+	{`printf 'x y\nz' | { while read -rN1 c; do printf '<%s>' "$c"; done; echo; }`, "<x>< ><y><\n><z>\n"},
+	// The last of -n and -N sets the count, and -N ignores the delimiter.
+	{`printf 'abcd' | { read -n 1 -N 3 x; echo "[$x]"; }; printf 'a\nbcd' | { read -N 1 -n 3 x; echo "[$x]"; }`, "[abc]\n[a\nb]\n"},
+	// -N does not split fields.
+	{`printf ' a b c d' | { read -N 6 x y; echo "[$x][$y]"; }`, "[ a b c][]\n"},
+	{`printf ' a b ' | { read -N 5 -a arr; echo "${#arr[@]} [${arr[0]}]"; }; printf '' | { read -N 1 -a arr; echo "${#arr[@]}"; }`, "1 [ a b ]\n1\n #IGNORE bash assigns no elements for empty input"},
+	// Backslash escapes and line continuations do not count as characters.
+	{`printf '\\abc' | { read -n 2 x; read y; echo "[$x][$y]"; }`, "[ab][c]\n"},
+	{`printf '\\abc' | { read -rN 2 x; read y; echo "[$x][$y]"; }`, "[\\a][bc]\n"},
+	{`printf 'ab\\\\cd' | { read -n 3 x; read y; echo "[$x][$y]"; }`, "[ab\\][cd]\n"},
+	{`printf 'a\\\nbc' | { read -N 2 x; read y; echo "[$x][$y]"; }`, "[ab][c]\n"},
+	{`printf ' a\\ b ' | { read -N 7 x; echo "[$x]"; }`, "[ a b ]\n"},
+	// Characters are counted rather than bytes.
+	{`printf 'héllo' | { read -n 2 x; read y; echo "[$x][$y]"; }`, "[hé][llo]\n"},
+	{`read -n +3 x <<< abcdef; echo "[$x]"; read -n 03 x <<< abcdef; echo "[$x]"`, "[abc]\n[abc]\n"},
+	{`read -n ' 3' x <<< abcdef; echo "$? [$x]"`, "read: invalid number \" 3\"\n1 []\n #IGNORE bash trims whitespace"},
+	{"read -n", "read: -n: option requires an argument\nexit status 2 #JUSTERR"},
+	{"read -n x", "read: invalid number \"x\"\nexit status 1 #JUSTERR"},
+	{"read -N -1", "read: invalid number \"-1\"\nexit status 1 #JUSTERR"},
+	{"read -n ''", "read: invalid number \"\"\nexit status 1 #JUSTERR"},
+
 	// getopts
 	{
 		"getopts",

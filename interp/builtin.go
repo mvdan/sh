@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"golang.org/x/term"
 
@@ -752,6 +753,8 @@ dispatch:
 		raw := false
 		silent := false
 		readArray := false
+		delim := int('\n')
+		nchars := -1
 		fp := flagParser{remaining: args}
 		for fp.more() {
 			switch flag := fp.flag(); flag {
@@ -761,10 +764,30 @@ dispatch:
 				raw = true
 			case "-a":
 				readArray = true
-			case "-p":
-				prompt = fp.value()
-				if prompt == "" {
-					return failf(2, "read: -p: option requires an argument\n")
+			case "-p", "-d", "-n", "-N":
+				value, ok := fp.optValue()
+				if !ok {
+					return failf(2, "read: %s: option requires an argument\n", flag)
+				}
+				switch flag {
+				case "-p":
+					prompt = value
+				case "-d":
+					// Like Bash, only the first byte is used,
+					// and an empty delimiter means NUL.
+					delim = 0
+					if value != "" {
+						delim = int(value[0])
+					}
+				case "-n", "-N":
+					n, err := strconv.Atoi(value)
+					if err != nil || n < 0 {
+						return failf(1, "read: invalid number %q\n", value)
+					}
+					nchars = n
+					if flag == "-N" {
+						delim = -1
+					}
 				}
 			default:
 				return failf(2, "read: invalid option %q\n", flag)
@@ -791,30 +814,18 @@ dispatch:
 		if terminal {
 			// Only a terminal echoes what we read, so it is the only case
 			// where we need to read without echoing.
+			// TODO: support -d, -n, and -N here too.
 			line, err = term.ReadPassword(fd)
 		} else {
-			line, err = r.readLine(ctx, raw)
+			line, err = r.readLine(ctx, raw, delim, nchars)
 		}
 		if err == errReadTooLarge {
 			return fatal(err)
 		}
-		if readArray {
-			// read -a arrayname: split line into fields and assign to indexed array.
-			arrayName := shellReplyVar
-			if len(args) > 0 {
-				arrayName = args[0]
-			}
-			// Use -1 as max to get all fields without joining the last ones.
-			values := expand.ReadFields(r.ecfg, string(line), -1, raw)
-			arrayName, _ = r.resolveName(arrayName)
-			checkVar(r.setVar(arrayName, expand.Variable{
-				Set:  true,
-				Kind: expand.Indexed,
-				List: values,
-			}))
-		} else if len(args) == 0 {
-			// Bare "read" assigns the whole line to REPLY without any
-			// trimming, only discarding backslash escapes unless raw.
+		var values []string
+		if delim < 0 || (len(args) == 0 && !readArray) {
+			// Bare "read" and "read -N" assign the whole input without any
+			// field splitting, only discarding backslash escapes unless raw.
 			val := string(line)
 			if !raw {
 				var sb strings.Builder
@@ -829,9 +840,29 @@ dispatch:
 				}
 				val = sb.String()
 			}
-			checkVar(r.setVarString(shellReplyVar, val))
+			values = []string{val}
 		} else {
-			values := expand.ReadFields(r.ecfg, string(line), len(args), raw)
+			max := len(args)
+			if readArray {
+				max = -1 // all fields, without joining the last ones
+			}
+			values = expand.ReadFields(r.ecfg, string(line), max, raw)
+		}
+		switch {
+		case readArray:
+			arrayName := shellReplyVar
+			if len(args) > 0 {
+				arrayName = args[0]
+			}
+			arrayName, _ = r.resolveName(arrayName)
+			checkVar(r.setVar(arrayName, expand.Variable{
+				Set:  true,
+				Kind: expand.Indexed,
+				List: values,
+			}))
+		case len(args) == 0:
+			checkVar(r.setVarString(shellReplyVar, values[0]))
+		default:
 			for i, name := range args {
 				val := ""
 				if i < len(values) {
@@ -1168,13 +1199,20 @@ func (r *Runner) printOptLine(name string, enabled, supported bool) {
 // for builtins which read input into variables.
 var errReadTooLarge = internal.Fatalf("input would exceed %d bytes", internal.MaxExpandSize)
 
-func (r *Runner) readLine(ctx context.Context, raw bool) ([]byte, error) {
+// readLine reads from stdin until delim, or EOF if delim is -1,
+// or until nchars characters if nchars is not negative.
+// Unless raw, it drops line continuations and keeps other escapes.
+func (r *Runner) readLine(ctx context.Context, raw bool, delim, nchars int) ([]byte, error) {
 	if r.stdin == nil {
 		return nil, errors.New("interp: can't read, there's no stdin")
+	}
+	if nchars == 0 {
+		return nil, nil
 	}
 
 	var line []byte
 	esc := false
+	charStart := 0 // where the character being read starts in line
 
 	stopc := make(chan struct{})
 	stop := context.AfterFunc(ctx, func() {
@@ -1190,23 +1228,34 @@ func (r *Runner) readLine(ctx context.Context, raw bool) ([]byte, error) {
 		}
 	}()
 	for {
+		// Read one byte at a time, so that we don't consume
+		// any input past what we return.
 		var buf [1]byte
 		n, err := r.stdin.Read(buf[:])
 		if n > 0 {
 			b := buf[0]
 			switch {
-			case !raw && b == '\\':
+			case !raw && b == '\\' && !esc:
 				line = append(line, b)
-				esc = !esc
+				charStart = len(line)
+				esc = true
 			case !raw && b == '\n' && esc:
 				// line continuation; drop the trailing backslash
 				line = line[:len(line)-1]
+				charStart = len(line)
 				esc = false
-			case b == '\n':
+			case !esc && int(b) == delim:
 				return line, nil
 			default:
 				line = append(line, b)
 				esc = false
+				// Count characters rather than bytes, like Bash in a UTF-8 locale.
+				if utf8.FullRune(line[charStart:]) {
+					charStart = len(line)
+					if nchars--; nchars == 0 {
+						return line, nil
+					}
+				}
 			}
 			if len(line) > internal.MaxExpandSize {
 				return nil, errReadTooLarge
@@ -1314,6 +1363,19 @@ func (p *flagParser) value() string {
 	arg := p.remaining[0]
 	p.remaining = p.remaining[1:]
 	return arg
+}
+
+// optValue returns the argument to the last flag, attached or not.
+func (p *flagParser) optValue() (string, bool) {
+	if p.current != "" {
+		value := p.current[1:]
+		p.current = ""
+		return value, true
+	}
+	if len(p.remaining) == 0 {
+		return "", false
+	}
+	return p.value(), true
 }
 
 func (p *flagParser) args() []string { return p.remaining }

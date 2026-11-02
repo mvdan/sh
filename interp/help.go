@@ -75,7 +75,7 @@ var helpTable = map[string]builtinHelp{
 	"printf": {"printf [-v var] format [arguments]", "Format and print arguments under control of the format."},
 	"pushd":  {"pushd [-n] [+N | -N | dir]", "Add directories to the stack and change to the top."},
 	"pwd":    {"pwd [-LP]", "Print the name of the current working directory."},
-	"read":   {"read [-Eers] [-a array] [-d delim] [-n nchars] [-p prompt] [-t timeout] [name ...]", "Read a line from the standard input and split it into fields."},
+	"read":   {"read [-Eers] [-a array] [-d delim] [-n nchars] [-N nchars] [-p prompt] [-t timeout] [name ...]", "Read a line from the standard input and split it into fields."},
 	"readarray": {"readarray [-d delim] [-n count] [-O origin] [-s count] [-t] [array]",
 		"Read lines from a file into an indexed array variable; a synonym for `mapfile'."},
 	"readonly": {"readonly [-aAf] [name[=value] ...] or readonly -p", "Mark names as unchangeable."},
