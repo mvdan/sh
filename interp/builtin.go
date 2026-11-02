@@ -586,6 +586,12 @@ dispatch:
 		args = args[:len(args)-1]
 		fallthrough
 	case "test":
+		// Like Bash, two arguments must be "!" or a unary operator and a word.
+		if len(args) == 2 {
+			if op := testUnaryOp(args[0]); op == illegalTok || op == syntax.TsParen {
+				return failf(2, "%v: %s: unary operator expected\n", pos, args[0])
+			}
+		}
 		parseErr := false
 		p := testParser{
 			rem: args,

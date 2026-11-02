@@ -2593,7 +2593,7 @@ read -r l <err; echo "$l"`,
 	},
 	{
 		"[ a -a ]",
-		"1:1: -a must be followed by an expression\nexit status 2 #JUSTERR",
+		"1:1: a: unary operator expected\nexit status 2 #JUSTERR",
 	},
 	{"[ a ]", ""},
 	{"[ -n ]", ""},
@@ -2621,7 +2621,7 @@ read -r l <err; echo "$l"`,
 	},
 	{
 		"test 3 -lt",
-		"1:1: -lt must be followed by a word\nexit status 2 #JUSTERR",
+		"1:1: 3: unary operator expected\nexit status 2 #JUSTERR",
 	},
 	{
 		"touch -t 202111050000.00 a; touch -t 202111060000.00 b; [ a -nt b ]",
@@ -2671,18 +2671,15 @@ read -r l <err; echo "$l"`,
 	},
 	{
 		"test -? a",
-		// Bash reports "-?: unary operator expected".
-		"1:1: not a valid test operator: `a`\n1:1: a must be followed by a word\nexit status 2 #JUSTERR",
+		"1:1: -?: unary operator expected\nexit status 2 #JUSTERR",
 	},
 	{
 		"test x -?",
-		// Bash reports "x: unary operator expected".
-		"1:1: not a valid test operator: `-?`\n1:1: -? must be followed by a word\nexit status 2 #JUSTERR",
+		"1:1: x: unary operator expected\nexit status 2 #JUSTERR",
 	},
 	{
 		"x='a b'; [ $x ]",
-		// Bash reports "a: unary operator expected".
-		"1:10: not a valid test operator: `b`\n1:10: b must be followed by a word\nexit status 2 #JUSTERR",
+		"1:10: a: unary operator expected\nexit status 2 #JUSTERR",
 	},
 	{
 		"[ -s a ] && echo x; echo body >a; [ -s a ] && echo y",
