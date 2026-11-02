@@ -349,7 +349,7 @@ func Document(cfg *Config, word *syntax.Word) (string, error) {
 }
 
 // Pattern expands a single shell word as a pattern, using [pattern.QuoteMeta]
-// on any non-quoted parts of the input word. The result can be used on
+// on any quoted parts of the input word. The result can be used on
 // [pattern.Regexp] directly.
 //
 // The config specifies shell expansion options; nil behaves the same as an
