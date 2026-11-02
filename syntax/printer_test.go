@@ -234,10 +234,7 @@ var printTests = []printCase{
 		"foo bar # 1\n! foo # 2",
 		"foo bar # 1\n! foo   # 2",
 	},
-	{
-		"aa #b\nc  #d\ne\nf #g",
-		"aa #b\nc  #d\ne\nf #g",
-	},
+	samePrint("aa #b\nc  #d\ne\nf #g"),
 	{
 		"{ a; } #x\nbbb #y\n{ #z\nc\n}",
 		"{ a; } #x\nbbb    #y\n{      #z\n\tc\n}",
@@ -758,18 +755,9 @@ var printTests = []printCase{
 	samePrint("(foo && (bar) )"),
 	// The formatted output of single-line sources such as "$( (foo; bar) )"
 	// or "`(foo; bar)`".
-	{
-		"$( (\n\tfoo\n\tbar\n) )",
-		"$( (\n\tfoo\n\tbar\n))",
-	},
-	{
-		"( (\n\tfoo\n\tbar\n) )",
-		"( (\n\tfoo\n\tbar\n))",
-	},
-	{
-		"$(foo && (\n\tbar\n\tbaz\n) )",
-		"$(foo && (\n\tbar\n\tbaz\n))",
-	},
+	samePrint("$( (\n\tfoo\n\tbar\n) )"),
+	samePrint("( (\n\tfoo\n\tbar\n) )"),
+	samePrint("$(foo && (\n\tbar\n\tbaz\n) )"),
 	samePrint("( (foo) >redir)"),
 	samePrint("(\n\t((foo++))\n)"),
 	samePrint("(foo && bar)"),
@@ -1339,7 +1327,11 @@ func TestPrintMinify(t *testing.T) {
 		samePrint("diff -y <(cat <<EOF\n1\n2\n3\nEOF\n) <(cat <<EOF\n1\n4\n3\nEOF\n)"),
 		{
 			"$(foo && (bar\nbaz) )",
-			"$(foo&&(bar\nbaz))",
+			"$(foo&&(bar\nbaz) )",
+		},
+		{
+			"( (foo)\n# c\n)",
+			"( (foo) )",
 		},
 		{
 			"(a\n); foo",

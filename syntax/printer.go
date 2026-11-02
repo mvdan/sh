@@ -633,8 +633,13 @@ func (p *Printer) newlines(pos Pos) {
 	p.indent()
 }
 
+// rightParenNewline reports whether [Printer.rightParen] starts a new line.
+func (p *Printer) rightParenNewline(pos Pos) bool {
+	return (len(p.pendingHdocs) > 0 || !p.minify) && p.wantsNewline(pos, false)
+}
+
 func (p *Printer) rightParen(pos Pos) {
-	if len(p.pendingHdocs) > 0 || !p.minify {
+	if p.rightParenNewline(pos) {
 		p.newlines(pos)
 	}
 	p.w.WriteByte(')')
@@ -644,10 +649,9 @@ func (p *Printer) rightParen(pos Pos) {
 // closingParen prints a closing parenthesis at closePos, separating it from a
 // preceding closing parenthesis on the same line to mirror the `( (` spacing
 // that startsWithLparen adds to the matching opening parenthesis.
-func (p *Printer) closingParen(stmts []*Stmt, last []Comment, openPos, closePos Pos) {
+func (p *Printer) closingParen(stmts []*Stmt, closePos Pos) {
 	p.wantSpace = spaceNotRequired
-	if len(last) == 0 && len(stmts) == 1 && endsWithRparen(stmts[0]) &&
-		(p.singleLine || openPos.Line() == closePos.Line()) {
+	if len(stmts) == 1 && endsWithRparen(stmts[0]) && !p.rightParenNewline(closePos) {
 		p.wantSpace = spaceRequired
 	}
 	p.spacePad(closePos)
@@ -978,7 +982,7 @@ func (p *Printer) cmdSubst(cs *CmdSubst) {
 			p.wantNewline = true
 		}
 		p.nestedStmts(cs.Stmts, cs.Last, cs.Right)
-		p.closingParen(cs.Stmts, cs.Last, cs.Left, cs.Right)
+		p.closingParen(cs.Stmts, cs.Right)
 	}
 }
 
@@ -1384,7 +1388,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 
 		p.spacePad(stmtsPos(cmd.Stmts, cmd.Last))
 		p.nestedStmts(cmd.Stmts, cmd.Last, cmd.Rparen)
-		p.closingParen(cmd.Stmts, cmd.Last, cmd.Lparen, cmd.Rparen)
+		p.closingParen(cmd.Stmts, cmd.Rparen)
 	case *WhileClause:
 		if cmd.Until {
 			p.spacedString("until", cmd.Pos())
