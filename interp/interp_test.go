@@ -649,6 +649,27 @@ var runTests = []runTest{
 	{"a='foo/bar'; echo ${a//o*a/}", "fr\n"},
 	{"a=foobar; echo ${a//a/} ${a///b} ${a///}", "foobr foobar foobar\n"},
 	{
+		`a="hello world"; echo "${a/#h/H}" "${a/%d/D}" "${a/#*o/X}" "${a/%o*/X}" "${a/#o/X}" "${a/%o/X}"`,
+		"hello world hello world hello world hello world hello world hello world\n #IGNORE a leading # or % does not anchor",
+	},
+	{
+		`a="hello world"; echo "${a/#/>}" "${a/%/<}" "${a/#}" "${a/%d}"`,
+		"hello world hello world hello world hello world\n #IGNORE a leading # or % does not anchor",
+	},
+	{`e=; echo "[${e/%/X}]" "[${e/#}]"`, "[] []\n #IGNORE a leading # or % does not anchor"},
+	{
+		`a=(ab ba aab); echo "${a[@]/#a/X}" "${a[@]/%a/X}"`,
+		"ab ba aab ab ba aab\n #IGNORE a leading # or % does not anchor",
+	},
+	{
+		`a='#h%'; echo "${a/"#"h/X},${a/#\#/X},${a//#h/X},${a//%/X},${a/%\%/X}"`,
+		"X%,#h%,X%,#hX,#h%\n #IGNORE a leading # or % does not anchor",
+	},
+	{
+		`a=hello x='#h' y='%o'; echo "${a/$x/H}" "${a/$y/O}" "${a/"$x"/H}" "${a/""#h/H}"`,
+		"hello hello hello hello\n #IGNORE a leading # or % does not anchor",
+	},
+	{
 		"echo ${a:-b}; echo $a; a=; echo ${a:-b}; a=c; echo ${a:-b}",
 		"b\n\nb\nc\n",
 	},
