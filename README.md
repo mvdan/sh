@@ -77,6 +77,10 @@ $ echo '$((foo); (bar))' | shfmt
 1:1: reached ) without matching $(( with ))
 ```
 
+* Unlike Bash, arithmetic expressions are parsed before their words are
+  expanded, so `$((1 ? 1 : $(cmd)))` never runs `cmd`, with `a='1 + 2'`
+  `$(($a * 2))` is 6 rather than 5, and `$((1 $op 2))` is a syntax error.
+
 * `export`, `let`, and `declare` are parsed as keywords.
   This allows statically building their syntax tree,
   as opposed to keeping the arguments as a slice of words.

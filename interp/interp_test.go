@@ -2942,6 +2942,7 @@ read -r l <err; echo "$l"`,
 	{"x='1+2'; let r=$x*2; ((r2 = $x * 2)); echo $r $r2; (($x > 2)) && echo gt", "6 6\ngt\n #IGNORE an expansion is evaluated on its own; not worth implementing"},
 	{"e=; echo $(($e + 1)); (echo $(($e * 2))) 2>/dev/null; echo $?", "1\n0\n0\n #IGNORE an expansion is evaluated on its own; not worth implementing"},
 	{"x=5 y=1; echo $((- -x + $y)) $((+ +x + $y)) $((! !x + $y)) $x; x=-y y=3; echo $((- $x)) $((-$x)) $y", "6 6 2 5\n3 3 3\n #IGNORE an expansion is evaluated on its own; not worth implementing"},
+	{"echo $((1 ? 2 : $(echo ran >&2; echo 3))) $((0 && $(echo ran >&2; echo 4))) $((1 || $(echo ran >&2; echo 5)))", "2 0 1\n #IGNORE skipped operands are not expanded"},
 	// A value is not subject to expansions like $y or $(cmd), except
 	// within an array subscript.
 	{"x='$(echo 42)'; (echo $((x))) 2>/dev/null; echo $?", "1\n"},

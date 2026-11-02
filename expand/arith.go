@@ -20,6 +20,9 @@ import (
 //
 // The config specifies shell expansion options; nil behaves the same as an
 // empty config.
+//
+// Unlike in Bash, each word in expr is only expanded once evaluation reaches
+// it, and is then evaluated as a separate expression.
 func Arithm(cfg *Config, expr syntax.ArithmExpr) (int, error) {
 	e := newExpander(cfg)
 	defer e.release()
