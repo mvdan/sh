@@ -1159,25 +1159,11 @@ func (p *Printer) word(w *Word) {
 	p.wantSpace = spaceRequired
 }
 
+// unquotedWord prints a heredoc's closing word,
+// which must match how the parser finds the end of its body.
 func (p *Printer) unquotedWord(w *Word) {
-	for _, wp := range w.Parts {
-		switch wp := wp.(type) {
-		case *SglQuoted:
-			p.writeLit(wp.Value)
-		case *DblQuoted:
-			p.wordParts(wp.Parts, true)
-		case *Lit:
-			for i := 0; i < len(wp.Value); i++ {
-				if b := wp.Value[i]; b == '\\' {
-					if i++; i < len(wp.Value) {
-						p.w.WriteByte(wp.Value[i])
-					}
-				} else {
-					p.w.WriteByte(b)
-				}
-			}
-		}
-	}
+	stop, _ := unquotedWordBytes(w)
+	p.writeLit(string(stop))
 }
 
 func (p *Printer) wordJoin(ws []*Word) {

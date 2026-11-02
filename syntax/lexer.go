@@ -54,6 +54,14 @@ func bquoteEscaped(b byte) bool {
 	return false
 }
 
+func dquoteEscaped(b byte) bool {
+	switch b {
+	case '$', '`', '"', '\\':
+		return true
+	}
+	return false
+}
+
 // Sentinel rune values used by [Parser.rune]. They are above [utf8.MaxRune]
 // so that they can never collide with runes decoded from the input.
 const (

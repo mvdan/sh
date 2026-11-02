@@ -760,7 +760,9 @@ func unquotedWordPart(buf []byte, wp WordPart, quotes bool) (_ []byte, quoted bo
 	switch wp := wp.(type) {
 	case *Lit:
 		for i := 0; i < len(wp.Value); i++ {
-			if b := wp.Value[i]; b == '\\' && !quotes {
+			// Within double quotes, only some backslashes are escapes.
+			if b := wp.Value[i]; b == '\\' && (!quotes ||
+				i+1 < len(wp.Value) && dquoteEscaped(wp.Value[i+1])) {
 				if i++; i < len(wp.Value) {
 					buf = append(buf, wp.Value[i])
 				}
