@@ -3154,11 +3154,11 @@ read -r l <err; echo "$l"`,
 	},
 	{
 		"set -u; foo=(bar); echo $foo; echo ${foo[3]}",
-		"bar\n\n #IGNORE an unset element is not unbound",
+		"bar\nfoo: unbound variable\nexit status 1 #JUSTERR",
 	},
 	{
 		"set -u; declare -A m=([a]=1); echo ${m[b]}",
-		"\n #IGNORE an unset element is not unbound",
+		"m: unbound variable\nexit status 1 #JUSTERR",
 	},
 	{"set -u; foo=(bar); echo ${#foo[3]} $((foo[3])) ${foo[3]-x} ${foo[3]=y}", "0 0 x y\n"},
 	{

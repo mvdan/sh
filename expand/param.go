@@ -354,6 +354,12 @@ func (e *expander) paramExpResolved(pe *syntax.ParamExp, p param, quoted bool) (
 		if err != nil {
 			return "", err
 		}
+		// Like Bash, an unset element is unbound too,
+		// except for ${#a[i]} and arithmetic like $((a[i])).
+		arithElem := pe.Short && pe.Index != nil
+		if e.NoUnset && !set && !pe.Length && !arithElem && !overridingUnset(pe) {
+			return "", UnsetParameterError{Node: pe, Message: "unbound variable"}
+		}
 		if !listIndex(index) || vr.Kind != Unknown {
 			// Other than an unset "${x[@]}", which is an empty list,
 			// the single value is the only element.
