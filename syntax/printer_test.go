@@ -756,6 +756,20 @@ var printTests = []printCase{
 		"(\n\t((foo++))\n\tbar\n)",
 	},
 	samePrint("(foo && (bar) )"),
+	// The formatted output of single-line sources such as "$( (foo; bar) )"
+	// or "`(foo; bar)`".
+	{
+		"$( (\n\tfoo\n\tbar\n) )",
+		"$( (\n\tfoo\n\tbar\n))",
+	},
+	{
+		"( (\n\tfoo\n\tbar\n) )",
+		"( (\n\tfoo\n\tbar\n))",
+	},
+	{
+		"$(foo && (\n\tbar\n\tbaz\n) )",
+		"$(foo && (\n\tbar\n\tbaz\n))",
+	},
 	samePrint("( (foo) >redir)"),
 	samePrint("(\n\t((foo++))\n)"),
 	samePrint("(foo && bar)"),
@@ -1323,6 +1337,10 @@ func TestPrintMinify(t *testing.T) {
 			"(cat <<EOF\n hello\nEOF\n)",
 		},
 		samePrint("diff -y <(cat <<EOF\n1\n2\n3\nEOF\n) <(cat <<EOF\n1\n4\n3\nEOF\n)"),
+		{
+			"$(foo && (bar\nbaz) )",
+			"$(foo&&(bar\nbaz))",
+		},
 		{
 			"(a\n); foo",
 			"(a)\nfoo",
