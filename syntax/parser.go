@@ -914,10 +914,7 @@ func (p *Parser) followStmts(left string, lpos Pos, stops ...string) ([]*Stmt, [
 		return nil, nil
 	}
 	stmts, last := p.stmtList(stops...)
-	if len(stmts) < 1 {
-		if p.lang.in(LangZsh | LangMirBSDKorn) {
-			return nil, nil // allow an empty list
-		}
+	if len(stmts) < 1 && !p.lang.in(LangZsh|LangMirBSDKorn) {
 		if p.recoverError() {
 			return []*Stmt{{Position: recoveredPos}}, nil
 		}

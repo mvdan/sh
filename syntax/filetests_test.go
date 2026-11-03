@@ -6104,10 +6104,9 @@ var fileTestsKeepComments = []fileTestCase{
 		[]string{"if foo; then\n\t# bar\nfi"},
 		langFile(&IfClause{
 			Cond:     litStmts("foo"),
-			ThenLast: nil, // TODO: drops the comment
+			ThenLast: []Comment{{Text: " bar"}},
 			Last:     []Comment{},
 		}, LangZsh),
-		printsAs("if foo; then\n\nfi"), // TODO: drops the comments
 	),
 	fileTest(
 		[]string{"if foo; then\n\tbar\nelif baz; then\n\t# c\nelse\n\t# d\nfi"},
@@ -6116,45 +6115,40 @@ var fileTestsKeepComments = []fileTestCase{
 			Then: litStmts("bar"),
 			Else: &IfClause{
 				Cond:     litStmts("baz"),
-				ThenLast: nil, // TODO: drops the comment
+				ThenLast: []Comment{{Text: " c"}},
 				Else: &IfClause{
-					ThenLast: nil, // TODO: drops the comment
+					ThenLast: []Comment{{Text: " d"}},
 					Last:     []Comment{},
 				},
 				Last: []Comment{},
 			},
 		}, LangZsh),
-		printsAs("if foo; then\n\tbar\nelif baz; then\n\nelse\n\nfi"), // TODO: drops the comments
 	),
 	fileTest(
 		[]string{"while foo; do\n\t# bar\ndone"},
 		langFile(&WhileClause{
 			Cond:   litStmts("foo"),
-			DoLast: nil, // TODO: drops the comment
+			DoLast: []Comment{{Text: " bar"}},
 		}, LangZsh|LangMirBSDKorn),
-		printsAs("while foo; do\n\ndone"), // TODO: drops the comments
 	),
 	fileTest(
 		[]string{"for i; do\n\t# bar\ndone"},
 		langFile(&ForClause{
 			Loop:   &WordIter{Name: lit("i")},
-			DoLast: nil, // TODO: drops the comment
+			DoLast: []Comment{{Text: " bar"}},
 		}, LangZsh|LangMirBSDKorn),
-		printsAs("for i; do\n\ndone"), // TODO: drops the comments
 	),
 	fileTest(
 		[]string{"{\n\t# foo\n}"},
 		langFile(&Block{
-			Last: nil, // TODO: drops the comment
+			Last: []Comment{{Text: " foo"}},
 		}, LangZsh|LangMirBSDKorn),
-		printsAs("{\n\n}"), // TODO: drops the comments
 	),
 	fileTest(
 		[]string{"(\n\t# foo\n)"},
 		langFile(&Subshell{
-			Last: nil, // TODO: drops the comment
+			Last: []Comment{{Text: " foo"}},
 		}, LangZsh|LangMirBSDKorn),
-		printsAs("( \n\n)"), // TODO: drops the comments
 	),
 }
 

@@ -1364,16 +1364,17 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 					p.mustNewline = true
 				}
 			}
-		} else if len(stmts) == 0 {
-			// Zsh allows empty subshells, but prevent `()`
-			// from looking like `() { anon-func; }`.
-			p.wantSpace = spaceRequired
 		} else {
 			p.wantSpace = spaceNotRequired
 		}
 
 		p.spacePad(stmtsPos(cmd.Stmts, cmd.Last))
 		p.nestedStmts(cmd.Stmts, cmd.Last, cmd.Rparen)
+		if len(stmts) == 0 && !p.rightParenNewline(cmd.Rparen) {
+			// Zsh allows empty subshells, but prevent `()`
+			// from looking like `() { anon-func; }`.
+			p.space()
+		}
 		p.closingParen(cmd.Stmts, cmd.Rparen)
 	case *WhileClause:
 		if cmd.Until {
