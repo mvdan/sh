@@ -901,7 +901,7 @@ var runTests = []runTest{
 	},
 	{
 		`a=foo; echo "<${a@K}><${a@k}>"`,
-		"<foo><foo>\n #IGNORE not implemented; must not panic",
+		"<foo><foo>\n #IGNORE bash quotes the value",
 	},
 	{
 		"declare a; a+=(b); echo ${a[@]} ${#a[@]}",
@@ -3964,35 +3964,35 @@ done <<< 2`,
 	{`a=(ab cd); printf "<%s>" ${a[@]@U} ${a[*]@U}; echo`, "<AB><CD><AB><CD>\n"},
 	{`a=(a b); printf "<%s>" "${a[@]@Q}"; echo`, "<a><b>\n #IGNORE bash quotes the values"},
 	{`a=(x y); echo "${a[@]@a}" "${a[*]@a}"; declare -Ar m=([k]=v); echo "${m[@]@a}"`, "a a a a\nAr\n"},
-	{`a=("x y" "p q"); printf "<%s>" ${a[@]@u} ${a[*]@Q}; echo`, "<X><y><p><q><'x><y><p><q'>\n #IGNORE elements are joined before being transformed"},
-	{`a=("x y" z); IFS=; printf "<%s>" ${a[@]@U} ${a[*]@k}; echo`, "<X Y Z><x yz>\n #IGNORE elements are joined before being transformed"},
+	{`a=("x y" "p q"); printf "<%s>" ${a[@]@u} ${a[*]@Q}; echo`, "<X><y><P><q><'x><y'><'p><q'>\n"},
+	{`a=("x y" z); IFS=; printf "<%s>" ${a[@]@U} ${a[*]@k}; echo`, "<X Y Z><0x y1z>\n #IGNORE the elements are joined as IFS is null"},
 	// Positional parameters have no attributes, and a nameref gives those
 	// of the variable it refers to.
-	{`a=(x y); set -- p q; printf "<%s>" ${a[@]@a} "${@@a}" "${*@a}"; echo`, "<a><a><a><a a>\n #IGNORE elements are joined, and positional parameters are an array"},
-	{`a=(x); declare -n r=a; x='1 2'; declare -n s=x; printf "<%s>" "${r@a}" "${r[@]@a}" "${s@a}" "${s@A}"; echo`, "<n><n><n><declare -n x='1 2'>\n #IGNORE the nameref's attributes are used"},
-	{`a=(x); readonly b=1; declare -n r=a s=b; printf "<%s>" "${!r@a}" "${!s@a}" "${!s}"; echo`, "<n><n><b>\n #IGNORE the nameref's attributes are used"},
-	{`declare -a f; declare -A m; e=(); printf "<%s>" "${f[@]@a}" "${f[*]@a}" ${f[@]@a} "${m[@]@a}" "${e[@]@a}" "${e[*]@a}"; echo`, "<><a><>\n #IGNORE unset arrays have no attributes"},
+	{`a=(x y); set -- p q; printf "<%s>" ${a[@]@a} "${@@a}" "${*@a}"; echo`, "<a><a><><>< >\n"},
+	{`a=(x); declare -n r=a; x='1 2'; declare -n s=x; printf "<%s>" "${r@a}" "${r[@]@a}" "${s@a}" "${s@A}"; echo`, "<a><a><><x='1 2'>\n"},
+	{`a=(x); readonly b=1; declare -n r=a s=b; printf "<%s>" "${!r@a}" "${!s@a}" "${!s}"; echo`, "<><><b>\n #IGNORE ${!ref} on a nameref has no attributes"},
+	{`declare -a f; declare -A m; e=(); printf "<%s>" "${f[@]@a}" "${f[*]@a}" ${f[@]@a} "${m[@]@a}" "${e[@]@a}" "${e[*]@a}"; echo`, "<><>\n #IGNORE unset arrays have no attributes"},
 
 	// @K and @k list the keys and values of an array, and quote any other
 	// value like @Q.
-	{`a=("x y" b); a[5]=c; printf "<%s>" "${a[@]@k}" "${a[*]@k}" ${a[@]@k}; echo`, "<x y b c><x y b c><x><y><b><c>\n #IGNORE keys are not listed"},
-	{`declare -A m=([k]="v w"); printf "<%s>" "${m[@]@k}" "${m[*]@k}"; echo`, "<v w><v w>\n #IGNORE keys are not listed"},
-	{`a=("x y" b); declare -A m=([k]="v w"); printf "<%s>" "${a[@]@K}" "${a[*]@K}" "${m[@]@K}"; echo`, "<x y b><x y b><v w>\n #IGNORE keys are not listed"},
-	{`a=("x y" '$z'); a[5]=c; eval "b=(${a[@]@K})"; printf "<%s>" "${b[@]}"; echo`, "<x><y><c>\n #IGNORE keys are not listed"},
-	{`e=(); printf "<%s>" "${e[@]@K}" "${e[*]@K}" "${e[@]@k}"; echo`, "<><><>\n #IGNORE an empty list gives empty fields"},
-	{`a=("x y" b); declare -A m=([k]="v w"); printf "<%s>" "${a[0]@K}" "${m[k]@k}" "${a@K}" "${u@Q}" "${u@K}" "${a[9]@Q}"; echo`, "<x y><v w><x y><''><><''>\n #IGNORE @K does not quote, and unset values are quoted"},
-	{`set -- "p q" "r s"; printf "<%s>" "${@@K}" "${*@k}"; echo`, "<p q r s><p q r s>\n #IGNORE @K does not quote"},
+	{`a=("x y" b); a[5]=c; printf "<%s>" "${a[@]@k}" "${a[*]@k}" ${a[@]@k}; echo`, "<0><x y><1><b><5><c><0 x y 1 b 5 c><0><x><y><1><b><5><c>\n"},
+	{`declare -A m=([k]="v w"); printf "<%s>" "${m[@]@k}" "${m[*]@k}"; echo`, "<k><v w><k v w>\n"},
+	{`a=("x y" b); declare -A m=([k]="v w"); printf "<%s>" "${a[@]@K}" "${a[*]@K}" "${m[@]@K}"; echo`, "<0 'x y' 1 b><0 'x y' 1 b><k 'v w'>\n #IGNORE bash quotes the values differently"},
+	{`a=("x y" '$z'); a[5]=c; eval "b=(${a[@]@K})"; printf "<%s>" "${b[@]}"; echo`, "<0><x y><1><$z><5><c>\n"},
+	{`e=(); printf "<%s>" "${e[@]@K}" "${e[*]@K}" "${e[@]@k}"; echo`, "<>\n"},
+	{`a=("x y" b); declare -A m=([k]="v w"); printf "<%s>" "${a[0]@K}" "${m[k]@k}" "${a@K}" "${u@Q}" "${u@K}" "${a[9]@Q}"; echo`, "<'x y'><'v w'><'x y'><><><>\n"},
+	{`set -- "p q" "r s"; printf "<%s>" "${@@K}" "${*@k}"; echo`, "<'p q'><'r s'><'p q' 'r s'>\n"},
 
 	// @A on an array gives a declare command, which a quoted "@" form
 	// splits into words, and on $@ a set command.
-	{`a=("x y" '$z'); a[5]=c; s=${a[@]@A}; unset a; eval "$s"; printf "<%s>" "${!a[@]}" "${a[@]}"; echo`, "<0><x y $z c>\n #IGNORE the elements are joined into one"},
-	{`declare -A m=(['a b']='$x' [k]=v); s=${m[*]@A}; unset m; eval "$s"; echo "${m['a b']}|${m[k]}"`, "|\n #IGNORE the elements are joined into one"},
-	{`a=("x y" z); set -- "${a[@]@A}"; echo $#; set -- "${a[*]@A}"; echo $#`, "1\n1\n #IGNORE the declare command is a single word"},
-	{`e=(); declare -a f; printf "<%s>" "${e[*]@A}" "${f[*]@A}" "${f[@]@A}"; echo`, "<declare -a e><declare -a f>\n #IGNORE empty and unset arrays are not told apart"},
-	{`a=("x y" b); declare -A m=([k]="v w"); printf "<%s>" "${a[@]@A}" "${m[*]@A}"; echo`, "<declare -a a='x y b'><declare -A m='v w'>\n #IGNORE the elements are joined into one"},
-	{`set -- "p q" "r s"; printf "<%s>" "${@@A}" "${*@A}" "${1@A}" "${?@A}"; echo`, "<declare -a @='p q r s'><declare -a *='p q r s'><1='p q'><?=0>\n #IGNORE special parameters are declared like variables"},
-	{`a=("x,y" z); IFS=,; set -- "${a[@]@A}"; echo $#; set -- ${a[@]@A}; echo $#; IFS=; set -- "${a[@]@A}" ${a[@]@A}; echo $#`, "1\n2\n2\n #IGNORE the elements are joined into one"},
-	{`set -- "p q" "r s"; IFS=,; printf "<%s>" "${@@A}" ${@@A}; IFS=; printf "<%s>" "${@@A}" ${*@A}; echo`, "<declare -a @='p q r s'><declare -a @='p q r s'><declare -a @='p q r s'><declare -a *='p qr s'>\n #IGNORE special parameters are declared like variables"},
+	{`a=("x y" '$z'); a[5]=c; s=${a[@]@A}; unset a; eval "$s"; printf "<%s>" "${!a[@]}" "${a[@]}"; echo`, "<0><1><5><x y><$z><c>\n"},
+	{`declare -A m=(['a b']='$x' [k]=v); s=${m[*]@A}; unset m; eval "$s"; echo "${m['a b']}|${m[k]}"`, "$x|v\n"},
+	{`a=("x y" z); set -- "${a[@]@A}"; echo $#; set -- "${a[*]@A}"; echo $#`, "3\n1\n"},
+	{`e=(); declare -a f; printf "<%s>" "${e[*]@A}" "${f[*]@A}" "${f[@]@A}"; echo`, "<declare -a e=()><declare -a f><declare><-a><f>\n"},
+	{`a=("x y" b); declare -A m=([k]="v w"); printf "<%s>" "${a[@]@A}" "${m[*]@A}"; echo`, "<declare><-a><a=([0]='x y' [1]=b)><declare -A m=([k]='v w')>\n #IGNORE bash quotes the values differently"},
+	{`set -- "p q" "r s"; printf "<%s>" "${@@A}" "${*@A}" "${1@A}" "${?@A}"; echo`, "<set><--><'p q'><'r s'><set -- 'p q' 'r s'><><>\n"},
+	{`a=("x,y" z); IFS=,; set -- "${a[@]@A}"; echo $#; set -- ${a[@]@A}; echo $#; IFS=; set -- "${a[@]@A}" ${a[@]@A}; echo $#`, "3\n2\n4\n #IGNORE the words are not split on IFS"},
+	{`set -- "p q" "r s"; IFS=,; printf "<%s>" "${@@A}" ${@@A}; IFS=; printf "<%s>" "${@@A}" ${*@A}; echo`, "<set><--><'p q'><'r s'><set -- 'p q' 'r s'><set><--><'p q'><'r s'><set -- 'p q' 'r s'>\n #IGNORE the words are not split on IFS"},
 
 	// Unquoted backslashes are removed from assignment values and
 	// other words which do not undergo field splitting.

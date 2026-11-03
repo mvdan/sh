@@ -1162,12 +1162,12 @@ func (e *expander) quotedElemFields(pe *syntax.ParamExp, p param) (elems []strin
 		}
 		return nil, false, nil
 	}
-	if nodeLit(p.index) == "@" && !overridingUnset(pe) && !p.vr.IsSet() {
-		// An unset "${name[@]}" produces zero fields, like an empty array.
-		return []string{}, false, nil
-	}
 	elems, star, ok := e.listElems(pe, p)
 	if !ok {
+		if nodeLit(p.index) == "@" && !overridingUnset(pe) && !p.vr.IsSet() {
+			// An unset "${name[@]}" produces zero fields, like an empty array.
+			return []string{}, false, nil
+		}
 		return nil, false, nil
 	}
 	if elems == nil {
@@ -1186,13 +1186,8 @@ func (e *expander) quotedElemFields(pe *syntax.ParamExp, p param) (elems []strin
 				return nil, false, UnsetParameterError{Node: pe, Message: arg}
 			}
 		case syntax.OtherParamOps:
-			if _, ok, _ := transformOp(arg, ""); !ok {
-				if arg != "a" {
-					// Operators like @A describe the variable as one word.
-					return nil, false, nil
-				}
-				// @a gives the attributes once per element.
-				elems = slices.Repeat([]string{p.orig.Flags()}, len(elems))
+			if elems, err = listParamOp(arg, p, elems, star); err != nil {
+				return nil, false, err
 			}
 		}
 	}
