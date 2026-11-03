@@ -867,6 +867,14 @@ var errorCases = []errorCase{
 		langErr("1:1: `<<` must be followed by a word"),
 	),
 	errCase(
+		"`<<`",
+		langErr("1:2: `<<` must be followed by a word"),
+	),
+	errCase(
+		"echo `cat <<",
+		langErr("1:11: `<<` must be followed by a word"),
+	),
+	errCase(
 		"<<EOF",
 		langErr("1:1: unclosed here-document `EOF`", LangMirBSDKorn),
 	),

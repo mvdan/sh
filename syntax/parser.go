@@ -2153,8 +2153,11 @@ func (p *Parser) doRedirect(s *Stmt) {
 	case Hdoc, DashHdoc:
 		old := p.quote
 		p.quote, p.forbidNested = hdocWord, true
-		p.heredocs = append(p.heredocs, r)
 		r.Word = p.followWordTok(token(r.Op), r.OpPos)
+		if r.Word != nil {
+			// Only queue heredocs with a word, unlike a broken "<<" alone.
+			p.heredocs = append(p.heredocs, r)
+		}
 		p.quote, p.forbidNested = old, false
 		if p.tok == _Newl {
 			p.gotLineCom(s)
