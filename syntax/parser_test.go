@@ -130,17 +130,21 @@ func TestParseConfirm(t *testing.T) {
 	}
 }
 
-func TestParseBashKeepComments(t *testing.T) {
+func TestParseKeepComments(t *testing.T) {
 	t.Parallel()
-	p := NewParser(KeepComments(true))
-	for i, c := range fileTestsKeepComments {
-		want, _ := c.byLangIndex[LangBash.index()].(*File)
-		if want == nil {
-			continue
-		}
-		for j, in := range c.inputs {
-			t.Run(fmt.Sprintf("%03d-%d", i, j), singleParse(p, in, want))
-		}
+	for lang := range langResolvedVariants.bits() {
+		t.Run(lang.String(), func(t *testing.T) {
+			p := NewParser(Variant(lang), KeepComments(true))
+			for i, c := range fileTestsKeepComments {
+				want, _ := c.byLangIndex[lang.index()].(*File)
+				if want == nil {
+					continue
+				}
+				for j, in := range c.inputs {
+					t.Run(fmt.Sprintf("%03d-%d", i, j), singleParse(p, in, want))
+				}
+			}
+		})
 	}
 }
 
