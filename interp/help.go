@@ -102,9 +102,8 @@ var helpTable = map[string]builtinHelp{
 // helpUnsupported are recognized by this shell but not implemented; `help`
 // stars them the way bash stars disabled builtins.
 var helpUnsupported = map[string]bool{
-	"bind": true, "caller": true, "compgen": true, "complete": true,
-	"compopt": true, "enable": true, "fc": true, "history": true,
-	"logout": true, "newgrp": true, "suspend": true, "ulimit": true,
+	"bind": true, "caller": true, "complete": true, "compopt": true,
+	"fc": true, "newgrp": true, "suspend": true, "ulimit": true,
 }
 
 // helpMatch returns the documented names matching a bash-style pattern. An
