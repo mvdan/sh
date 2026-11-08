@@ -199,6 +199,14 @@ var fileTests = []fileTestCase{
 		langFile(litWord("foo")),
 	),
 	fileTest(
+		// A backslash does not continue a comment onto the next line,
+		// but the parser currently treats it as a line continuation.
+		[]string{"foo #\\\nbar", "foo #\\\r\nbar"},
+		printsAs("foo \\\n\tbar #\\"),
+		langFile(litCall("foo", "bar")),
+		langFile(word(lit("foo"), lit("bar")), LangZsh),
+	),
+	fileTest(
 		[]string{`\`},
 		printsAs(`\\`),
 		langFile(litWord(`\`)),
@@ -6040,6 +6048,23 @@ var fileTestsKeepComments = []fileTestCase{
 		}),
 	),
 	fileTest(
+		// The comment text should be `\` and `bar` a second statement.
+		[]string{"foo #\\\nbar"},
+		printsAs("foo \\\n\tbar #\\"),
+		langFile(&File{
+			Stmts: []*Stmt{{
+				Cmd: litCall("foo", "bar"),
+			}},
+			Last: []Comment{{Text: "\\\n"}},
+		}),
+		langFile(&File{
+			Stmts: []*Stmt{{
+				Cmd: call(word(lit("foo"), lit("bar"))),
+			}},
+			Last: []Comment{{Text: "\\\n"}},
+		}, LangZsh),
+	),
+	fileTest(
 		[]string{
 			"foo bar <<EOF # c\nbody\nEOF",
 			"foo <<EOF bar # c\nbody\nEOF",
@@ -6184,10 +6209,11 @@ func (c sanityChecker) checkPos(node Node, pos Pos, strs ...string) {
 		}
 		got = strings.ReplaceAll(got, "\x00", "")
 		got = strings.ReplaceAll(got, "\r\n", "\n")
-		if !strings.Contains(want, "\\\n") {
-			// Hack to let "foobar" match the input "foo\\\nbar".
-			got = strings.ReplaceAll(got, "\\\n", "")
+		if strings.HasPrefix(got, want) {
+			return
 		}
+		// Hack to let "foobar" match the input "foo\\\nbar".
+		got = strings.ReplaceAll(got, "\\\n", "")
 		if strings.HasPrefix(got, want) {
 			return
 		}
