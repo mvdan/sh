@@ -48,12 +48,12 @@ func (r *Runner) bashTest(ctx context.Context, expr syntax.TestExpr, classic boo
 			return ""
 		case syntax.TsReMatch:
 			str := r.literal(x.X.(*syntax.Word))
-			if r.binTest(ctx, x.Op, str, r.regexpWord(x.Y.(*syntax.Word))) {
+			if r.binTest(ctx, x.Op, str, r.regexpWord(x.Y.(*syntax.Word)), classic) {
 				return "1"
 			}
 			return ""
 		}
-		if r.binTest(ctx, x.Op, r.bashTest(ctx, x.X, classic), r.bashTest(ctx, x.Y, classic)) {
+		if r.binTest(ctx, x.Op, r.bashTest(ctx, x.X, classic), r.bashTest(ctx, x.Y, classic), classic) {
 			return "1"
 		}
 		return ""
@@ -96,8 +96,38 @@ func (r *Runner) regexpWord(word *syntax.Word) string {
 	return sb.String()
 }
 
-func (r *Runner) binTest(ctx context.Context, op syntax.BinTestOperator, x, y string) bool {
+func (r *Runner) binTest(ctx context.Context, op syntax.BinTestOperator, x, y string, classic bool) bool {
 	switch op {
+	case syntax.TsEql, syntax.TsNeq, syntax.TsLeq, syntax.TsGeq, syntax.TsLss, syntax.TsGtr:
+		// [[ evaluates the operands of a numeric comparison as arithmetic
+		// expressions, so [[ 010 -eq 8 ]] and [[ x+1 -eq 4 ]] hold like in
+		// Bash. The classic test command only takes integers.
+		var n1, n2 int64
+		if classic {
+			n1, n2 = atoi(x), atoi(y)
+		} else {
+			var err error
+			if n1, err = r.testArithm(x); err != nil {
+				return false
+			}
+			if n2, err = r.testArithm(y); err != nil {
+				return false
+			}
+		}
+		switch op {
+		case syntax.TsEql:
+			return n1 == n2
+		case syntax.TsNeq:
+			return n1 != n2
+		case syntax.TsLeq:
+			return n1 <= n2
+		case syntax.TsGeq:
+			return n1 >= n2
+		case syntax.TsLss:
+			return n1 < n2
+		default:
+			return n1 > n2
+		}
 	case syntax.TsReMatch:
 		if len(y) > internal.MaxPatternSize {
 			r.expandErr(internal.ErrPatternTooLarge)
@@ -142,18 +172,6 @@ func (r *Runner) binTest(ctx context.Context, op syntax.BinTestOperator, x, y st
 			return false
 		}
 		return os.SameFile(info1, info2)
-	case syntax.TsEql:
-		return atoi(x) == atoi(y)
-	case syntax.TsNeq:
-		return atoi(x) != atoi(y)
-	case syntax.TsLeq:
-		return atoi(x) <= atoi(y)
-	case syntax.TsGeq:
-		return atoi(x) >= atoi(y)
-	case syntax.TsLss:
-		return atoi(x) < atoi(y)
-	case syntax.TsGtr:
-		return atoi(x) > atoi(y)
 	case syntax.AndTest:
 		return x != "" && y != ""
 	case syntax.OrTest:
@@ -166,6 +184,26 @@ func (r *Runner) binTest(ctx context.Context, op syntax.BinTestOperator, x, y st
 		// Should only happen if we forgot a case above.
 		panic(fmt.Sprintf("unexpected binary test operator: %q", op))
 	}
+}
+
+// testArithm evaluates the operand of a [[ numeric comparison as an
+// arithmetic expression. Like in Bash, an error is reported and fails the test
+// without exiting the shell.
+func (r *Runner) testArithm(s string) (int64, error) {
+	expr, err := syntax.NewParser().Arithmetic(strings.NewReader(s))
+	if err != nil {
+		r.errf("%v\n", err)
+		return 0, err
+	}
+	if expr == nil { // an empty operand counts as zero
+		return 0, nil
+	}
+	n, err := expand.Arithm(r.ecfg, expr)
+	if err != nil {
+		r.errf("%v\n", err)
+		return 0, err
+	}
+	return int64(n), nil
 }
 
 func (r *Runner) statMode(ctx context.Context, name string, mode os.FileMode) bool {

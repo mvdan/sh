@@ -2377,6 +2377,46 @@ read -r l <err; echo "$l"`,
 		"",
 	},
 	{
+		"[[ 010 -eq 8 ]]",
+		"",
+	},
+	{
+		"[[ 0x1f -eq 31 ]]",
+		"",
+	},
+	{
+		"x=3; [[ x+1 -eq 4 ]]",
+		"",
+	},
+	{
+		"a=(1 2); [[ a[1] -eq 2 ]]",
+		"",
+	},
+	{
+		"[[ 2**3 -gt 7 && 010 -lt 9 ]]",
+		"",
+	},
+	{
+		"[[ '' -eq 0 ]]",
+		"",
+	},
+	{
+		"[[ 1/0 -eq 1 ]]",
+		"division by zero\nexit status 1 #IGNORE bash prints a longer message",
+	},
+	{
+		"[[ 08 -eq 8 ]]",
+		"08: value too great for base\nexit status 1 #IGNORE bash prints a longer message",
+	},
+	{
+		"[ 010 -eq 8 ]",
+		"exit status 1",
+	},
+	{
+		"[ 010 -eq 10 ]",
+		"",
+	},
+	{
 		"[[ 3 -ne 4 ]]",
 		"",
 	},
