@@ -343,7 +343,7 @@ var runTests = []runTest{
 	{`echo -e 'before\x00after'`, "before\x00after\n"},
 	{"echo -x foo", "-x foo\n"},
 	{"echo -e -x -e foo", "-x -e foo\n"},
-	{`echo -e 'a\cb' c; echo -e '\c'; echo -e d 'e\c' f; echo -E 'g\c'`, "a\\cb c\n\\c\nd e\\c f\ng\\c\n #IGNORE \\c does not stop the output"},
+	{`echo -e 'a\cb' c; echo -e '\c'; echo -e d 'e\c' f; echo -E 'g\c'`, "ad eg\\c\n"},
 	{`echo -e '%s' 'a%%b' '%'`, "%s a%%b %\n"},
 
 	// printf
@@ -375,7 +375,7 @@ var runTests = []runTest{
 	{`printf '0%s1' 'a\bc'`, `0a\bc1`},
 	{`printf '0%b1' 'a\bc'`, "0a\bc1"},
 	{"printf 'a%bc'", "ac"},
-	{`printf '%b|%s\n' 'a\cb' x; printf '[%b]\n' c 'd\c' e f; printf '%s%b' 'g\c' 'h\c'`, "a\\cb|x\n[c]\n[d\\c]\n[e]\n[f]\ng\\ch\\c #IGNORE \\c does not stop the output"},
+	{`printf '%b|%s\n' 'a\cb' x; printf '[%b]\n' c 'd\c' e f; printf '%s%b' 'g\c' 'h\c'`, "a[c]\n[dg\\ch"},
 	{"printf 'before\\x00after'", "before\x00after"},
 
 	// printf escape sequences at end of format string (must not panic)

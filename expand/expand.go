@@ -395,6 +395,10 @@ func (e *expander) patternField(field []fieldPart) (string, error) {
 // Note that the resulting string may contain null bytes, for example
 // if the format string used `\x00`.
 //
+// A `\c` escape in a `%b` argument, or anywhere if args is nil,
+// stops all further output and uses all arguments,
+// so that a caller repeating the format until all arguments are used stops too.
+//
 // To decode an ANSI-C quoted string like `$'foo'`, which supports escapes
 // such as `\cX` that printf does not, use [Literal].
 //
@@ -409,7 +413,7 @@ func Format(cfg *Config, format string, args []string) (string, int, error) {
 func (e *expander) format(format string, args []string) (string, int, error) {
 	sb := e.strBuilder()
 
-	consumed, err := formatInto(sb, format, args, false)
+	consumed, _, err := formatInto(sb, format, args, false)
 	if err != nil {
 		return "", 0, err
 	}
@@ -421,12 +425,15 @@ func (e *expander) format(format string, args []string) (string, int, error) {
 // which ends at the first null byte.
 func (e *expander) ansiCQuoted(s string) string {
 	sb := e.strBuilder()
-	formatInto(sb, s, nil, true) // cannot error without args
+	formatInto(sb, s, nil, true) // cannot error or stop
 	s, _, _ = strings.Cut(sb.String(), "\x00")
 	return s
 }
 
-func formatInto(sb *strings.Builder, format string, args []string, ansiC bool) (int, error) {
+// formatInto implements [Format], also reporting whether a `\c` escape
+// stopped all output. With ansiC, it decodes an ANSI-C quoted string instead,
+// where `\cX` is a control character.
+func formatInto(sb *strings.Builder, format string, args []string, ansiC bool) (consumed int, stop bool, _ error) {
 	var fmts []byte
 	initialArgs := len(args)
 
@@ -482,6 +489,9 @@ func formatInto(sb *strings.Builder, format string, args []string, ansiC bool) (
 				n, _ := strconv.ParseUint(digits, 8, 8)
 				sb.WriteByte(byte(n))
 			case 'c':
+				if !ansiC && args == nil {
+					return 0, true, nil // stop output, as in echo -e
+				}
 				if !ansiC || i+1 >= len(format) {
 					sb.WriteString(`\c`)
 					break
@@ -541,7 +551,7 @@ func formatInto(sb *strings.Builder, format string, args []string, ansiC bool) (
 				fmts = nil
 			case '+', '-', ' ':
 				if len(fmts) > 1 {
-					return 0, fmt.Errorf("invalid format char: %c", c)
+					return 0, false, fmt.Errorf("invalid format char: %c", c)
 				}
 				fmts = append(fmts, c)
 			case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
@@ -556,9 +566,12 @@ func formatInto(sb *strings.Builder, format string, args []string, ansiC bool) (
 					// Passing in nil for args ensures that % format
 					// strings aren't processed; only escape sequences
 					// will be handled.
-					_, err := formatInto(sb, arg, nil, false)
+					_, stop, err := formatInto(sb, arg, nil, false)
 					if err != nil {
-						return 0, err
+						return 0, false, err
+					}
+					if stop {
+						return initialArgs, true, nil
 					}
 				} else if c != 's' {
 					n, _ := strconv.ParseInt(arg, 0, 0)
@@ -578,7 +591,7 @@ func formatInto(sb *strings.Builder, format string, args []string, ansiC bool) (
 					// fail properly on those over the limit.
 					width, _ := strconv.Atoi(strings.TrimLeft(string(fmts[1:]), "+- "))
 					if width > internal.MaxExpandSize {
-						return 0, errTooLarge
+						return 0, false, errTooLarge
 					}
 					fmts = append(fmts, c)
 					fmt.Fprintf(sb, string(fmts), farg)
@@ -586,10 +599,10 @@ func formatInto(sb *strings.Builder, format string, args []string, ansiC bool) (
 				fmts = nil
 				// A format can repeat a large argument or width many times.
 				if sb.Len() > internal.MaxExpandSize {
-					return 0, errTooLarge
+					return 0, false, errTooLarge
 				}
 			default:
-				return 0, fmt.Errorf("invalid format char: %c", c)
+				return 0, false, fmt.Errorf("invalid format char: %c", c)
 			}
 		case args != nil && c == '%':
 			// if args == nil, we are not doing format
@@ -600,9 +613,9 @@ func formatInto(sb *strings.Builder, format string, args []string, ansiC bool) (
 		}
 	}
 	if len(fmts) > 0 {
-		return 0, fmt.Errorf("missing format char")
+		return 0, false, fmt.Errorf("missing format char")
 	}
-	return initialArgs - len(args), nil
+	return initialArgs - len(args), false, nil
 }
 
 // fieldJoin joins the parts of a field, failing if the result would exceed

@@ -316,12 +316,22 @@ dispatch:
 			}
 			args = args[1:]
 		}
+		if doExpand {
+			// One format for all arguments, so that \c stops all output.
+			format := strings.TrimSuffix(strings.Repeat("%b ", len(args)), " ")
+			if newline {
+				format += "\n"
+			}
+			s, _, err := expand.Format(r.ecfg, format, args)
+			if err != nil {
+				return fatal(err) // the output is too large
+			}
+			r.out(s)
+			break
+		}
 		for i, arg := range args {
 			if i > 0 {
 				r.out(" ")
-			}
-			if doExpand {
-				arg, _, _ = expand.Format(r.ecfg, arg, nil)
 			}
 			r.out(arg)
 		}
