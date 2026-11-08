@@ -248,6 +248,34 @@ var runTests = []runTest{
 	// times
 	{"times", "0m0.000s 0m0.000s\n0m0.000s 0m0.000s\n #IGNORE we report zeros; bash reports real CPU time"},
 
+	// umask
+	{"umask", "0022\n #IGNORE bash starts from the process umask"},
+	{"umask 022; umask", "0022\n"},
+	{"umask 022; umask -S", "u=rwx,g=rx,o=rx\n"},
+	{"umask 022; umask -p", "umask 0022\n"},
+	{"umask 022; umask -pS", "umask -S u=rwx,g=rx,o=rx\n"},
+	{"umask 077; umask; umask -S", "0077\nu=rwx,g=,o=\n"},
+	{"umask 0; umask; umask -S", "0000\nu=rwx,g=rwx,o=rwx\n"},
+	{"umask -pS 077; umask", "u=rwx,g=,o=\n0077\n"},
+	{"umask -p 077; umask", "0077\n"},
+	{"umask -- 077; umask", "0077\n"},
+	{"umask 022 077; umask", "0022\n"},
+	{"umask 1777; umask", "0777\n"},
+	{"umask u=rwx,g=rx,o=; umask", "0027\n"},
+	{"umask 022; umask g+w; umask", "0002\n"},
+	{"umask 022; umask a-w; umask", "0222\n"},
+	{"umask 022; umask =r; umask", "0333\n"},
+	{"umask 022; umask +w; umask", "0000\n"},
+	{"umask 022; umask o-x,u-r; umask -S", "u=wx,g=rx,o=r\n"},
+	{"umask 022; (umask 077; umask); umask", "0077\n0022\n"},
+	{"umask 022; f() { umask 077; }; f; umask", "0077\n"},
+	{"umask 8", "umask: 8: invalid mode\nexit status 1 #JUSTERR"},
+	{"umask 17777", "umask: 17777: invalid mode\nexit status 1 #JUSTERR"},
+	{"umask u*", "umask: u*: invalid mode\nexit status 1 #JUSTERR"},
+	{"umask u=rq", "umask: u=rq: invalid mode\nexit status 1 #JUSTERR"},
+	{"umask u+r-w", "umask: u+r-w: invalid mode\nexit status 1 #IGNORE bash supports chained operators"},
+	{"umask -x", "umask: invalid option \"-x\"\nexit status 2 #JUSTERR"},
+
 	// exit status codes
 	{"exit 1", "exit status 1"},
 	{"exit -1", "exit status 255"},
@@ -5432,6 +5460,9 @@ echo "${m[k]}"; declare -p a || echo unset`,
 }
 
 var runTestsUnix = []runTest{
+	// Redirections create files with 0666 masked by the shell's umask.
+	{"umask 077; echo x >f; ls -l f | cut -c1-10", "-rw-------\n"},
+	{"umask 027; echo x >>f; ls -l f | cut -c1-10", "-rw-r-----\n"},
 	{
 		// A background job may outlive its command substitution,
 		// where its output is discarded.

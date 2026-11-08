@@ -6,11 +6,13 @@ package interp
 import (
 	"bufio"
 	"bytes"
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -194,6 +196,38 @@ dispatch:
 		// ProcessState or syscall.Getrusage. Not urgent; nothing depends on
 		// the values being non-zero.
 		r.out("0m0.000s 0m0.000s\n0m0.000s 0m0.000s\n")
+	case "umask":
+		asCommand, symbolic := false, false
+		fp := flagParser{remaining: args}
+		for fp.more() {
+			switch flag := fp.flag(); flag {
+			case "-p":
+				asCommand = true
+			case "-S":
+				symbolic = true
+			default:
+				return failf(2, "umask: invalid option %q\n", flag)
+			}
+		}
+		if rest := fp.args(); len(rest) > 0 {
+			mask, ok := parseUmask(r.umask, rest[0])
+			if !ok {
+				return failf(1, "umask: %s: invalid mode\n", rest[0])
+			}
+			r.umask = mask
+			if symbolic {
+				r.out(umaskString(mask) + "\n")
+			}
+			break
+		}
+		mode, prefix := fmt.Sprintf("%04o", r.umask), "umask "
+		if symbolic {
+			mode, prefix = umaskString(r.umask), "umask -S "
+		}
+		if !asCommand {
+			prefix = ""
+		}
+		r.out(prefix + mode + "\n")
 	case "exit":
 		switch len(args) {
 		case 0:
@@ -1443,4 +1477,52 @@ func (r *Runner) optStatusText(status bool) string {
 		return "on"
 	}
 	return "off"
+}
+
+// umaskClause matches one symbolic mode clause, like `u=rwx` or `g+w`.
+var umaskClause = regexp.MustCompile(`^([ugoa]*)([-+=])([rwx]*)$`)
+
+// parseUmask parses a umask operand, either octal or symbolic like
+// `u=rwx,g+w,o-rx`. Symbolic clauses modify the permissions which the
+// current mask leaves on, and an omitted who means `a`. Unlike bash, a
+// clause may not chain operators, as in `u+r-w`.
+func parseUmask(cur os.FileMode, s string) (os.FileMode, bool) {
+	if n, err := strconv.ParseUint(s, 8, 32); err == nil && n <= 0o7777 {
+		return os.FileMode(n) & 0o777, true
+	}
+	bits := ^cur & 0o777
+	for clause := range strings.SplitSeq(s, ",") {
+		m := umaskClause.FindStringSubmatch(clause)
+		if m == nil {
+			return 0, false
+		}
+		who := modeBits(cmp.Or(m[1], "a"), "ugoa", 0o700, 0o070, 0o007, 0o777)
+		perm := modeBits(m[3], "rwx", 0o444, 0o222, 0o111)
+		switch m[2] {
+		case "+":
+			bits |= perm & who
+		case "-":
+			bits &^= perm & who
+		case "=":
+			bits = bits&^who | perm&who
+		}
+	}
+	return ^bits & 0o777, true
+}
+
+// modeBits ors the bits for each byte of s by its index in letters.
+func modeBits(s, letters string, bits ...os.FileMode) (got os.FileMode) {
+	for i := range len(s) {
+		got |= bits[strings.IndexByte(letters, s[i])]
+	}
+	return got
+}
+
+var permNames = [8]string{"", "x", "w", "wx", "r", "rx", "rw", "rwx"}
+
+// umaskString renders a mask as `umask -S` does: the permissions it leaves
+// on, not the ones it masks off.
+func umaskString(mask os.FileMode) string {
+	p := ^mask & 0o777
+	return fmt.Sprintf("u=%s,g=%s,o=%s", permNames[p>>6&7], permNames[p>>3&7], permNames[p&7])
 }

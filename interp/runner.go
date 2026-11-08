@@ -1603,7 +1603,7 @@ func (r *Runner) redir(ctx context.Context, rd *syntax.Redirect) (*stmtHold, err
 	case syntax.RdrOut, syntax.RdrAll:
 		mode = os.O_WRONLY | os.O_CREATE | os.O_TRUNC
 	}
-	f, err := r.open(ctx, arg, mode, 0o644, false)
+	f, err := r.open(ctx, arg, mode, 0o666, false)
 	if err != nil {
 		return nil, err
 	}
@@ -1725,6 +1725,7 @@ func (r *Runner) open(ctx context.Context, path string, flags int, mode os.FileM
 		return open(ctx, flags)
 	}
 
+	mode &^= r.umask // like bash, apply the shell's umask to created files
 	f, err := r.openHandler(r.handlerCtx(ctx, handlerKindOpen, todoPos), path, flags, mode)
 	// TODO: support wrapped PathError returned from openHandler.
 	switch err.(type) {
