@@ -393,8 +393,10 @@ func (e *expander) patternField(field []fieldPart) (string, error) {
 //
 // The resulting string is returned, along with the number of arguments used.
 // Note that the resulting string may contain null bytes, for example
-// if the format string used `\x00`. The caller should terminate the string
-// at the first null byte if needed, such as when expanding for `$'foo\x00bar'`.
+// if the format string used `\x00`.
+//
+// To decode an ANSI-C quoted string like `$'foo'`, which supports escapes
+// such as `\cX` that printf does not, use [Literal].
 //
 // The config specifies shell expansion options; nil behaves the same as an
 // empty config.
@@ -407,7 +409,7 @@ func Format(cfg *Config, format string, args []string) (string, int, error) {
 func (e *expander) format(format string, args []string) (string, int, error) {
 	sb := e.strBuilder()
 
-	consumed, err := formatInto(sb, format, args)
+	consumed, err := formatInto(sb, format, args, false)
 	if err != nil {
 		return "", 0, err
 	}
@@ -415,7 +417,16 @@ func (e *expander) format(format string, args []string) (string, int, error) {
 	return sb.String(), consumed, err
 }
 
-func formatInto(sb *strings.Builder, format string, args []string) (int, error) {
+// ansiCQuoted decodes the contents of an ANSI-C quoted string like $'...',
+// which ends at the first null byte.
+func (e *expander) ansiCQuoted(s string) string {
+	sb := e.strBuilder()
+	formatInto(sb, s, nil, true) // cannot error without args
+	s, _, _ = strings.Cut(sb.String(), "\x00")
+	return s
+}
+
+func formatInto(sb *strings.Builder, format string, args []string, ansiC bool) (int, error) {
 	var fmts []byte
 	initialArgs := len(args)
 
@@ -470,6 +481,22 @@ func formatInto(sb *strings.Builder, format string, args []string) (int, error) 
 				// if digits don't fit in 8 bits, 0xff via strconv
 				n, _ := strconv.ParseUint(digits, 8, 8)
 				sb.WriteByte(byte(n))
+			case 'c':
+				if !ansiC || i+1 >= len(format) {
+					sb.WriteString(`\c`)
+					break
+				}
+				// control character; a backslash may be escaped as \c\\
+				i++
+				c = format[i]
+				if c == '\\' && i+1 < len(format) && format[i+1] == '\\' {
+					i++
+				}
+				if c == '?' {
+					sb.WriteByte(0x7f)
+				} else {
+					sb.WriteByte(c & 0x1f)
+				}
 			case 'x', 'u', 'U':
 				i++
 				max := 2
@@ -529,7 +556,7 @@ func formatInto(sb *strings.Builder, format string, args []string) (int, error) 
 					// Passing in nil for args ensures that % format
 					// strings aren't processed; only escape sequences
 					// will be handled.
-					_, err := formatInto(sb, arg, nil)
+					_, err := formatInto(sb, arg, nil, false)
 					if err != nil {
 						return 0, err
 					}
@@ -790,8 +817,7 @@ func (e *expander) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 		case *syntax.SglQuoted:
 			fp := fieldPart{quote: quoteSingle, val: wp.Value}
 			if wp.Dollar {
-				fp.val, _, _ = e.format(fp.val, nil)
-				fp.val, _, _ = strings.Cut(fp.val, "\x00") // cut the string if format included \x00
+				fp.val = e.ansiCQuoted(fp.val)
 			}
 			field = append(field, fp)
 		case *syntax.DblQuoted:
@@ -913,8 +939,7 @@ func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 			allowEmpty = true
 			fp := fieldPart{quote: quoteSingle, val: wp.Value}
 			if wp.Dollar {
-				fp.val, _, _ = e.format(fp.val, nil)
-				fp.val, _, _ = strings.Cut(fp.val, "\x00") // cut the string if format included \x00
+				fp.val = e.ansiCQuoted(fp.val)
 			}
 			curField = append(curField, fp)
 		case *syntax.DblQuoted:

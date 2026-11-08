@@ -49,7 +49,8 @@ func unquoteParts(sb *strings.Builder, src string, parts []syntax.WordPart, dblQ
 		case *syntax.SglQuoted:
 			val := part.Value
 			if part.Dollar {
-				val, _, _ = expand.Format(nil, val, nil)
+				// Literal decodes ANSI-C escapes, unlike printf's Format.
+				val, _ = expand.Literal(nil, &syntax.Word{Parts: []syntax.WordPart{part}})
 			}
 			sb.WriteString(val)
 		case *syntax.DblQuoted:

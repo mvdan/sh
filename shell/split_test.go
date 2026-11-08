@@ -29,7 +29,8 @@ var splitTests = []struct {
 	{`"a\"b\\c\$d\` + "`" + `e\xf"`, []string{"a\"b\\c$d`e\\xf"}},
 	{`'a\nb'`, []string{`a\nb`}},
 	{`$'a\tb'`, []string{"a\tb"}},
-	{`$'a\cAb'`, []string{`a\cAb`}}, // should be "a\x01b"
+	{`$'a\cAb'`, []string{"a\x01b"}},
+	{`$'a\x00b'c`, []string{"ac"}},
 
 	// No expansion; these are kept verbatim.
 	{"$x", []string{"$x"}},
