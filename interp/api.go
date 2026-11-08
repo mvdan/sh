@@ -572,7 +572,7 @@ func BackgroundContext(ctx context.Context) RunnerOption {
 // See [BashOpts] for the Bash options which "set" cannot change.
 func Params(args ...string) RunnerOption {
 	return func(r *Runner) error {
-		fp := flagParser{remaining: args}
+		fp := flagParser{remaining: args, plus: true}
 		for fp.more() {
 			flag := fp.flag()
 			if flag == "-" || flag == "+" {

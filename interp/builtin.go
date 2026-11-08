@@ -1310,10 +1310,12 @@ func (r *Runner) absPath(path string) string {
 // It's similar to the getopts implementation, but with some key differences.
 // First, the API is designed for Go loops, making it easier to use directly.
 // Second, it doesn't require the awkward ":ab" syntax that getopts uses.
-// Third, it supports "-a" flags as well as "+a".
+// Third, it supports "+a" flags as well as "-a" when plus is set, which only
+// set and declare need; every other bash builtin takes "+a" as an operand.
 type flagParser struct {
 	current   string
 	remaining []string
+	plus      bool
 }
 
 func (p *flagParser) more() bool {
@@ -1332,7 +1334,7 @@ func (p *flagParser) more() bool {
 		p.remaining = p.remaining[1:]
 		return false
 	}
-	if len(arg) == 0 || (arg[0] != '-' && arg[0] != '+') {
+	if len(arg) == 0 || arg[0] != '-' && (arg[0] != '+' || !p.plus) {
 		// The next argument is not a flag.
 		return false
 	}

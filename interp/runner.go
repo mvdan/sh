@@ -1008,7 +1008,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				flagsDone = true
 				continue
 			}
-			if fp := (flagParser{remaining: []string{as.Name.Value}}); !flagsDone && fp.more() {
+			if fp := (flagParser{remaining: []string{as.Name.Value}, plus: true}); !flagsDone && fp.more() {
 				for fp.more() {
 					switch flag := fp.flag(); flag {
 					case "-x", "-r":

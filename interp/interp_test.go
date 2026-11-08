@@ -3586,6 +3586,7 @@ done <<< 2`,
 	// type
 	{"type", ""},
 	{"type for", "for is a shell keyword\n"},
+	{"type +x", "type: +x: not found\nexit status 1 #JUSTERR"},
 	{"type echo", "echo is a shell builtin\n"},
 	{"echo() { :; }; type echo | grep 'is a function'", "echo is a function\n"},
 	{"type $PATH_PROG | grep -q -E ' is (/|[A-Z]:)'", ""},
