@@ -947,26 +947,45 @@ func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 		}
 		return e.fields <= internal.MaxExpandFields
 	}
+	// wsEnded records that IFS white space just ended a field, so that a
+	// non-whitespace IFS character following it belongs to the same
+	// delimiter, as in "a :b", rather than ending another, empty field.
+	wsEnded := false
 	// splitAdd adds val, split into fields, reporting false like flush.
+	// Like in Bash, IFS white space only separates fields, whereas any
+	// other IFS character ends the field before it even when it is empty,
+	// so that "a::b" has three fields and ":a" two.
 	splitAdd := func(val string) bool {
 		fieldStart := -1
 		for i, r := range val {
-			if e.ifsRune(r) {
-				if fieldStart >= 0 { // ending a field
-					curField = append(curField, fieldPart{val: val[fieldStart:i]})
-					fieldStart = -1
-				}
-				if !flush() {
-					return false
-				}
-			} else {
+			if !e.ifsRune(r) {
 				if fieldStart < 0 { // starting a new field
 					fieldStart = i
 				}
+				wsEnded = false
+				continue
+			}
+			if fieldStart >= 0 { // ending a field
+				curField = append(curField, fieldPart{val: val[fieldStart:i]})
+				fieldStart = -1
+			}
+			switch {
+			case e.ifsWhitespace(r):
+				if len(curField) > 0 {
+					wsEnded = true
+				}
+			case wsEnded: // the same delimiter as the white space before it
+				wsEnded = false
+			case len(curField) == 0: // an empty field, as in "a::b" or ":a"
+				curField = append(curField, fieldPart{})
+			}
+			if !flush() {
+				return false
 			}
 		}
 		if fieldStart >= 0 { // ending a field without IFS
 			curField = append(curField, fieldPart{val: val[fieldStart:]})
+			wsEnded = false
 		}
 		return true
 	}
