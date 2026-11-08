@@ -21,6 +21,7 @@ import (
 	"syscall"
 	"unicode/utf8"
 
+	"math"
 	"mvdan.cc/sh/v3/internal"
 	"mvdan.cc/sh/v3/pattern"
 	"mvdan.cc/sh/v3/syntax"
@@ -421,6 +422,11 @@ func (e *expander) patternField(field []fieldPart) (string, error) {
 // To decode an ANSI-C quoted string like `$'foo'`, which supports escapes
 // such as `\cX` that printf does not, use [Literal].
 //
+// An argument which is not a valid number for a numeric format like %d,
+// such as "abc" or "3abc", is formatted with the number that could be read
+// from it, like Bash does, and the complete result is returned along with an
+// error listing those arguments, so that a caller can report them.
+//
 // The config specifies shell expansion options; nil behaves the same as an
 // empty config.
 func Format(cfg *Config, format string, args []string) (string, int, error) {
@@ -433,11 +439,86 @@ func (e *expander) format(format string, args []string) (string, int, error) {
 	sb := e.strBuilder()
 
 	consumed, _, err := formatInto(sb, format, args, false)
+	if _, ok := errors.AsType[internal.PrintfNumberErrors](err); ok {
+		// The output is complete; the caller decides how to report it.
+		return sb.String(), consumed, err
+	}
 	if err != nil {
 		return "", 0, err
 	}
 
 	return sb.String(), consumed, err
+}
+
+// printfNumber reads an integer argument for a numeric printf format the way
+// Bash does: 'c or "c give the code point of c, otherwise a decimal, 0x
+// hexadecimal or leading-zero octal number is read after any white space and
+// sign. When the whole argument is not a valid number, base reports which
+// kind it looked like, and the caller carries on with the number read so far,
+// like Bash does.
+func printfNumber(arg string) (n int64, base int, ok bool) {
+	s := strings.TrimLeft(arg, " \t\n\v\f\r")
+	if len(s) > 0 && (s[0] == '\'' || s[0] == '"') {
+		r, size := utf8.DecodeRuneInString(s[1:])
+		if size == 0 {
+			return 0, 0, true
+		}
+		return int64(r), 0, true
+	}
+	i := 0
+	neg := false
+	if i < len(s) && (s[i] == '+' || s[i] == '-') {
+		neg = s[i] == '-'
+		i++
+	}
+	start := i
+	parseBase := 10
+	switch {
+	case strings.HasPrefix(s[i:], "0x"), strings.HasPrefix(s[i:], "0X"):
+		parseBase = 16
+		i += 2
+		start = i
+		for i < len(s) && isHexDigit(s[i]) {
+			i++
+		}
+	case i < len(s) && s[i] == '0' && i+1 < len(s):
+		parseBase = 8
+		for i < len(s) && s[i] >= '0' && s[i] <= '7' {
+			i++
+		}
+	default:
+		for i < len(s) && s[i] >= '0' && s[i] <= '9' {
+			i++
+		}
+	}
+	// Like Bash, name the kind of number only when the argument itself
+	// starts like one: "0x1g" is an invalid hex number, "08" an invalid
+	// octal number, but "-0x1g" and "0b11" are just invalid numbers.
+	switch {
+	case strings.HasPrefix(arg, "0x"), strings.HasPrefix(arg, "0X"):
+		base = 16
+	case len(arg) > 1 && arg[0] == '0' && arg[1] >= '0' && arg[1] <= '9':
+		base = 8
+	default:
+		base = 0
+	}
+	if i == start { // no digits at all, not even a lone sign
+		return 0, base, false
+	}
+	u, err := strconv.ParseUint(s[start:i], parseBase, 64)
+	switch {
+	case err != nil && neg: // out of range; saturate like strtoimax does
+		return math.MinInt64, base, false
+	case err != nil:
+		return math.MaxInt64, base, false
+	case neg:
+		return -int64(u), base, i == len(s)
+	}
+	return int64(u), base, i == len(s)
+}
+
+func isHexDigit(c byte) bool {
+	return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
 }
 
 // ansiCQuoted decodes the contents of an ANSI-C quoted string like $'...',
@@ -455,6 +536,7 @@ func (e *expander) ansiCQuoted(s string) string {
 func formatInto(sb *strings.Builder, format string, args []string, ansiC bool) (consumed int, stop bool, _ error) {
 	var fmts []byte
 	initialArgs := len(args)
+	var numErrs internal.PrintfNumberErrors // reported at the end, with the output
 
 	for i := 0; i < len(format); i++ {
 		// readDigits reads from 0 to max digits, either octal or
@@ -576,9 +658,10 @@ func formatInto(sb *strings.Builder, format string, args []string, ansiC bool) (
 			case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 				fmts = append(fmts, c)
 			case 's', 'b', 'd', 'i', 'u', 'o', 'x':
-				arg := ""
+				arg, missing := "", true
 				if len(args) > 0 {
 					arg, args = args[0], args[1:]
+					missing = false
 				}
 				var farg any
 				if c == 'b' {
@@ -593,7 +676,11 @@ func formatInto(sb *strings.Builder, format string, args []string, ansiC bool) (
 						return initialArgs, true, nil
 					}
 				} else if c != 's' {
-					n, _ := strconv.ParseInt(arg, 0, 0)
+					// A missing argument is zero, like in Bash.
+					n, base, ok := printfNumber(arg)
+					if !ok && !missing {
+						numErrs = append(numErrs, internal.PrintfNumberError{Arg: arg, Base: base})
+					}
 					if c == 'i' || c == 'd' {
 						farg = int(n)
 					} else {
@@ -633,6 +720,9 @@ func formatInto(sb *strings.Builder, format string, args []string, ansiC bool) (
 	}
 	if len(fmts) > 0 {
 		return 0, false, fmt.Errorf("missing format char")
+	}
+	if len(numErrs) > 0 {
+		return initialArgs - len(args), false, numErrs
 	}
 	return initialArgs - len(args), false, nil
 }

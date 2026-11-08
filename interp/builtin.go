@@ -347,6 +347,13 @@ dispatch:
 			s, n, err := expand.Format(r.ecfg, format, args)
 			if _, ok := errors.AsType[internal.FatalError](err); ok {
 				return fatal(err)
+			} else if numErrs, ok := errors.AsType[internal.PrintfNumberErrors](err); ok {
+				// Like Bash, report the arguments before the output they
+				// still produced, and fail at the end.
+				for _, numErr := range numErrs {
+					r.errf("%s: %v\n", name, numErr)
+				}
+				exit.code = 1
 			} else if err != nil {
 				return failf(1, "%v\n", err)
 			}

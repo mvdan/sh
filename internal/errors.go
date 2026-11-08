@@ -6,6 +6,7 @@ package internal
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 // FatalError is an expansion error which exits a non-interactive shell in
@@ -29,6 +30,41 @@ type ArithmExpandError struct {
 
 func (e ArithmExpandError) Error() string { return e.Err.Error() }
 func (e ArithmExpandError) Unwrap() error { return e.Err }
+
+// PrintfNumberError reports a printf argument which is not a valid number for
+// a numeric format like %d, such as "abc" or "3abc". Base is 8 or 16 when the
+// argument looked like an octal or hexadecimal number, and 0 otherwise.
+type PrintfNumberError struct {
+	Arg  string
+	Base int
+}
+
+func (e PrintfNumberError) Error() string {
+	switch e.Base {
+	case 8:
+		return e.Arg + ": invalid octal number"
+	case 16:
+		return e.Arg + ": invalid hex number"
+	}
+	return e.Arg + ": invalid number"
+}
+
+// PrintfNumberErrors collects the invalid number arguments of one printf
+// format. Like Bash, the format is still carried out with the number that could
+// be read from each argument, so the formatted output is complete and only the
+// exit status should fail.
+type PrintfNumberErrors []PrintfNumberError
+
+func (e PrintfNumberErrors) Error() string {
+	var sb strings.Builder
+	for i, err := range e {
+		if i > 0 {
+			sb.WriteString("; ")
+		}
+		sb.WriteString(err.Error())
+	}
+	return sb.String()
+}
 
 // Fatal wraps a non-nil error as a [FatalError], unless it already is one.
 func Fatal(err error) error {
