@@ -1939,6 +1939,10 @@ var errorCases = []errorCase{
 		langErr("1:11: `[` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
+		"echo ${foo[a[b]}",
+		langErr("1:11: reached `}` without matching `[` with `]`", LangZsh),
+	),
+	errCase(
 		"echo ${foo]}",
 		langErr("1:11: not a valid parameter expansion operator: `]`", LangBash|LangMirBSDKorn|LangZsh),
 	),
