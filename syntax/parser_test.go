@@ -1748,11 +1748,13 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"a=([)",
-		langErr("1:4: `[` must be followed by an expression", LangBash|LangZsh),
+		langErr("1:4: `[` must be followed by an expression", LangBash),
+		langErr("1:4: reached EOF without matching `[` with `]`", LangZsh),
 	),
 	errCase(
 		"a=([i)",
-		langErr("1:4: reached `)` without matching `[` with `]`", LangBash|LangZsh),
+		langErr("1:4: reached `)` without matching `[` with `]`", LangBash),
+		langErr("1:4: reached EOF without matching `[` with `]`", LangZsh),
 	),
 	errCase(
 		"a=([i])",
@@ -1833,7 +1835,8 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"a[",
-		langErr("1:2: `[` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:2: `[` must be followed by an expression", LangBash|LangMirBSDKorn),
+		langErr("1:2: reached EOF without matching `[` with `]`", LangZsh),
 	),
 	errCase(
 		"a[b",
@@ -1846,15 +1849,18 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"a[[",
-		langErr("1:3: `[` must follow a name like a[i]", LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:3: `[` must follow a name like a[i]", LangBash|LangMirBSDKorn),
+		langErr("1:2: reached EOF without matching `[` with `]`", LangZsh),
 	),
 	errCase(
 		"echo $((a[))",
-		langErr("1:10: `[` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:10: `[` must be followed by an expression", LangBash|LangMirBSDKorn),
+		langErr("1:10: reached EOF without matching `[` with `]`", LangZsh),
 	),
 	errCase(
 		"echo $((a[b))",
-		langErr("1:10: reached `)` without matching `[` with `]`", LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:10: reached `)` without matching `[` with `]`", LangBash|LangMirBSDKorn),
+		langErr("1:10: reached EOF without matching `[` with `]`", LangZsh),
 	),
 	errCase(
 		"echo $((a[]))",
@@ -1864,7 +1870,7 @@ var errorCases = []errorCase{
 	errCase(
 		"echo $((x$t[",
 		langErr("1:12: `[` must follow a name like a[i]", LangBash|LangMirBSDKorn),
-		langErr("1:12: `[` must be followed by an expression", LangZsh),
+		langErr("1:12: reached EOF without matching `[` with `]`", LangZsh),
 	),
 	errCase(
 		"a[1]",
@@ -1932,15 +1938,16 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"echo ${foo[1 2]}",
-		langErr("1:14: not a valid arithmetic operator: `2`", LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:14: not a valid arithmetic operator: `2`", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"echo ${foo[}",
-		langErr("1:11: `[` must be followed by an expression", LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:11: `[` must be followed by an expression", LangBash|LangMirBSDKorn),
+		langErr("1:11: reached EOF without matching `[` with `]`", LangZsh),
 	),
 	errCase(
 		"echo ${foo[a[b]}",
-		langErr("1:11: reached `}` without matching `[` with `]`", LangZsh),
+		langErr("1:11: reached EOF without matching `[` with `]`", LangZsh),
 	),
 	errCase(
 		"echo ${foo]}",

@@ -477,13 +477,9 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"${a[abs(-2)]}"},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
 		langFile(&ParamExp{
 			Param: lit("a"),
-			Index: &CallArithm{
-				Name: lit("abs"),
-				Args: []ArithmExpr{&UnaryArithm{Op: Minus, X: litWord("2")}},
-			},
+			Index: litWord("abs(-2)"),
 		}, LangZsh),
 	),
 	fileTest(
@@ -3126,11 +3122,9 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{`${foo[ 1 ]}`},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
-		printsAs(`${foo[1]}`),
 		langFile(&ParamExp{
 			Param: lit("foo"),
-			Index: litWord("1"),
+			Index: litWord(" 1 "),
 		}, LangZsh),
 	),
 	fileTest(
@@ -3180,27 +3174,16 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{`${foo[1,3]}`},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
 		langFile(&ParamExp{
 			Param: lit("foo"),
-			Index: &BinaryArithm{
-				Op: Comma,
-				X:  litWord("1"),
-				Y:  litWord("3"),
-			},
+			Index: litWord("1,3"),
 		}, LangZsh),
 	),
 	fileTest(
 		[]string{`${foo[ 1 , 3 ]}`},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
-		printsAs(`${foo[1,3]}`),
 		langFile(&ParamExp{
 			Param: lit("foo"),
-			Index: &BinaryArithm{
-				Op: Comma,
-				X:  litWord("1"),
-				Y:  litWord("3"),
-			},
+			Index: litWord(" 1 , 3 "),
 		}, LangZsh),
 	),
 	fileTest(
@@ -3221,19 +3204,8 @@ var fileTests = []fileTestCase{
 				Flags: lit("r"),
 				X:     litWord("f*"),
 			},
-			// zsh subscripts are wrongly parsed as arithmetic; see #1233.
-			Subscripts: []ArithmExpr{
-				&BinaryArithm{
-					Op: Comma,
-					X:  litWord("1"),
-					Y:  litWord("2"),
-				},
-				&UnaryArithm{
-					Op: Minus,
-					X:  litWord("1"),
-				},
-			},
-			Exp: &Expansion{Op: DefaultUnsetOrNull, Word: litWord("x")},
+			Subscripts: []ArithmExpr{litWord("1,2"), litWord("-1")},
+			Exp:        &Expansion{Op: DefaultUnsetOrNull, Word: litWord("x")},
 		}, LangZsh),
 	),
 	fileTest(
@@ -3266,14 +3238,9 @@ var fileTests = []fileTestCase{
 				Y:  litWord("#"),
 			},
 		}, LangBash|LangMirBSDKorn),
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
 		langFile(&ParamExp{
 			Param: lit("args"),
-			Index: &BinaryArithm{
-				Op: Comma,
-				X:  litWord("cmd"),
-				Y:  litWord("#"),
-			},
+			Index: litWord("cmd,#"),
 		}, LangZsh),
 		langErr2("1:7: arrays are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
 	),
@@ -3290,53 +3257,32 @@ var fileTests = []fileTestCase{
 				},
 			},
 		}, LangBash|LangMirBSDKorn),
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
 		langFile(&ParamExp{
 			Param: lit("foo"),
-			Index: &BinaryArithm{
-				Op: Comma,
-				X:  litWord("1"),
-				Y: &UnaryArithm{
-					Op: Minus,
-					X:  litWord("1"),
-				},
-			},
+			Index: litWord("1,-1"),
 		}, LangZsh),
 		langErr2("1:6: arrays are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
 	),
 	fileTest(
 		[]string{`${@[-1]}`},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
 		langFile(&ParamExp{
 			Param: lit("@"),
-			Index: &UnaryArithm{
-				Op: Minus,
-				X:  litWord("1"),
-			},
+			Index: litWord("-1"),
 		}, LangZsh),
 	),
 	fileTest(
 		[]string{`${*[-1]}`},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
 		langFile(&ParamExp{
 			Param: lit("*"),
-			Index: &UnaryArithm{
-				Op: Minus,
-				X:  litWord("1"),
-			},
+			Index: litWord("-1"),
 		}, LangZsh),
 	),
 	fileTest(
 		[]string{`$foo[1,3]`},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
 		langFile(&ParamExp{
 			Short: true,
 			Param: lit("foo"),
-			Index: &BinaryArithm{
-				Op: Comma,
-				X:  litWord("1"),
-				Y:  litWord("3"),
-			},
+			Index: litWord("1,3"),
 		}, LangZsh),
 	),
 	fileTest(
@@ -3412,19 +3358,11 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{`${foo[(r)ab,(r)cd]}`},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
 		langFile(&ParamExp{
 			Param: lit("foo"),
-			Index: &BinaryArithm{
-				Op: Comma,
-				X: &FlagsArithm{
-					Flags: lit("r"),
-					X:     litWord("ab"),
-				},
-				Y: &FlagsArithm{
-					Flags: lit("r"),
-					X:     litWord("cd"),
-				},
+			Index: &FlagsArithm{
+				Flags: lit("r"),
+				X:     litWord("ab,(r)cd"),
 			},
 		}, LangZsh),
 	),
@@ -3440,33 +3378,23 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{`${foo[(1+1)*2]}`},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
 		langFile(&ParamExp{
 			Param: lit("foo"),
-			Index: &FlagsArithm{
-				Flags: lit("1+1"),
-				X:     litWord("*2"),
-			},
+			Index: litWord("(1+1)*2"),
 		}, LangZsh),
 	),
 	fileTest(
 		[]string{`${foo[(1+1)*$x]}`},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
 		langFile(&ParamExp{
 			Param: lit("foo"),
-			Index: &FlagsArithm{
-				Flags: lit("1+1"),
-				X:     litWord("*$x"),
-			},
+			Index: word(lit("(1+1)*"), litParamExp("x")),
 		}, LangZsh),
 	),
 	fileTest(
 		[]string{"${foo[a\\\nb]}"},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
-		printsAs("${foo[ab]}"),
 		langFile(&ParamExp{
 			Param: lit("foo"),
-			Index: litWord("ab"),
+			Index: word(lit("a"), lit("b")),
 		}, LangZsh),
 	),
 	fileTest(
@@ -3488,68 +3416,53 @@ var fileTests = []fileTestCase{
 				X:  litWord("1"),
 			},
 		}, LangBash|LangMirBSDKorn),
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
 		langFile(&ParamExp{
 			Param: lit("foo"),
-			Index: &UnaryArithm{
-				Op: Minus,
-				X:  litWord("1"),
-			},
+			Index: litWord("-1"),
 		}, LangZsh),
 	),
 	fileTest(
 		[]string{`${foo[i + 1]}`},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
 		langFile(&ParamExp{
 			Param: lit("foo"),
-			Index: &BinaryArithm{
-				Op: Add,
-				X:  litWord("i"),
-				Y:  litWord("1"),
-			},
+			Index: litWord("i + 1"),
 		}, LangZsh),
 	),
 	fileTest(
 		[]string{`${foo[foo-bar]}`},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
-		printsAs(`${foo[foo - bar]}`),
 		langFile(&ParamExp{
 			Param: lit("foo"),
-			Index: &BinaryArithm{
-				Op: Sub,
-				X:  litWord("foo"),
-				Y:  litWord("bar"),
-			},
+			Index: litWord("foo-bar"),
 		}, LangZsh),
 	),
 	fileTest(
 		[]string{`$foo[foo-bar]`},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
-		printsAs(`$foo[foo - bar]`),
 		langFile(&ParamExp{
 			Short: true,
 			Param: lit("foo"),
-			Index: &BinaryArithm{
-				Op: Sub,
-				X:  litWord("foo"),
-				Y:  litWord("bar"),
-			},
+			Index: litWord("foo-bar"),
 		}, LangZsh),
 	),
 	fileTest(
 		[]string{`${foo[foo:bar]}`},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
-		langErr2("1:10: ternary operator missing `?` before `:`", LangZsh),
+		langFile(&ParamExp{
+			Param: lit("foo"),
+			Index: litWord("foo:bar"),
+		}, LangZsh),
 	),
 	fileTest(
 		[]string{`${foo[foo bar]}`},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
-		langErr2("1:11: not a valid arithmetic operator: `bar`", LangZsh),
+		langFile(&ParamExp{
+			Param: lit("foo"),
+			Index: litWord("foo bar"),
+		}, LangZsh),
 	),
 	fileTest(
 		[]string{`${foo[x?y!z]}`},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
-		langErr2("1:8: ternary operator missing `:` after `?`", LangZsh),
+		langFile(&ParamExp{
+			Param: lit("foo"),
+			Index: litWord("x?y!z"),
+		}, LangZsh),
 	),
 	fileTest(
 		[]string{`${foo[a\]b]}`},
@@ -3560,54 +3473,37 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{`${foo[a[b]c]}`},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
-		langErr2("1:11: not a valid arithmetic operator: `c`", LangZsh),
+		langFile(&ParamExp{
+			Param: lit("foo"),
+			Index: litWord("a[b]c"),
+		}, LangZsh),
 	),
 	fileTest(
 		[]string{`${foo["k"]}`},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
 		langFile(&ParamExp{
 			Param: lit("foo"),
-			Index: word(dblQuoted(lit("k"))),
+			Index: litWord(`"k"`),
 		}, LangZsh),
 	),
 	fileTest(
 		[]string{`${foo[$k-1]}`},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
-		printsAs(`${foo[$k - 1]}`),
 		langFile(&ParamExp{
 			Param: lit("foo"),
-			Index: &BinaryArithm{
-				Op: Sub,
-				X:  word(litParamExp("k")),
-				Y:  litWord("1"),
-			},
+			Index: word(litParamExp("k"), lit("-1")),
 		}, LangZsh),
 	),
 	fileTest(
 		[]string{`${foo[${k}-1]}`},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
-		printsAs(`${foo[${k} - 1]}`),
 		langFile(&ParamExp{
 			Param: lit("foo"),
-			Index: &BinaryArithm{
-				Op: Sub,
-				X:  word(&ParamExp{Param: lit("k")}),
-				Y:  litWord("1"),
-			},
+			Index: word(&ParamExp{Param: lit("k")}, lit("-1")),
 		}, LangZsh),
 	),
 	fileTest(
 		[]string{`${foo[$(cmd)-x]}`},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
-		printsAs(`${foo[$(cmd) - x]}`),
 		langFile(&ParamExp{
 			Param: lit("foo"),
-			Index: &BinaryArithm{
-				Op: Sub,
-				X:  word(cmdSubst(litStmt("cmd"))),
-				Y:  litWord("x"),
-			},
+			Index: word(cmdSubst(litStmt("cmd")), lit("-x")),
 		}, LangZsh),
 	),
 	fileTest(
@@ -3623,16 +3519,10 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{`((foo[foo-bar]))`},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
-		printsAs(`((foo[foo - bar]))`),
 		langFile(arithmCmd(word(&ParamExp{
 			Short: true,
 			Param: lit("foo"),
-			Index: &BinaryArithm{
-				Op: Sub,
-				X:  litWord("foo"),
-				Y:  litWord("bar"),
-			},
+			Index: litWord("foo-bar"),
 		})), LangZsh),
 	),
 	fileTest(
@@ -5734,22 +5624,15 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"a[foo-bar]=b"},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
-		printsAs("a[foo - bar]=b"),
+		langFile(litStmt("a[foo-bar]=b"), LangPOSIX),
 		langFile(&CallExpr{Assigns: []*Assign{{
-			Name: lit("a"),
-			Index: &BinaryArithm{
-				Op: Sub,
-				X:  litWord("foo"),
-				Y:  litWord("bar"),
-			},
+			Name:  lit("a"),
+			Index: litWord("foo-bar"),
 			Value: litWord("b"),
 		}}}, LangZsh),
 	),
 	fileTest(
 		[]string{"typeset -A a=([foo-bar]=b)"},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
-		printsAs("typeset -A a=([foo - bar]=b)"),
 		langFile(&DeclClause{
 			Variant: lit("typeset"),
 			Args: []*Assign{
@@ -5757,11 +5640,7 @@ var fileTests = []fileTestCase{
 				{
 					Name: lit("a"),
 					Array: &ArrayExpr{Elems: []*ArrayElem{{
-						Index: &BinaryArithm{
-							Op: Sub,
-							X:  litWord("foo"),
-							Y:  litWord("bar"),
-						},
+						Index: litWord("foo-bar"),
 						Value: litWord("b"),
 					}}},
 				},
@@ -5775,14 +5654,9 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"arr[0,1]=x"},
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
 		langFile(&CallExpr{Assigns: []*Assign{{
-			Name: lit("arr"),
-			Index: &BinaryArithm{
-				Op: Comma,
-				X:  litWord("0"),
-				Y:  litWord("1"),
-			},
+			Name:  lit("arr"),
+			Index: litWord("0,1"),
 			Value: litWord("x"),
 		}}}, LangZsh),
 		langFile(lit("arr[0,1]=x"), LangPOSIX),
@@ -5852,13 +5726,12 @@ var fileTests = []fileTestCase{
 			}),
 			Y: litWord("b"),
 		}), LangBash|LangMirBSDKorn),
-		// zsh subscripts are wrongly parsed as arithmetic; see #1233.
 		langFile(arithmCmd(&BinaryArithm{
 			Op: Assgn,
 			X: word(&ParamExp{
 				Short: true,
 				Param: lit("a"),
-				Index: word(dblQuoted(lit("x y"))),
+				Index: litWord(`"x y"`),
 			}),
 			Y: litWord("b"),
 		}), LangZsh),

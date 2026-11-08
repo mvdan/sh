@@ -286,7 +286,10 @@ func (*TestDecl) commandNode()     {}
 // Assign represents an assignment to a variable.
 //
 // Here and elsewhere, Index can mean either an index expression into an indexed
-// array, or a string key into an associative array.
+// array, or a string key into an associative array. With [LangZsh] it is always
+// a [*Word], optionally inside a [*FlagsArithm], as zsh treats a subscript like
+// a double-quoted string and only evaluates it as arithmetic at run time
+// when the array turns out to be indexed.
 //
 // If Index is non-nil, the value will be a word and not an array as nested
 // arrays are not allowed.
@@ -690,10 +693,10 @@ type ParamExp struct {
 	// or either of those in a [*DblQuoted]. Only possible with [LangZsh].
 	NestedParam WordPart
 
-	// TODO(v4): rename Index to Subscript, which better matches bash and zsh terminology,
-	// and merge it with Subscripts.
+	// TODO(v4): replace Index and Subscripts with a Subscript node holding the
+	// bracket positions, optional zsh flags, and a word; see doc/plan-v4.md.
 
-	Index ArithmExpr // ${a[i]}, ${a["k"]}, or a ${a[i,j]} slice with [LangZsh]
+	Index ArithmExpr // ${a[i]}, ${a["k"]}; see [Assign.Index] for [LangZsh]
 
 	// Subscripts holds any further subscripts after [ParamExp.Index],
 	// applied in order, as in ${a[1][2]}. Only possible with [LangZsh].
@@ -748,7 +751,7 @@ func (p *ParamExp) nakedIndex() bool {
 // Slice represents a character slicing expression inside a [ParamExp].
 //
 // This node will only appear with [LangBash] and [LangMirBSDKorn].
-// [LangZsh] uses a [BinaryArithm] with [Comma] in [ParamExp.Index] instead.
+// [LangZsh] uses a subscript word like ${a[i,j]} in [ParamExp.Index] instead.
 type Slice struct {
 	Offset, Length ArithmExpr
 }
@@ -865,10 +868,13 @@ type ParenArithm struct {
 func (p *ParenArithm) Pos() Pos { return p.Lparen }
 func (p *ParenArithm) End() Pos { return posAddCol(p.Rparen, 1) }
 
-// FlagsArithm represents zsh subscript flags attached to an arithmetic expression,
-// such as ${array[(flags)expr]}.
+// FlagsArithm represents zsh subscript flags attached to a subscript,
+// such as ${array[(flags)expr]}. X is a [*Word] holding the rest of the
+// subscript, or nil when the flags are alone.
 //
 // This node will only appear with [LangZsh].
+//
+// TODO(v4): remove in favor of a Subscript node with a Flags field; see doc/plan-v4.md.
 type FlagsArithm struct {
 	Flags *Lit
 	X     ArithmExpr

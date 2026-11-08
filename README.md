@@ -68,6 +68,9 @@ $ echo '${array[dash-string]}' | shfmt
 ${array[dash - string]}
 ```
 
+  This does not apply to Zsh, which only decides at run time whether a
+  subscript is a key or arithmetic, so the parser keeps subscripts as written.
+
 * `$((` and `((` ambiguity is not supported. Backtracking would complicate the
   parser and make streaming support via `io.Reader` impossible. The POSIX spec
   recommends to [space the operands][posix-ambiguity] if `$( (` is meant.

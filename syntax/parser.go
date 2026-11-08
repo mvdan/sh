@@ -514,6 +514,10 @@ type Parser struct {
 	quote   quoteState // current lexer state
 	eqlOffs int        // position of '=' in [Parser.val] when [Parser.tok].isLit is true
 
+	// zshSubDepth counts the unclosed '[' within the current zsh subscript,
+	// as brackets nest and only a matching ']' ends it.
+	zshSubDepth int
+
 	keepComments bool
 	lang         LangVariant
 
@@ -715,7 +719,11 @@ const (
 	switchCase
 	// paramExpArithm is a subscript like ${a[i]}, which can be a string key
 	// rather than an arithmetic expression when the array is associative.
+	// Only used by Bash and mksh; see zshSubscript.
 	paramExpArithm
+	// zshSubscript is a subscript with [LangZsh], lexed like a double-quoted
+	// string where brackets nest unless escaped; see [Assign.Index].
+	zshSubscript
 	// paramExpSlice is a slice like ${a:i:j}, which is always arithmetic.
 	paramExpSlice
 	paramExpRepl
@@ -723,7 +731,7 @@ const (
 	arrayElems
 
 	allKeepSpaces = runeByRune | paramExpRepl | dblQuotes | hdocBody |
-		hdocBodyTabs | paramExpRepl | paramExpExp
+		hdocBodyTabs | paramExpRepl | paramExpExp | zshSubscript
 	allRegTokens = noState | unquotedWordCont | subCmd | subCmdBckquo | subCmdBraces |
 		hdocWord | switchCase | arrayElems | testExpr
 	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd |
@@ -1515,21 +1523,7 @@ func (p *Parser) paramExp() *ParamExp {
 	}
 	if !pe.Short && p.r == '(' {
 		p.checkLang(pe.Pos(), LangZsh, `parameter expansion flags`)
-		// For now, for simplicity, we parse flags as just a literal.
-		// In the future, parsing as a word is better for cases like
-		// `${(ps.$sep.)val}`.
-		lparen := p.nextPos()
-		p.rune()
-		p.pos = p.nextPos()
-		for p.newLit(p.r); p.r != runeEOF && p.r != ')'; p.rune() {
-		}
-		p.val = p.endLit()
-		if p.r != ')' {
-			p.tok = _EOF // we can only get here due to EOF
-			p.matchingErr(lparen, leftParen, rightParen)
-		}
-		pe.Flags = p.lit(p.pos, p.val)
-		p.rune()
+		pe.Flags = p.zshFlags()
 	}
 	// Zsh-only prefixes that change how the parameter is expanded.
 	// They may appear in any combination, like ${=^name}.
@@ -1888,8 +1882,11 @@ func (p *Parser) paramExpExp() *Expansion {
 }
 
 func (p *Parser) eitherIndex() ArithmExpr {
-	old := p.quote
 	lpos := p.pos
+	if p.lang.in(LangZsh) {
+		return p.zshSubscript(lpos)
+	}
+	old := p.quote
 	p.quote = paramExpArithm
 	p.next()
 	if p.tok == star || p.tok == at {
@@ -1901,33 +1898,95 @@ func (p *Parser) eitherIndex() ArithmExpr {
 	return expr
 }
 
-func (p *Parser) zshSubFlags() *FlagsArithm {
-	zf := &FlagsArithm{}
-	// Lex flags as raw text, like paramExp does for ${(flags)...}.
-	lparen := p.pos
-	old := p.quote
-	p.quote = runeByRune
+// zshSubscript parses a subscript as a word, as zsh treats the text between
+// the brackets like a double-quoted string; see [Assign.Index].
+func (p *Parser) zshSubscript(lpos Pos) ArithmExpr {
+	var flags *FlagsArithm
+	var paren *Lit // leading parentheses which are not flags, kept as text
+	if p.r == '(' {
+		l := p.zshFlags()
+		if zshSubFlagsValid(l.Value) {
+			flags = &FlagsArithm{Flags: l}
+		} else {
+			// zsh evaluates ${a[(1+1)*2]} as arithmetic rather than flags.
+			l.Value = "(" + l.Value + ")"
+			l.ValuePos = posAddCol(l.ValuePos, -1)
+			l.ValueEnd = posAddCol(l.ValueEnd, 1)
+			paren = l
+		}
+	}
+	old, oldDepth := p.quote, p.zshSubDepth
+	p.quote, p.zshSubDepth = zshSubscript, 0
+	p.next()
+	w := p.getWord()
+	p.quote, p.zshSubDepth = old, oldDepth
+	p.matchedArithm(lpos, leftBrack, rightBrack)
+	if paren != nil {
+		if w == nil {
+			w = p.wordOne(paren)
+		} else if first, ok := w.Parts[0].(*Lit); ok {
+			first.Value = paren.Value + first.Value
+			first.ValuePos = paren.ValuePos
+		} else {
+			w.Parts = append([]WordPart{paren}, w.Parts...)
+		}
+	}
+	if flags != nil {
+		if w != nil {
+			flags.X = w
+		}
+		return flags
+	}
+	if w == nil {
+		p.followErrExp(lpos, leftBrack)
+		return nil
+	}
+	return w
+}
+
+// zshSubFlagsValid reports whether the text between the parentheses starting
+// a zsh subscript is a sequence of subscript flags. The flags s, n, and b take
+// an argument between a repeated delimiter, like (s:.:w).
+func zshSubFlagsValid(s string) bool {
+	for i := 0; i < len(s); i++ {
+		switch s[i] {
+		case 'w', 'p', 'f', 'r', 'R', 'i', 'I', 'k', 'K', 'e':
+		case 's', 'n', 'b':
+			i++
+			if i >= len(s) {
+				return false
+			}
+			end := strings.IndexByte(s[i+1:], s[i])
+			if end < 0 {
+				return false
+			}
+			i += 1 + end
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// zshFlags lexes parenthesized zsh flags like ${(flags)name} or ${a[(flags)b]},
+// with [Parser.r] at the opening paren, leaving the rune after ')' as next.
+//
+// For now, for simplicity, we parse flags as just a literal.
+// In the future, parsing as a word is better for cases like `${(ps.$sep.)val}`.
+func (p *Parser) zshFlags() *Lit {
+	lparen := p.nextPos()
+	p.rune()
 	p.pos = p.nextPos()
 	for p.newLit(p.r); p.r != runeEOF && p.r != ')'; p.rune() {
 	}
 	p.val = p.endLit()
 	if p.r != ')' {
-		p.tok = _EOF
+		p.tok = _EOF // we can only get here due to EOF
 		p.matchingErr(lparen, leftParen, rightParen)
 	}
-	zf.Flags = p.lit(p.pos, p.val)
+	flags := p.lit(p.pos, p.val)
 	p.rune()
-	// Lex the argument as a raw pattern, stopping at ',' or ']',
-	// since zsh treats it as a pattern rather than an arithmetic expression.
-	argPos := p.nextPos()
-	for p.newLit(p.r); p.r != runeEOF && p.r != ',' && p.r != ']'; p.rune() {
-	}
-	if val := p.endLit(); val != "" {
-		zf.X = p.wordOne(p.lit(argPos, val))
-	}
-	p.quote = old
-	p.next()
-	return zf
+	return flags
 }
 
 func (p *Parser) stopToken() bool {

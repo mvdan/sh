@@ -219,6 +219,16 @@ func (p *Parser) nextKeepSpaces() {
 		default:
 			p.advanceLitDquote(r)
 		}
+	case zshSubscript:
+		switch {
+		case r == '`', r == '$':
+			p.tok = p.dqToken(r)
+		case r == ']' && p.zshSubDepth == 0:
+			p.rune()
+			p.tok = rightBrack
+		default:
+			p.advanceLitZshSubscript(r)
+		}
 	case hdocBody, hdocBodyTabs:
 		switch r {
 		case '`', '$':
@@ -1191,6 +1201,31 @@ loop:
 			break loop
 		case '\\': // escaped byte follows
 			p.rune()
+		case escNewl, '`', '$':
+			tok = _Lit
+			break loop
+		}
+	}
+	p.tok, p.val = tok, p.endLit()
+}
+
+// advanceLitZshSubscript lexes a literal in a zsh subscript, which ends at
+// the ']' matching the opening bracket. Quotes are literal, while a backslash
+// escapes the next byte, which is how zsh allows a literal bracket in a key.
+func (p *Parser) advanceLitZshSubscript(r rune) {
+	tok := _LitWord
+loop:
+	for p.newLit(r); r != runeEOF; r = p.rune() {
+		switch r {
+		case '\\': // escaped byte follows
+			p.rune()
+		case '[':
+			p.zshSubDepth++
+		case ']':
+			if p.zshSubDepth == 0 {
+				break loop
+			}
+			p.zshSubDepth--
 		case escNewl, '`', '$':
 			tok = _Lit
 			break loop

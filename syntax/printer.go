@@ -842,13 +842,36 @@ func (p *Printer) wroteIndex(index ArithmExpr) bool {
 		return false
 	}
 	p.w.WriteByte('[')
-	// Note that e.g. foo[1,3]=$bar in Zsh does not allow any spaces around the comma,
-	// as that breaks the assignment word.
-	binary, ok := index.(*BinaryArithm)
-	compact := ok && binary.Op == Comma
-	p.arithmExpr(index, compact, false)
+	// Spaces around a comma would split an assignment word like a[1,3]=x,
+	// so keep Bash and mksh commas compact. Zsh subscripts are words,
+	// printed as they were written.
+	switch index := index.(type) {
+	case *Word:
+		p.subscriptWord(index)
+	case *FlagsArithm:
+		p.w.WriteByte('(')
+		p.w.WriteString(index.Flags.Value)
+		p.w.WriteByte(')')
+		if w, ok := index.X.(*Word); ok {
+			p.subscriptWord(w)
+		} else if index.X != nil {
+			p.arithmExpr(index.X, false, false)
+		}
+	default:
+		binary, ok := index.(*BinaryArithm)
+		compact := ok && binary.Op == Comma
+		p.arithmExpr(index, compact, false)
+	}
 	p.w.WriteByte(']')
 	return true
+}
+
+// subscriptWord prints a subscript word like a double-quoted string,
+// keeping any escaped newlines between its parts, as the zsh lexer
+// treats the subscript like one.
+func (p *Printer) subscriptWord(w *Word) {
+	p.wordParts(w.Parts, true)
+	p.wantSpace = spaceRequired
 }
 
 func (p *Printer) paramExp(pe *ParamExp) {
