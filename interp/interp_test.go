@@ -421,6 +421,11 @@ var runTests = []runTest{
 	{`echo $'\x\xf\x09\xAB'`, "\\x\x0f\x09\xab\n"},
 	{`echo $'\u\uf\u09\uABCD\u00051234'`, "\\u\u000f\u0009\uabcd\u00051234\n"},
 	{`echo $'\U\Uf\U09\UABCD\U00051234'`, "\\U\u000f\u0009\uabcd\U00051234\n"},
+	{`x=$'\cA'; echo ${#x}`, "3\n #IGNORE \\cX escapes are not decoded"},
+	{`echo $'\cA\ca\c?\c[\c1\cJ'`, "\\cA\\ca\\c?\\c[\\c1\\cJ\n #IGNORE \\cX escapes are not decoded"},
+	{`echo $'\c\\x\c\x' $'\c' $'a\c'`, "\\c\\x\\c\\x \\c a\\c\n #IGNORE \\cX escapes are not decoded"},
+	{`echo $'a\c@b'`, "a\\c@b\n #IGNORE \\cX escapes are not decoded"},
+	{`printf 'a\cAb\n'`, "a\\cAb\n"},
 	{
 		"echo 'before\x00after'",
 		"beforeafter\n",
