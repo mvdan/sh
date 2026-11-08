@@ -307,8 +307,8 @@ func (e *expander) envSet(name, value string) error {
 }
 
 // Literal expands a single shell word. It is similar to [Fields], but the result
-// is a single string. This is the behavior when a word is used as the value in
-// a shell variable assignment, for example.
+// is a single string. This is the behavior when a word is used as the operand
+// of a test expression, for example.
 //
 // The config specifies shell expansion options; nil behaves the same as an
 // empty config.
@@ -318,11 +318,30 @@ func Literal(cfg *Config, word *syntax.Word) (string, error) {
 	return e.literal(word)
 }
 
+// AssignValue expands a single shell word as the value in a shell variable
+// assignment. It is similar to [Literal], but tilde expansion also happens
+// after each unquoted colon, as in PATH=$PATH:~/bin.
+//
+// The config specifies shell expansion options; nil behaves the same as an
+// empty config.
+func AssignValue(cfg *Config, word *syntax.Word) (string, error) {
+	if word == nil {
+		return "", nil
+	}
+	e := newExpander(cfg)
+	defer e.release()
+	field, err := e.wordField(word.Parts, quoteNone, true)
+	if err != nil {
+		return "", err
+	}
+	return e.fieldJoin(field)
+}
+
 func (e *expander) literal(word *syntax.Word) (string, error) {
 	if word == nil {
 		return "", nil
 	}
-	field, err := e.wordField(word.Parts, quoteNone)
+	field, err := e.wordField(word.Parts, quoteNone, false)
 	if err != nil {
 		return "", err
 	}
@@ -341,7 +360,7 @@ func Document(cfg *Config, word *syntax.Word) (string, error) {
 	}
 	e := newExpander(cfg)
 	defer e.release()
-	field, err := e.wordField(word.Parts, quoteHeredoc)
+	field, err := e.wordField(word.Parts, quoteHeredoc, false)
 	if err != nil {
 		return "", err
 	}
@@ -364,7 +383,7 @@ func (e *expander) pattern(word *syntax.Word) (string, error) {
 	if word == nil {
 		return "", nil
 	}
-	field, err := e.wordField(word.Parts, quoteNone)
+	field, err := e.wordField(word.Parts, quoteNone, false)
 	if err != nil {
 		return "", err
 	}
@@ -786,7 +805,9 @@ const (
 	quoteSingle
 )
 
-func (e *expander) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart, error) {
+// wordField expands a word into a single field. With assign set, tilde
+// prefixes may also follow and end at unquoted colons, as in an assignment.
+func (e *expander) wordField(wps []syntax.WordPart, ql quoteLevel, assign bool) ([]fieldPart, error) {
 	e.depth++
 	defer func() { e.depth-- }()
 	var field []fieldPart
@@ -794,15 +815,30 @@ func (e *expander) wordField(wps []syntax.WordPart, ql quoteLevel) ([]fieldPart,
 		switch wp := wp.(type) {
 		case *syntax.Lit:
 			s := wp.Value
-			if i == 0 && ql == quoteNone {
-				// The home directory may be empty, so check whether the tilde was consumed.
-				if prefix, rest := e.expandUser(s, len(wps) > 1); rest != s {
-					// Quoted, so that patterns match the home directory literally.
-					field = append(field, fieldPart{quote: quoteSingle, val: prefix})
-					s = rest
-				}
-			}
 			if ql == quoteNone {
+				more := i < len(wps)-1
+				tilde := i == 0
+				for {
+					if tilde {
+						// The home directory may be empty, so check whether the tilde was consumed.
+						if prefix, rest := e.expandUser(s, more, assign); rest != s {
+							// Quoted, so that patterns match the home directory literally.
+							field = append(field, fieldPart{quote: quoteSingle, val: prefix})
+							s = rest
+						}
+					}
+					j := -1
+					if assign {
+						j = colonTilde(s)
+					}
+					if j < 0 {
+						break
+					}
+					var head string
+					field, head = appendUnescaped(field, s[:j])
+					field = append(field, fieldPart{val: head})
+					s, tilde = s[j:], true
+				}
 				field, s = appendUnescaped(field, s)
 			}
 			if (ql == quoteDouble || ql == quoteHeredoc) && strings.Contains(s, "\\") {
@@ -939,7 +975,7 @@ func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 		case *syntax.Lit:
 			s := wp.Value
 			if i == 0 {
-				prefix, rest := e.expandUser(s, len(wps) > 1)
+				prefix, rest := e.expandUser(s, len(wps) > 1, false)
 				curField = append(curField, fieldPart{
 					quote: quoteSingle,
 					val:   prefix,
@@ -1146,9 +1182,23 @@ func (e *expander) listElems(pe *syntax.ParamExp, p param) (elems []string, star
 	return nil, false, false
 }
 
+// colonTilde returns the index of the first tilde in an unquoted literal
+// which follows a colon not escaped by a backslash, or -1 if there is none.
+func colonTilde(s string) int {
+	for i := 0; i < len(s)-1; i++ {
+		switch {
+		case s[i] == '\\':
+			i++
+		case s[i] == ':' && s[i+1] == '~':
+			return i + 1
+		}
+	}
+	return -1
+}
+
 // appendDblQuoted appends the field parts of a double-quoted string.
 func (e *expander) appendDblQuoted(field []fieldPart, wps []syntax.WordPart) ([]fieldPart, error) {
-	wfield, err := e.wordField(wps, quoteDouble)
+	wfield, err := e.wordField(wps, quoteDouble, false)
 	if err != nil {
 		return nil, err
 	}
@@ -1297,16 +1347,22 @@ func (e *expander) sliceElems(pe *syntax.ParamExp, elems []string, indexes []int
 	return elems
 }
 
-func (e *expander) expandUser(field string, moreFields bool) (prefix, rest string) {
+// expandUser expands a tilde prefix at the start of an unquoted literal,
+// which ends at the first slash, or also at a colon with assign set.
+func (e *expander) expandUser(field string, moreFields, assign bool) (prefix, rest string) {
 	name, ok := strings.CutPrefix(field, "~")
 	if !ok {
 		// No tilde prefix to expand, e.g. "foo".
 		return "", field
 	}
-	i := strings.IndexByte(name, '/')
+	end := "/"
+	if assign {
+		end = "/:"
+	}
+	i := strings.IndexAny(name, end)
 	if i < 0 && moreFields {
 		// There is a tilde prefix, but followed by more fields, e.g. "~'foo'".
-		// We only proceed if an unquoted slash was found in this field, e.g. "~/'foo'".
+		// We only proceed if the prefix ended in this field, e.g. "~/'foo'".
 		return "", field
 	}
 	if i >= 0 {

@@ -5085,7 +5085,7 @@ echo "${m[k]}"; declare -p a || echo unset`,
 	},
 	{
 		`HOME=/foo; x=a:~/b y=~:~ z=~/a:~:b; echo "$x $y $z"`,
-		"a:~/b ~:~ /foo/a:~:b\n #IGNORE no tilde expansion after colons",
+		"a:/foo/b /foo:/foo /foo/a:/foo:b\n",
 	},
 	{
 		`HOME=/foo; x=a\:~ y=a':'~ z="a:"~/b w=a:~'/b' v=a:~"b"; echo "$x $y $z $w $v"`,
@@ -5093,11 +5093,11 @@ echo "${m[k]}"; declare -p a || echo unset`,
 	},
 	{
 		`HOME=/foo; x=a; x+=:~; declare y=a:~; export z=a:~; f() { local w=a:~; echo "$x $y $z $w"; }; f`,
-		"a:~ a:~ a:~ a:~\n #IGNORE no tilde expansion after colons",
+		"a:/foo a:/foo a:/foo a:/foo\n",
 	},
 	{
 		`HOME=/foo; a=(a:~ [3]=b:~); declare -A m=([k]=c:~); echo "${a[@]} ${m[k]}"`,
-		"a:~ b:~ c:~\n #IGNORE no tilde expansion after colons",
+		"a:~ b:/foo c:/foo\n",
 	},
 	{
 		`HOME=/foo; echo a:~ ${u:-a:~}; [[ a:~ == a:/foo ]] || echo no`,

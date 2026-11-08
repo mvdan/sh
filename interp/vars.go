@@ -685,7 +685,7 @@ func (r *Runner) assignVal(name string, prev expand.Variable, as *syntax.Assign,
 	abandoned := func() bool { return r.exit.exiting && !exiting }
 	str := ""
 	if as.Value != nil {
-		if str = r.literal(as.Value); abandoned() {
+		if str = r.assignWord(as.Value); abandoned() {
 			return name, prev, errAbandoned
 		}
 	}
@@ -811,7 +811,7 @@ func (r *Runner) assignArray(name string, prev expand.Variable, as *syntax.Assig
 				if elem.Index == nil {
 					return prev, r.failVar("%s: %s: must use subscript when assigning associative array", name, r.literal(elem.Value))
 				}
-				amap[r.assocKey(elem.Index)] = r.literal(elem.Value)
+				amap[r.assocKey(elem.Index)] = r.assignWord(elem.Value)
 				if abandoned() {
 					return prev, errAbandoned
 				}
@@ -844,7 +844,7 @@ func (r *Runner) assignArray(name string, prev expand.Variable, as *syntax.Assig
 			if index, ok = internal.IndexedAbs(list, indexes, i); !ok {
 				return prev, r.failVar("%s: bad array subscript", name)
 			}
-			list, indexes = internal.SetIndexedElem(list, indexes, index, r.literal(elem.Value))
+			list, indexes = internal.SetIndexedElem(list, indexes, index, r.assignWord(elem.Value))
 			index++
 		} else {
 			// Implicit index, advancing for every word.

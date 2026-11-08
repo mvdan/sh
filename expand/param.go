@@ -690,7 +690,7 @@ func (e *expander) expArg(exp *syntax.Expansion, quoted bool) (string, error) {
 	if !quoted || exp.Word == nil {
 		return e.literal(exp.Word)
 	}
-	field, err := e.wordField(exp.Word.Parts, quoteDouble)
+	field, err := e.wordField(exp.Word.Parts, quoteDouble, false)
 	if err != nil {
 		return "", err
 	}
@@ -702,7 +702,7 @@ func (e *expander) replaceElems(repl *syntax.Replace, elems []string) ([]string,
 	if repl.Orig == nil {
 		return elems, nil // nothing to replace
 	}
-	field, err := e.wordField(repl.Orig.Parts, quoteNone)
+	field, err := e.wordField(repl.Orig.Parts, quoteNone, false)
 	if err != nil {
 		return nil, err
 	}

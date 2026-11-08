@@ -281,6 +281,12 @@ func (r *Runner) literal(word *syntax.Word) string {
 	return str
 }
 
+func (r *Runner) assignWord(word *syntax.Word) string {
+	str, err := expand.AssignValue(r.ecfg, word)
+	r.expandErr(err)
+	return str
+}
+
 func (r *Runner) document(word *syntax.Word) string {
 	str, err := expand.Document(r.ecfg, word)
 	r.expandErr(err)
