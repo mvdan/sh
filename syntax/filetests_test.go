@@ -199,12 +199,9 @@ var fileTests = []fileTestCase{
 		langFile(litWord("foo")),
 	),
 	fileTest(
-		// A backslash does not continue a comment onto the next line,
-		// but the parser currently treats it as a line continuation.
+		// A backslash does not continue a comment onto the next line.
 		[]string{"foo #\\\nbar", "foo #\\\r\nbar"},
-		printsAs("foo \\\n\tbar #\\"),
-		langFile(litCall("foo", "bar")),
-		langFile(word(lit("foo"), lit("bar")), LangZsh),
+		langFile(litStmts("foo", "bar")),
 	),
 	fileTest(
 		[]string{`\`},
@@ -6048,21 +6045,19 @@ var fileTestsKeepComments = []fileTestCase{
 		}),
 	),
 	fileTest(
-		// The comment text should be `\` and `bar` a second statement.
 		[]string{"foo #\\\nbar"},
-		printsAs("foo \\\n\tbar #\\"),
 		langFile(&File{
-			Stmts: []*Stmt{{
-				Cmd: litCall("foo", "bar"),
-			}},
-			Last: []Comment{{Text: "\\\n"}},
+			Stmts: []*Stmt{
+				{
+					Comments: []Comment{{Text: `\`}},
+					Cmd:      litCall("foo"),
+				},
+				{
+					Comments: []Comment{},
+					Cmd:      litCall("bar"),
+				},
+			},
 		}),
-		langFile(&File{
-			Stmts: []*Stmt{{
-				Cmd: call(word(lit("foo"), lit("bar"))),
-			}},
-			Last: []Comment{{Text: "\\\n"}},
-		}, LangZsh),
 	),
 	fileTest(
 		[]string{

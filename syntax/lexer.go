@@ -328,7 +328,10 @@ skipSpace:
 				case '\n', runeEOF:
 					break runeLoop
 				case escNewl:
+					// A backslash has no meaning in a comment, so treat the
+					// escaped newline as a backslash and a plain newline.
 					p.litBs = append(p.litBs, '\\', '\n')
+					p.r, p.w = '\n', 1
 					break runeLoop
 				case '`':
 					if p.backquoteEnd() {

@@ -102,8 +102,7 @@ var printTests = []printCase{
 	samePrint("#c1\\\n#c2"),
 	samePrint("#\\\n#"),
 	{"#\\\r\n#", "#\\\n#"},
-	// This should print unchanged; the backslash is part of the comment.
-	{"foo #\\\r\nbar", "foo \\\n\tbar #\\"},
+	{"foo #\\\r\nbar", "foo #\\\nbar"},
 	samePrint("{\n\tfoo\n\t# bar \\\n}"),
 	samePrint("foo\\\\\nbar"),
 	samePrint("a=b # inline\nbar"),
