@@ -107,17 +107,22 @@ Nodes:
 - `FuncDecl`: join `Name` and `Names` into one field, even if it is mildly
   annoying to non-Zsh users.
 - `ParamExp`: replace the mutually exclusive booleans `Excl`, `Length`,
-  `Width`, and `IsSet` with a single operator token; rename `Index` to
-  `Subscript`, matching Bash and Zsh terminology; consider joining `Repl`,
+  `Width`, and `IsSet` with a single operator token; consider joining `Repl`,
   `Exp`, and `Slice` into a single expansion field or type.
 - Subscripts become words in every dialect. Zsh and Bash both expand a
   subscript like a string and only evaluate it as arithmetic at run time when
   the array is indexed, so v3 already parses Zsh subscripts as words (#1233).
   Parsing Bash subscripts as arithmetic mangles keys like `[tx-usecs]=1`,
   rejects keys like `foo:bar`, and makes `interp` rebuild keys from the tree
-  via `internal/arithm.Word`, losing whitespace. `interp` parses indexed
-  subscripts as arithmetic at run time, caching the result per node. Unlike
-  Zsh, Bash performs quote removal, so `["k"]` keeps a `DblQuoted` part.
+  via `internal/arithm.Word`, losing whitespace. Add a `Subscript` node with
+  `Lbrack` and `Rbrack` positions, a `Flags *Lit` for Zsh flags like `(r)`,
+  and a `Word *Word`. It replaces `Index` in `ParamExp`, `Assign`, and
+  `ArrayElem`, and `ParamExp.Subscripts` becomes `[]*Subscript`. This removes
+  `FlagsArithm`, the guessed closing bracket in the `End` methods of `Assign`
+  and `ArrayElem`, and the printer's compact commas in `${a[1,3]}`. `interp`
+  parses indexed subscripts as arithmetic at run time, caching the result per
+  node. Unlike Zsh, Bash performs quote removal, so `["k"]` keeps a
+  `DblQuoted` part.
 - `ExtGlob`: make extended globs opaque literals, as we did for Zsh glob
   qualifiers. The `expand` package has to stringify the node again anyway, and
   regular glob operators like `*` do not get their own nodes either.
