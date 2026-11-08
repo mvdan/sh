@@ -209,6 +209,12 @@ Parser and printer API:
   modified.
 - `Fields` and `FieldsSeq`: keep both, since the slice form is the common case,
   but name them consistently with the parser iterators.
+- `Literal` needs a clearer name. It expands a word into a single string
+  without field splitting or globbing, so nothing about it is literal, and the
+  name suggests the unexpanded `syntax.Lit`. It serves many contexts, such as
+  test operands, case words, and redirections, so unlike `Document`, `Pattern`,
+  and `AssignValue`, its name should describe the result rather than a
+  context. Candidates are `Field`, pairing with `Fields`, and `String`.
 
 ### interp
 
