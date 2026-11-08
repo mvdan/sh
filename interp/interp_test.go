@@ -5083,6 +5083,26 @@ echo "${m[k]}"; declare -p a || echo unset`,
 		`HOME=/foo; echo ~ ~/ ~/'' ~'' ~""`,
 		"/foo /foo/ /foo/ ~ ~\n",
 	},
+	{
+		`HOME=/foo; x=a:~/b y=~:~ z=~/a:~:b; echo "$x $y $z"`,
+		"a:~/b ~:~ /foo/a:~:b\n #IGNORE no tilde expansion after colons",
+	},
+	{
+		`HOME=/foo; x=a\:~ y=a':'~ z="a:"~/b w=a:~'/b' v=a:~"b"; echo "$x $y $z $w $v"`,
+		"a:~ a:~ a:~/b a:~/b a:~b\n",
+	},
+	{
+		`HOME=/foo; x=a; x+=:~; declare y=a:~; export z=a:~; f() { local w=a:~; echo "$x $y $z $w"; }; f`,
+		"a:~ a:~ a:~ a:~\n #IGNORE no tilde expansion after colons",
+	},
+	{
+		`HOME=/foo; a=(a:~ [3]=b:~); declare -A m=([k]=c:~); echo "${a[@]} ${m[k]}"`,
+		"a:~ b:~ c:~\n #IGNORE no tilde expansion after colons",
+	},
+	{
+		`HOME=/foo; echo a:~ ${u:-a:~}; [[ a:~ == a:/foo ]] || echo no`,
+		"a:~ a:~\nno\n",
+	},
 
 	// /dev/null
 	{"echo foo >/dev/null", ""},
