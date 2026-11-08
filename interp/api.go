@@ -268,12 +268,6 @@ type Runner struct {
 	// then looked up as external commands like bash does.
 	disabledBuiltins map[string]bool
 
-	// historyList and historyClear back the history builtin. They are nil
-	// unless the embedder supplied them with [History]; this interpreter does
-	// not read input lines itself, so only a line editor above it knows them.
-	historyList  func() []string
-	historyClear func()
-
 	// Fake signal callbacks
 	callbackErr  string
 	callbackExit string
@@ -538,20 +532,6 @@ func Dir(path string) RunnerOption {
 			return fmt.Errorf("%s is not a directory", path)
 		}
 		r.Dir = path
-		return nil
-	}
-}
-
-// History supplies the command history to the history builtin. list returns the
-// history oldest first, and clear, which may be nil, discards it.
-//
-// The interpreter never reads input lines itself, so it has no history of its
-// own; only the line editor above it has one. Without this option, history
-// reports that no history list is available.
-func History(list func() []string, clear func()) RunnerOption {
-	return func(r *Runner) error {
-		r.historyList = list
-		r.historyClear = clear
 		return nil
 	}
 }
@@ -1134,8 +1114,6 @@ func (r *Runner) Reset() {
 		bgJobs:               r.bgJobs,
 		jobsCtx:              r.jobsCtx,
 		holds:                r.holds, // only set mid-statement, for a nested shell
-		historyList:          r.historyList,
-		historyClear:         r.historyClear,
 
 		// These can be set by functions like [Dir] or [Params], but
 		// builtins can overwrite them; reset the fields to whatever the
@@ -1458,8 +1436,6 @@ func (r *Runner) subshell(background bool) *Runner {
 		stmtDepth:            r.stmtDepth,
 		holds:                r.inheritedHolds(),
 		cmdSubst:             r.cmdSubst,
-		historyList:          r.historyList,
-		historyClear:         r.historyClear,
 
 		origStdout: r.origStdout, // used for process substitutions
 	}
