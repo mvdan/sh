@@ -323,6 +323,74 @@ var printTests = []printCase{
 	samePrint("echo 'a\vb\fc' #c1"),
 	samePrint("echo a #x\vy\fz"),
 	samePrint("echo `#a\tb`"),
+	// Comments are only aligned with those on adjacent lines at the same
+	// indentation level, so not with those inside a block.
+	// TODO: these wrongly align with the comments inside the block.
+	{
+		"{ #c1\nfoobar #c2\n}",
+		"{       #c1\n\tfoobar #c2\n}",
+	},
+	{
+		"if a; then #c1\nfoobar #c2\nfi",
+		"if a; then #c1\n\tfoobar    #c2\nfi",
+	},
+	{
+		"{\nfoo #c1\n} #c2",
+		"{\n\tfoo #c1\n}    #c2",
+	},
+	{
+		"f() {\nfoo #c1\n} #c2",
+		"f() {\n\tfoo #c1\n}    #c2",
+	},
+	{
+		"(\nfoo #c1\n) #c2",
+		"(\n\tfoo #c1\n)    #c2",
+	},
+	{
+		"a=$(\nfoo #c1\n) #c2",
+		"a=$(\n\tfoo #c1\n)    #c2",
+	},
+	{
+		"a=(\nb #c1\n) #c2",
+		"a=(\n\tb #c1\n)  #c2",
+	},
+	{
+		"if a; then\nfoo #c1\nfi #c2",
+		"if a; then\n\tfoo #c1\nfi   #c2",
+	},
+	{
+		"if a; then\nfoobar #c1\nelse #c2\nb\nfi",
+		"if a; then\n\tfoobar #c1\nelse    #c2\n\tb\nfi",
+	},
+	{
+		"for a; do\nfoobar #c1\ndone #c2",
+		"for a; do\n\tfoobar #c1\ndone    #c2",
+	},
+	{
+		"a <(\nfoo #c1\n) #c2",
+		"a <(\n\tfoo #c1\n)    #c2",
+	},
+	{
+		"{\nfoo #c1\n} #c2\nfoobar #c3",
+		"{\n\tfoo   #c1\n}      #c2\nfoobar #c3",
+	},
+	{
+		"for a; do\nif b; then\nfoobar #c1\nfi #c2\ndone #c3",
+		"for a; do\n\tif b; then\n\t\tfoobar #c1\n\tfi      #c2\ndone     #c3",
+	},
+	// Case items are not indented by default, so they align with `esac`.
+	{
+		"case a in\nb) foo;; #c1\nesac #c2",
+		"case a in\nb) foo ;; #c1\nesac      #c2",
+	},
+	// `;;` is indented like the body, so it aligns with it.
+	samePrint("case a in\nb)\n\tfoo #c1\n\t;;  #c2\nesac"),
+	// Nor with those in a heredoc body.
+	// TODO: this wrongly aligns with the comment before the body.
+	{
+		"{\nfoooooooo <<EOF #c0\n$({ #c1\na\n})\nEOF\n}",
+		"{\n\tfoooooooo <<EOF #c0\n$({              #c1\n\t\ta\n\t})\nEOF\n}",
+	},
 	{
 		"(\nbar\n# extra\n)",
 		"(\n\tbar\n\t# extra\n)",
@@ -988,10 +1056,16 @@ func TestPrintSpaces(t *testing.T) {
 			"{\nfoo \\\nbar\n}",
 			"{\n    foo \\\n        bar\n}",
 		},
+		// TODO: these wrongly align comments across indentation levels.
 		{
 			2,
 			"if foo; then # inline1\nbar # inline2\n# withfi\nfi",
 			"if foo; then # inline1\n  bar        # inline2\n# withfi\nfi",
+		},
+		{
+			2,
+			"{\nfoo #c1\n} #c2",
+			"{\n  foo #c1\n}     #c2",
 		},
 		{
 			2,
@@ -1157,6 +1231,11 @@ func TestPrintSwitchCaseIndent(t *testing.T) {
 		{
 			"case a in\nb) case c in d) e ;;\nesac ;;\nesac",
 			"case a in\n\tb) case c in d) e ;;\n\tesac ;;\nesac",
+		},
+		// TODO: `esac` wrongly aligns with the indented case item.
+		{
+			"case a in\nb) foo;; #c1\nesac #c2",
+			"case a in\n\tb) foo ;; #c1\nesac       #c2",
 		},
 	}
 	parser := NewParser(KeepComments(true))
@@ -1360,6 +1439,7 @@ func TestPrintKeepPadding(t *testing.T) {
 		samePrint("'foo\nbar'   # x"),
 		// The escape bytes around the formfeed count as padding columns.
 		{"'a\fb'   # x", "'a\fb' # x"},
+		samePrint("{\n\tfoo\n}   >bar"),
 		{"\tfoo", "foo"},
 		{"  if foo; then bar; fi", "if   foo; then bar; fi"},
 		samePrint("echo '★'  || true"),
