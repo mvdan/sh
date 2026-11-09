@@ -56,6 +56,16 @@ func TestPrintZsh(t *testing.T) {
 		{"repeat 3 # c\n\nfoo", "repeat 3; do # c\n\tfoo\ndone"},
 		{"repeat 3\n# c", "repeat 3; do; done\n# c"},
 		{"{ repeat 3\n# c\n}", "{\n\trepeat 3; do; done\n\t# c\n}"},
+		// TODO: these wrongly print spaces and a newline.
+		{
+			"echo ${a:s/x\ty/z/} ${a:s/x\fy/z/}",
+			"echo ${a:s/x y/z/} ${a:s/x\ny/z/}",
+		},
+		{
+			"echo ${a[(ws:\t:)1]} ${a[(ws:\v:)1]}",
+			"echo ${a[(ws: :)1]} ${a[(ws: :)1]}",
+		},
+		{"function a\vb { :; }", "function a b { :; }"},
 	} {
 		t.Run("", func(t *testing.T) {
 			printTest(t, parser, printer, tc.in, tc.want)
@@ -315,6 +325,21 @@ var printTests = []printCase{
 		"aa #c1\n{\n\tb\n\tc\n} #c2",
 	},
 	samePrint("a #c1\n'b\ncc' #c2"),
+	// The tabwriter treats tabs, vertical tabs, and formfeeds as cell and
+	// line terminators, so literals and comments must escape them.
+	// TODO: these wrongly print a space, a newline, and a space.
+	{
+		"echo 'a\vb\fc' #c1",
+		"echo 'a b\nc' #c1",
+	},
+	{
+		"echo a #x\vy\fz",
+		"echo a #x y\nz",
+	},
+	{
+		"echo `#a\tb`",
+		"echo `#a b`",
+	},
 	{
 		"(\nbar\n# extra\n)",
 		"(\n\tbar\n\t# extra\n)",
@@ -723,6 +748,15 @@ var printTests = []printCase{
 	samePrint("f <<-A\n\ta $(\n\t\tg <<-B\n\t\t\tb1\n\t\t\tb2\n\t\tB\n\t)\nA"),
 	samePrint("f <<-A\n\ta $(\n\t\tg <<-B\n\t\t\tb $(\n\t\t\t\th <<-C\n\t\t\t\t\tc1\n\t\t\t\tC\n\t\t\t)\n\t\tB\n\t)\nA"),
 	samePrint("f <<-EOF\n\tfoo\tbar\nEOF"),
+	// TODO: these wrongly print a space and a newline.
+	{
+		"f <<EOF\na\vb\fc\nEOF",
+		"f <<EOF\na b\nc\nEOF",
+	},
+	{
+		"f <<-EOF\n\ta\vb\f\tc\nEOF",
+		"f <<-EOF\n\ta b\n\tc\nEOF",
+	},
 	samePrint("f <<-EOF\n\ta $(\n\t\techo \"x\ty\"\n\t)\nEOF"),
 	samePrint("f <<-A\n\ta $(\n\t\tg <<B\nb1\nB\n\t)\nA"),
 	samePrint("f <<-A\n\ta $(\n\t\tg <<B\nb1\tx\n\t\tkeep\nB\n\t)\nA"),
@@ -1344,6 +1378,11 @@ func TestPrintKeepPadding(t *testing.T) {
 		samePrint("{  a;  }"),
 		samePrint("(  a   )"),
 		samePrint("'foo\nbar'   # x"),
+		// TODO: this wrongly prints a newline.
+		{
+			"'a\fb'   # x",
+			"'a\nb'   # x",
+		},
 		{"\tfoo", "foo"},
 		{"  if foo; then bar; fi", "if   foo; then bar; fi"},
 		samePrint("echo '★'  || true"),
@@ -1494,6 +1533,11 @@ func TestPrintMinify(t *testing.T) {
 		{
 			"#!/bin/sh\necho 1\n#!/bin/sh\necho 2",
 			"#!/bin/sh\necho 1\necho 2",
+		},
+		// TODO: this wrongly prints a space and a newline.
+		{
+			"#!/usr/bin/env\tsh\fx\necho",
+			"#!/usr/bin/env sh\nx\necho",
 		},
 		samePrint("foo >bar 2>baz <etc"),
 		samePrint("<<-EOF\n$(a|b)\nEOF"),
