@@ -578,6 +578,33 @@ var printTests = []printCase{
 		"a=b \\\n\texport \\\n\tc=d",
 	},
 	samePrint("a $(x) \\\n\tb"),
+	// TODO: a substitution should not drop the indentation of the
+	// lines which follow it; see #811 and #1015.
+	{"a=$(b) \\\nc=d \\\nfoo", "a=$(b) \\\nc=d \\\n\tfoo"},
+	{"a=`b` \\\nc=d \\\nfoo", "a=$(b) \\\nc=d \\\n\tfoo"},
+	{"a=<(b) \\\nc=d \\\nfoo", "a=<(b) \\\nc=d \\\n\tfoo"},
+	{"a=${ b;} \\\nc=d \\\nfoo", "a=${ b;} \\\nc=d \\\n\tfoo"},
+	{"a=$((1 + $(b))) \\\nc=d \\\nfoo", "a=$((1 + $(b))) \\\nc=d \\\n\tfoo"},
+	{"a=$(b >c) \\\nd=e \\\nfoo", "a=$(b >c) \\\nd=e \\\n\tfoo"},
+	{"foo >$(a) \\\n2>b", "foo >$(a) \\\n2>b"},
+	{"a=($(b)\nc)", "a=($(b)\nc)"},
+	{"a=(`b`\nc)", "a=($(b)\nc)"},
+	{"a=(\"$(b)\" <(c)\nd\n$(e))", "a=(\"$(b)\" <(c)\nd\n$(e))"},
+	{
+		"case a in\nb) case \"$(c)\" in\nd) e ;;\nesac ;;\nesac",
+		"case a in\nb) case \"$(c)\" in\nd) e ;;\nesac ;;\nesac",
+	},
+	{"foo $(case a in b) c ;;\nd) e ;;\nesac)", "foo $(case a in b) c ;;\nd) e ;;\nesac)"},
+	samePrint("a=(${b}\n\tc)"),
+	samePrint("a=($(b)\n)"),
+	samePrint("a=(\n\t$(b)\n\tc\n)"),
+	samePrint("a=$(\n\tb\n)"),
+	samePrint("a=$(b $(c) \\\n\td)"),
+	samePrint("foo $(if a \"x\ny\"\nthen\n\tb\nfi)"),
+	samePrint("foo $(case a in b) c ;;\nesac)"),
+	samePrint("case a in\nb) case c in d) e ;;\nesac ;;\nesac"),
+	// TODO: indent the lines following a multi-line substitution too.
+	samePrint("a=$(if b; then\n\tc\nfi) \\\nd=$(e) \\\nf=g"),
 	samePrint("\"foo\nbar\"\netc"),
 	samePrint("\"foo\nbar\nbar2\"\netc"),
 	samePrint("a=\"$b\n\"\nd=e"),
@@ -1050,6 +1077,11 @@ func TestPrintSwitchCaseIndent(t *testing.T) {
 			"case $i in\n\t1)\n\t\ta\n\t\t;;\n\t2)\n\t\tb\n\t\t;;\nesac",
 		},
 		samePrint("case $i in\n\t#foo\nesac"),
+		samePrint("foo $(case a in b) c ;;\nesac)"),
+		{
+			"case a in\nb) case c in d) e ;;\nesac ;;\nesac",
+			"case a in\n\tb) case c in d) e ;;\n\tesac ;;\nesac",
+		},
 	}
 	parser := NewParser(KeepComments(true))
 	printer := NewPrinter(SwitchCaseIndent(true))
@@ -1087,6 +1119,11 @@ func TestPrintFunctionNextLine(t *testing.T) {
 			"{ foo() { bar; }; }",
 			"{\n\tfoo()\n\t{\n\t\tbar\n\t}\n}",
 		},
+		// TODO: the brace should line up with the line it starts on.
+		{
+			"a=$(foo() {\n\tbar\n})",
+			"a=$(foo()\n\t{\n\t\tbar\n\t})",
+		},
 	}
 	parser := NewParser(KeepComments(true))
 	printer := NewPrinter(FunctionNextLine(true))
@@ -1122,6 +1159,7 @@ func TestPrintBlockNextLine(t *testing.T) {
 			"function foo {\n\tbar\n}",
 			"function foo\n{\n\tbar\n}",
 		},
+		// TODO: the brace should line up with the line it starts on.
 		{
 			"{ foo() { bar; baz; }; }",
 			"{ foo()\n\t{\n\t\tbar\n\t\tbaz\n\t}; }",
@@ -1169,6 +1207,28 @@ func TestPrintBlockNextLine(t *testing.T) {
 		{
 			"foo() if a; then\n\tb\n\tc\nfi",
 			"foo() if a\nthen\n\tb\n\tc\nfi",
+		},
+		{
+			"foo $(if a; then\n\tb\nfi)",
+			"foo $(if a\nthen\n\tb\nfi)",
+		},
+		{
+			"a=$(while b; do\n\tc\ndone)",
+			"a=$(while b\ndo\n\tc\ndone)",
+		},
+		// TODO: "do" should line up with the line it starts on.
+		{
+			"a=$(for b in c; do\n\td\ndone)",
+			"a=$(for b in c\n\tdo\n\t\td\n\tdone)",
+		},
+		{
+			"a=$(for b in $(c); do\n\td\ndone)",
+			"a=$(for b in $(c)\ndo\n\td\ndone)",
+		},
+		// TODO: the brace should line up with the line it starts on.
+		{
+			"a=$(foo() {\n\tbar\n})",
+			"a=$(foo()\n\t{\n\t\tbar\n\t})",
 		},
 	}
 	parser := NewParser(KeepComments(true))
