@@ -522,6 +522,17 @@ type Parser struct {
 	// as brackets nest and only a matching ']' ends it.
 	zshSubDepth int
 
+	// zshBraceDepth counts the unmatched '{' within the current unquoted zsh word.
+	zshBraceDepth int
+	// zshRbrace is the position of a '}' split off the end of a zsh word
+	// after lexing it, to be returned as the next token.
+	zshRbrace Pos
+	// zshSplit is set when the current token is a '}' split off the end of a zsh word.
+	zshSplit bool
+	// zshKeptRbrace is the position of an unmatched '}' kept at the end of a zsh word
+	// right before a split '}', as in `{ foo bar}}`; see [Parser.gotRsrv].
+	zshKeptRbrace Pos
+
 	keepComments bool
 	lang         LangVariant
 
@@ -618,6 +629,7 @@ func (p *Parser) reset() {
 	p.r, p.w = 0, 0
 	p.err, p.readErr, p.readEOF = nil, nil, false
 	p.quote, p.forbidNested = noState, false
+	p.zshBraceDepth, p.zshRbrace, p.zshSplit, p.zshKeptRbrace = 0, Pos{}, false, Pos{}
 	p.openNodes = 0
 	p.recoveredErrors = 0
 	p.heredocs, p.buriedHdocs = p.heredocs[:0], 0
@@ -654,6 +666,10 @@ func (p *Parser) lit(pos Pos, val string) *Lit {
 	p.litBatch = p.litBatch[1:]
 	l.ValuePos = pos
 	l.ValueEnd = p.nextPos()
+	if p.zshRbrace.IsValid() {
+		// The current token ends at a '}' split off it, which is the next token.
+		l.ValueEnd = p.zshRbrace
+	}
 	l.Value = val
 	return l
 }
@@ -749,18 +765,19 @@ const (
 )
 
 type saveState struct {
-	quote       quoteState
-	buriedHdocs int
+	quote         quoteState
+	buriedHdocs   int
+	zshBraceDepth int
 }
 
 func (p *Parser) preNested(quote quoteState) (s saveState) {
-	s.quote, s.buriedHdocs = p.quote, p.buriedHdocs
-	p.buriedHdocs, p.quote = len(p.heredocs), quote
+	s.quote, s.buriedHdocs, s.zshBraceDepth = p.quote, p.buriedHdocs, p.zshBraceDepth
+	p.buriedHdocs, p.quote, p.zshBraceDepth = len(p.heredocs), quote, 0
 	return s
 }
 
 func (p *Parser) postNested(s saveState) {
-	p.quote, p.buriedHdocs = s.quote, s.buriedHdocs
+	p.quote, p.buriedHdocs, p.zshBraceDepth = s.quote, s.buriedHdocs, s.zshBraceDepth
 }
 
 func unquotedWordBytes(w *Word) (buf []byte, quoted bool) {
@@ -859,6 +876,13 @@ func (p *Parser) got(tok token) bool {
 func (p *Parser) gotRsrv(val string) (Pos, bool) {
 	pos := p.pos
 	if p.tok == _LitWord && p.val == val {
+		if p.zshSplit && p.zshKeptRbrace.IsValid() {
+			// zsh keeps the first `}` in a word like `bar}}`, but it would
+			// close the block too once separated by a space or semicolon,
+			// so the input cannot be formatted.
+			p.posErr(p.zshKeptRbrace, "%#q ending a word before a closing %#q must be quoted or escaped", rightBrace, rightBrace)
+			return pos, false
+		}
 		p.next()
 		return pos, true
 	}
@@ -2032,6 +2056,9 @@ func (p *Parser) stopToken() bool {
 		return true
 	case bckQuote:
 		return p.backquoteEnd()
+	case _LitWord:
+		// Zsh does not require a semicolon to close a block.
+		return p.lang.in(LangZsh) && p.val == "}"
 	}
 	return false
 }
@@ -2086,6 +2113,26 @@ func (p *Parser) hasValidIdent() bool {
 }
 
 func (p *Parser) getAssign(needEqual bool) *Assign {
+	as := p.assign(needEqual)
+	if as == nil || as.Naked || as.Array != nil || !p.zshSplit {
+		return as
+	}
+	// Zsh does not split a '}' off the end of an assignment like `a=b}`.
+	if as.Value == nil {
+		as.Value = p.wordOne(p.lit(p.pos, p.val))
+	} else if l, ok := as.Value.Parts[len(as.Value.Parts)-1].(*Lit); ok && l.ValueEnd == p.pos {
+		l.Value += p.val
+		l.ValueEnd = p.nextPos()
+	} else {
+		as.Value.Parts = append(as.Value.Parts, p.lit(p.pos, p.val))
+	}
+	p.next()
+	return as
+}
+
+// assign parses an assignment, which [Parser.getAssign] wraps to keep
+// a trailing '}' in its value with [LangZsh].
+func (p *Parser) assign(needEqual bool) *Assign {
 	as := &Assign{}
 	if p.eqlOffs > 0 { // foo=bar
 		nameEnd := p.eqlOffs
@@ -2360,15 +2407,13 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 	redirsStart := len(s.Redirs)
 	switch p.tok {
 	case _LitWord:
+		if p.gotBlock(s) {
+			break
+		}
 		// Set for POSIX words which [Parser.posixReserved] rejects
 		// unless they name a func declaration.
 		var rsrvFeature string
 		switch p.val {
-		case "{", "{}":
-			// Zsh treats closing braces in a special way, allowing "{}".
-			if p.val == "{" || p.lang.in(LangZsh) {
-				p.block(s)
-			}
 		case "if":
 			p.ifClause(s)
 		case "while", "until":
@@ -2483,6 +2528,9 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 	case _Lit, dollBrace, dollDblParen, dollParen, dollar, cmdIn, assgnParen, cmdOut,
 		sglQuote, dollSglQuote, dblQuote, dollDblQuote, dollBrack,
 		globQuest, globStar, globPlus, globAt, globExcl:
+		if p.gotBlock(s) {
+			break
+		}
 		if p.hasValidIdent() {
 			p.callExpr(s, nil, true)
 			break
@@ -2579,22 +2627,24 @@ func (p *Parser) arithmExpCmd(s *Stmt) {
 	s.Cmd = ar
 }
 
-func (p *Parser) block(s *Stmt) {
-	b := p.braces()
+// gotBlock parses a block if the current token in command position opens one,
+// as well as a zsh `{ try-list } always { always-list }`.
+func (p *Parser) gotBlock(s *Stmt) bool {
+	b := p.openBlock()
+	if b == nil {
+		return false
+	}
 	if p.tok != _LitWord || p.val != "always" {
 		s.Cmd = b
-		return
+		return true
 	}
-	// Zsh's { try-list } always { always-list }, where "always"
-	// must directly follow the closing brace on the same line.
+	// "always" must directly follow the closing brace on the same line.
 	p.checkLang(p.pos, LangZsh, "`always` blocks")
 	tc := &TryClause{Try: b, AlwaysPos: p.pos}
 	p.next()
 	for p.got(_Newl) || p.got(semicolon) {
 	}
-	if p.tok == _LitWord && (p.val == "{" || p.val == "{}") {
-		tc.Always = p.braces()
-	} else {
+	if tc.Always = p.openBlock(); tc.Always == nil {
 		if !p.recoverError() {
 			p.followErr(tc.AlwaysPos, "always", "{")
 		}
@@ -2602,18 +2652,77 @@ func (p *Parser) block(s *Stmt) {
 		tc.Always = &Block{Lbrace: recoveredPos, Rbrace: recoveredPos}
 	}
 	s.Cmd = tc
+	return true
 }
 
-// braces parses a block from its opening brace, which is the current token.
-func (p *Parser) braces() *Block {
-	b := &Block{Lbrace: p.pos}
-	if p.val == "{}" {
-		b.Rbrace = posAddCol(p.pos, 1)
+// openBlock parses a block if the current token in command position opens one,
+// returning nil otherwise. Zsh also allows `{}`, and splits a leading `{`
+// off any longer word, as in `{foo bar}`.
+func (p *Parser) openBlock() *Block {
+	lbrace := p.pos
+	switch {
+	case p.tok == _LitWord && p.val == "{":
+		p.next()
+		return p.blockBody(lbrace)
+	case p.tok == _LitWord && p.val == "{}" && p.lang.in(LangZsh):
+		b := &Block{Lbrace: lbrace, Rbrace: posAddCol(lbrace, 1)}
 		b.Last, p.accComs = p.accComs, nil // e.g. `always # c\n{}`
 		p.next()
 		return b
+	case !p.lang.in(LangZsh), p.tok != _LitWord && p.tok != _Lit,
+		!strings.HasPrefix(p.val, "{"), p.val == "{}",
+		strings.HasPrefix(p.val, "{#"): // would start a comment
+		return nil
 	}
-	p.next()
+	end := zshLbraceEnd(p.val)
+	if end == 0 && p.zshBraceDepth > 0 {
+		p.zshBraceDepth-- // the lexer counted the leading '{' as open
+	}
+	rest := p.val[1:]
+	if rest == "" { // followed by a quote or expansion, as in `{$foo}`
+		p.next()
+		return p.blockBody(lbrace)
+	}
+	p.pos = posAddCol(p.pos, 1)
+	if p.eqlOffs > 0 {
+		p.eqlOffs--
+	}
+	if p.tok == _LitWord && end == len(p.val) {
+		// The '}' closing the leading '{' ends the word, and is now unmatched.
+		rbrace := posAddCol(p.pos, len(rest)-1)
+		if p.zshRbrace.IsValid() {
+			// A '}' was already split off the word, as in `{{foo}}`.
+			p.zshKeptRbrace = rbrace
+		} else if p.r != '(' && !strings.Contains(rest, "\n") {
+			rest = rest[:len(rest)-1]
+			p.zshRbrace = rbrace
+		}
+	}
+	p.val = rest
+	return p.blockBody(lbrace)
+}
+
+// zshLbraceEnd returns the offset just past the '}' which closes the '{'
+// starting a literal, or zero if there is none.
+func zshLbraceEnd(s string) int {
+	depth := 0
+	for i := 0; i < len(s); i++ {
+		switch s[i] {
+		case '\\':
+			i++ // escaped byte follows
+		case '{':
+			depth++
+		case '}':
+			if depth--; depth == 0 {
+				return i + 1
+			}
+		}
+	}
+	return 0
+}
+
+func (p *Parser) blockBody(lbrace Pos) *Block {
+	b := &Block{Lbrace: lbrace}
 	b.Stmts, b.Last = p.followStmts("{", b.Lbrace, "}")
 	if pos, ok := p.gotRsrv("}"); ok {
 		b.Rbrace = pos
@@ -3215,8 +3324,7 @@ loop:
 				p.declClause(s, ce.Assigns)
 				return
 			}
-			// Zsh does not require a semicolon to close a block.
-			if p.lang.in(LangZsh) && p.val == "}" {
+			if p.stopToken() {
 				break loop
 			}
 			w := p.wordOne(p.lit(p.pos, p.val))
@@ -3310,8 +3418,6 @@ func (p *Parser) anonFuncArgs(s *Stmt, fd *FuncDecl) {
 		case p.peekRedir():
 			p.doRedirect(s)
 			continue
-		case p.tok == _LitWord && p.val == "}":
-			return // zsh does not require a semicolon to close a block
 		case p.tok == leftParen && p.r == ')':
 			return
 		}

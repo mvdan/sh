@@ -440,7 +440,7 @@ func singleParse(p *Parser, in string, want *File) func(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
-		Walk(got, sanityChecker{tb: t, src: in}.visit)
+		Walk(got, sanityChecker{tb: t, src: in, lang: p.lang}.visit)
 		qt.Assert(t, qt.CmpEquals(got, want, cmpOpt))
 	}
 }
@@ -2422,8 +2422,7 @@ func TestParseWordsZsh(t *testing.T) {
 		got = append(got, w.Lit())
 	}
 	// Like zsh's ${(z)x}, split an unmatched '}' off the end of a word.
-	// LangZsh wrongly keeps each '}' in the word; see #1295.
-	qt.Assert(t, qt.DeepEquals(got, []string{"a}}", "{b}", "c}d", ""}))
+	qt.Assert(t, qt.DeepEquals(got, []string{"a}", "}", "{b}", "c}d", "", "}"}))
 }
 
 func TestParseWordsStopEarly(t *testing.T) {

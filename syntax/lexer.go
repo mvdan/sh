@@ -260,6 +260,15 @@ func (p *Parser) nextKeepSpaces() {
 
 func (p *Parser) next() {
 	p.lineCom = Pos{}
+	if p.zshSplit {
+		p.zshSplit, p.zshKeptRbrace = false, Pos{}
+	}
+	if p.zshRbrace.IsValid() {
+		p.tok, p.val, p.pos = _LitWord, "}", p.zshRbrace
+		p.spaced, p.eqlOffs, p.zshSplit = true, -1, true
+		p.zshRbrace = Pos{}
+		return
+	}
 	if p.r == runeEOF {
 		p.tok = _EOF
 		return
@@ -299,6 +308,9 @@ skipSpace:
 		default:
 			break skipSpace
 		}
+	}
+	if p.lang.in(LangZsh) && p.zshWordStart() {
+		p.zshBraceDepth = 0 // unmatched braces start over in a new word
 	}
 	if p.stopAt != nil && (p.spaced || p.tok == illegalTok || p.stopToken()) {
 		// Note that the buffer may have been refilled since we read r,
@@ -1063,6 +1075,7 @@ func paramNameStartRune[T rune | byte](r T) bool {
 
 func (p *Parser) advanceLitOther(r rune) {
 	tok := _LitWord
+	rbraceEnd, rbrace := -1, Pos{} // an unmatched `}` in a let argument
 loop:
 	for p.newLit(r); r != runeEOF; r = p.rune() {
 		switch r {
@@ -1074,6 +1087,9 @@ loop:
 		case '}':
 			if p.quote&allParamExp != 0 {
 				break loop
+			}
+			if p.quote == arithmExprLet {
+				rbraceEnd, rbrace = len(p.litBs), p.nextPos()
 			}
 		case '/':
 			if p.quote != paramExpExp {
@@ -1098,7 +1114,12 @@ loop:
 			}
 		}
 	}
-	p.tok, p.val = tok, p.endLit()
+	val := p.endLit()
+	// let arguments are words too, as in `{ let x=1}`.
+	if rbraceEnd == len(val) && p.lang.in(LangZsh) && p.zshWordEnd(p.r) {
+		val = p.zshSplitRbrace(val, rbrace, -1)
+	}
+	p.tok, p.val = tok, val
 }
 
 // zshNumRange peeks at the bytes after '<' to check for a zsh numeric
@@ -1124,9 +1145,58 @@ func (p *Parser) zshNumRange() bool {
 	return len(rest) > 0 && rest[0] == '>'
 }
 
+// zshBraces reports whether we are lexing unquoted zsh words,
+// where braces are tracked via [Parser.zshBraceDepth].
+// Like zsh, this covers all words besides array elements,
+// where shfmt keeps a trailing '}' rather than reject it.
+func (p *Parser) zshBraces() bool {
+	return p.lang.in(LangZsh) && p.quote&(allRegTokens&^(subCmdBraces|arrayElems)) != 0
+}
+
+// zshWordEnd reports whether r, which follows a `}`, ends an unquoted zsh word.
+func (p *Parser) zshWordEnd(r rune) bool {
+	switch r {
+	case ' ', '\t', '\r', '\n', ';', '&', '|', ')', '<', '>', runeEOF:
+		return true
+	case '`':
+		return p.quote == subCmdBckquo
+	}
+	return false
+}
+
+// zshSplitRbrace splits an unmatched '}' at rbrace off the end of the zsh word val,
+// so that it can close a block, as in `{ foo bar}`. prevEnd is the end of
+// the unmatched '}' before it in val, or -1 if there is none.
+func (p *Parser) zshSplitRbrace(val string, rbrace Pos, prevEnd int) string {
+	if len(val) == 1 {
+		p.zshSplit = !p.zshWordStart() // even when following `$foo` or `"foo"`
+		p.spaced = true
+		return val
+	}
+	// A lone `}` before it, as in `}}`, is not kept in a word.
+	if prevEnd == len(val)-1 && (prevEnd > 1 || !p.zshWordStart()) {
+		p.zshKeptRbrace = posAddCol(p.pos, prevEnd-1)
+	}
+	p.zshRbrace = rbrace
+	return val[:len(val)-1]
+}
+
+// zshWordStart reports whether the token being lexed begins a zsh word,
+// which is not the case after a glob qualifier like `{a(N)}`.
+func (p *Parser) zshWordStart() bool {
+	switch p.tok {
+	case illegalTok, _Newl, semicolon, and, or, andAnd, orOr, orAnd, andPipe, andBang,
+		dblSemicolon, semiAnd, dblSemiAnd, semiOr:
+		return true
+	}
+	return p.spaced || p.peekRedir()
+}
+
 func (p *Parser) advanceLitNone(r rune) {
 	p.eqlOffs = -1
 	tok := _LitWord
+	// The end of the last two unmatched `}` in the word, and the last one's position.
+	rbraceEnd, prevEnd, rbrace := -1, -1, Pos{}
 loop:
 	for p.newLit(r); r != runeEOF; r = p.rune() {
 		switch r {
@@ -1176,6 +1246,17 @@ loop:
 				p.rune()
 				break loop
 			}
+			switch {
+			case !p.zshBraces():
+			case p.zshBraceDepth > 0:
+				p.zshBraceDepth--
+			default:
+				prevEnd, rbraceEnd, rbrace = rbraceEnd, len(p.litBs), p.nextPos()
+			}
+		case '{':
+			if p.zshBraces() {
+				p.zshBraceDepth++
+			}
 		case '[':
 			if p.litBs[0] == '{' && p.lang.in(langBashLike) {
 				// In bash, words beginning with '{' are always kept whole,
@@ -1189,7 +1270,12 @@ loop:
 			}
 		}
 	}
-	p.tok, p.val = tok, p.endLit()
+	val := p.endLit()
+	// The word ends here, unless a glob qualifier like `a}(N)` follows.
+	if tok == _LitWord && rbraceEnd == len(val) && p.r != '(' {
+		val = p.zshSplitRbrace(val, rbrace, prevEnd)
+	}
+	p.tok, p.val = tok, val
 }
 
 func (p *Parser) advanceLitDquote(r rune) {
