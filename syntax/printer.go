@@ -1371,6 +1371,10 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.wantNewline = p.wantNewline || p.funcNextLine
 		p.nestedStmts(cmd.Stmts, cmd.Last, cmd.Rbrace)
 		p.semiRsrv("}", cmd.Rbrace)
+	case *TryClause:
+		p.command(cmd.Try, nil)
+		p.spacedString("always", cmd.AlwaysPos)
+		p.command(cmd.Always, nil)
 	case *IfClause:
 		p.ifClause(cmd, false)
 	case *Subshell:
@@ -1750,6 +1754,13 @@ func (p *Printer) stmtsForceNewline(stmts []*Stmt, last []Comment, closing Pos) 
 		// Force a newline if we find:
 		//     for i in a b # stmt
 		//     do foo; done
+		return true
+	case !p.minify && len(stmts) > 0 && len(stmts[0].Comments) > 0 &&
+		stmts[0].Comments[0].Pos().Line() < p.line:
+		// Force a newline if a comment precedes the opening token
+		// which moved up to the current line, as in:
+		//     { foo; } always # stmt
+		//     { bar; }
 		return true
 	}
 	return false

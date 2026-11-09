@@ -39,6 +39,24 @@ func TestPrintFiles(t *testing.T) {
 	}
 }
 
+// TestPrintZsh covers formatting which only arises with zsh syntax,
+// as [TestPrintFiles] only prints the canonical input of each case.
+func TestPrintZsh(t *testing.T) {
+	t.Parallel()
+	parser := NewParser(Variant(LangZsh), KeepComments(true))
+	printer := NewPrinter()
+	for _, tc := range []printCase{
+		{"{ foo; } always\n{ bar; }", "{ foo; } always { bar; }"},
+		{"{ foo; } always # c\n{ bar; }", "{ foo; } always { # c\n\tbar\n}"},
+		{"{ foo; } always # c\n{}", "{ foo; } always { # c\n}"},
+		{"{ foo; } always # c\n{ }", "{ foo; } always { # c\n}"},
+	} {
+		t.Run("", func(t *testing.T) {
+			printTest(t, parser, printer, tc.in, tc.want)
+		})
+	}
+}
+
 func strPrint(p *Printer, node Node) (string, error) {
 	var buf bytes.Buffer
 	err := p.Print(&buf, node)

@@ -259,8 +259,8 @@ func (s *Stmt) End() Pos {
 // function declarations.
 //
 // These are [*CallExpr], [*IfClause], [*WhileClause], [*ForClause], [*CaseClause],
-// [*Block], [*Subshell], [*BinaryCmd], [*FuncDecl], [*ArithmCmd], [*TestClause],
-// [*DeclClause], [*LetClause], [*TimeClause], and [*CoprocClause].
+// [*Block], [*TryClause], [*Subshell], [*BinaryCmd], [*FuncDecl], [*ArithmCmd],
+// [*TestClause], [*DeclClause], [*LetClause], [*TimeClause], and [*CoprocClause].
 type Command interface {
 	Node
 	commandNode()
@@ -272,6 +272,7 @@ func (*WhileClause) commandNode()  {}
 func (*ForClause) commandNode()    {}
 func (*CaseClause) commandNode()   {}
 func (*Block) commandNode()        {}
+func (*TryClause) commandNode()    {}
 func (*Subshell) commandNode()     {}
 func (*BinaryCmd) commandNode()    {}
 func (*FuncDecl) commandNode()     {}
@@ -405,6 +406,20 @@ type Block struct {
 
 func (b *Block) Pos() Pos { return b.Lbrace }
 func (b *Block) End() Pos { return posAddCol(b.Rbrace, 1) }
+
+// TryClause represents a zsh try block followed by an always block, like
+// `{ try-list } always { always-list }`. The always block also runs when the
+// try block is left early via `break`, `continue`, or `return`.
+//
+// This node will only appear with [LangZsh].
+type TryClause struct {
+	Try       *Block
+	AlwaysPos Pos // position of "always"
+	Always    *Block
+}
+
+func (t *TryClause) Pos() Pos { return t.Try.Pos() }
+func (t *TryClause) End() Pos { return t.Always.End() }
 
 // IfClause represents an if statement.
 type IfClause struct {

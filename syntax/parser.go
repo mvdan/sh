@@ -2315,13 +2315,10 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 	switch p.tok {
 	case _LitWord:
 		switch p.val {
-		case "{":
-			p.block(s)
-		case "{}":
-			// Zsh treats closing braces in a special way, allowing this.
-			if p.lang.in(LangZsh) {
-				s.Cmd = &Block{Lbrace: p.pos, Rbrace: posAddCol(p.pos, 1)}
-				p.next()
+		case "{", "{}":
+			// Zsh treats closing braces in a special way, allowing "{}".
+			if p.val == "{" || p.lang.in(LangZsh) {
+				p.block(s)
 			}
 		case "if":
 			p.ifClause(s)
@@ -2332,7 +2329,6 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			p.forClause(s)
 		case "case":
 			p.caseClause(s)
-		// TODO(zsh): { try-list } "always" { always-list }
 		case "}":
 			p.curErr(`%#q can only be used to close a block`, rightBrace)
 		case "then", "elif":
@@ -2515,7 +2511,39 @@ func (p *Parser) arithmExpCmd(s *Stmt) {
 }
 
 func (p *Parser) block(s *Stmt) {
+	b := p.braces()
+	if p.tok != _LitWord || p.val != "always" {
+		s.Cmd = b
+		return
+	}
+	// Zsh's { try-list } always { always-list }, where "always"
+	// must directly follow the closing brace on the same line.
+	p.checkLang(p.pos, LangZsh, "`always` blocks")
+	tc := &TryClause{Try: b, AlwaysPos: p.pos}
+	p.next()
+	for p.got(_Newl) || p.got(semicolon) {
+	}
+	if p.tok == _LitWord && (p.val == "{" || p.val == "{}") {
+		tc.Always = p.braces()
+	} else {
+		if !p.recoverError() {
+			p.followErr(tc.AlwaysPos, "always", "{")
+		}
+		// Keep the node complete even in a partial tree after an error.
+		tc.Always = &Block{Lbrace: recoveredPos, Rbrace: recoveredPos}
+	}
+	s.Cmd = tc
+}
+
+// braces parses a block from its opening brace, which is the current token.
+func (p *Parser) braces() *Block {
 	b := &Block{Lbrace: p.pos}
+	if p.val == "{}" {
+		b.Rbrace = posAddCol(p.pos, 1)
+		b.Last, p.accComs = p.accComs, nil // e.g. `always # c\n{}`
+		p.next()
+		return b
+	}
 	p.next()
 	b.Stmts, b.Last = p.followStmts("{", b.Lbrace, "}")
 	if pos, ok := p.gotRsrv("}"); ok {
@@ -2525,7 +2553,7 @@ func (p *Parser) block(s *Stmt) {
 	} else {
 		p.matchingErr(b.Lbrace, leftBrace, rightBrace)
 	}
-	s.Cmd = b
+	return b
 }
 
 func (p *Parser) ifClause(s *Stmt) {
@@ -3159,6 +3187,9 @@ func (p *Parser) funcDecl(s *Stmt, pos Pos, long, withParens bool, names ...*Lit
 	// TODO: reject any body which isn't a compound command, like a quoted word
 	if fd.Body = p.getStmt(false, false, true); fd.Body == nil {
 		p.followErr(fd.Pos(), "foo()", noQuote("a statement"))
+	} else if tc, ok := fd.Body.Cmd.(*TryClause); ok {
+		// Zsh only allows `always` after a block which is a statement by itself.
+		p.posErr(tc.AlwaysPos, "`always` cannot follow a function body")
 	}
 	if len(names) == 0 && p.lang.in(LangZsh) {
 		p.anonFuncArgs(s, fd)

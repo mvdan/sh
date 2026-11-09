@@ -594,40 +594,15 @@ var errorCases = []errorCase{
 		"foo }",
 		langErr("1:5: `}` can only be used to close a block", LangZsh),
 	),
-	// Zsh runs `{ try-list } always { always-list }`, which we reject for now.
-	errCase(
-		"{ foo; } always { bar; }",
-		langErr("1:10: statements must be separated by &, ; or a newline"),
-		flipConfirm(LangZsh),
-	),
-	errCase(
-		"{\n\tfoo\n} always {\n\tbar\n}",
-		langErr("3:3: statements must be separated by &, ; or a newline"),
-		flipConfirm(LangZsh),
-	),
-	errCase(
-		"{ } always { }",
-		langErr("1:1: `{` must be followed by a statement list"),
-		langErr("1:5: statements must be separated by &, ; or a newline", LangZsh|LangMirBSDKorn),
-		flipConfirm(LangZsh),
-	),
-	errCase(
-		"{ foo; } always { bar; } >a | baz",
-		langErr("1:10: statements must be separated by &, ; or a newline"),
-		flipConfirm(LangZsh),
-	),
-	errCase(
-		"{ foo; } always # c\n{ bar; }",
-		langErr("1:10: statements must be separated by &, ; or a newline"),
-		flipConfirm(LangZsh),
-	),
 	errCase(
 		"{ foo; } always",
-		langErr("1:10: statements must be separated by &, ; or a newline"),
+		langErr("1:10: `always` must be followed by `{`", LangZsh),
+		langErr("1:10: `always` blocks are a zsh feature; tried parsing as LANG", LangPOSIX|LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"{ foo; } always foo",
-		langErr("1:10: statements must be separated by &, ; or a newline"),
+		langErr("1:10: `always` must be followed by `{`", LangZsh),
+		langErr("1:10: `always` blocks are a zsh feature; tried parsing as LANG", LangPOSIX|LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"{ foo; } >a always { bar; }",
@@ -639,7 +614,8 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"f() { foo; } always { bar; }",
-		langErr("1:14: statements must be separated by &, ; or a newline"),
+		langErr("1:14: `always` cannot follow a function body", LangZsh),
+		langErr("1:14: `always` blocks are a zsh feature; tried parsing as LANG", LangPOSIX|LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"then",

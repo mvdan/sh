@@ -54,6 +54,9 @@ func Walk(node Node, f func(Node) bool) {
 	case *Block:
 		walkList(node.Stmts, f)
 		walkComments(node.Last, f)
+	case *TryClause:
+		Walk(node.Try, f)
+		Walk(node.Always, f)
 	case *IfClause:
 		walkList(node.Cond, f)
 		walkComments(node.CondLast, f)

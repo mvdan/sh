@@ -2418,6 +2418,42 @@ var fileTests = []fileTestCase{
 		langFile(block(), LangZsh),
 	),
 	fileTest(
+		[]string{"{ foo; } always { bar; }", "{ foo; } always\n{ bar; }", "{ foo; } always ; ;\n{ bar; }"},
+		langFile(&TryClause{
+			Try:    block(litStmt("foo")),
+			Always: block(litStmt("bar")),
+		}, LangZsh),
+		langErr2("1:10: `always` blocks are a zsh feature; tried parsing as LANG", LangPOSIX|LangBash|LangMirBSDKorn),
+	),
+	fileTest(
+		[]string{
+			"{\n\tfoo\n} always {\n\tbar\n}",
+			"{\nfoo\n} always {\nbar\n}",
+		},
+		langFile(&TryClause{
+			Try:    block(litStmt("foo")),
+			Always: block(litStmt("bar")),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"{ } always { }", "{} always {}", "{ } always\n{ }"},
+		langFile(&TryClause{Try: block(), Always: block()}, LangZsh),
+	),
+	fileTest(
+		[]string{"{ foo; } always { bar; } >a | baz"},
+		langFile(&BinaryCmd{
+			Op: Pipe,
+			X: &Stmt{
+				Cmd: &TryClause{
+					Try:    block(litStmt("foo")),
+					Always: block(litStmt("bar")),
+				},
+				Redirs: []*Redirect{{Op: RdrOut, Word: litWord("a")}},
+			},
+			Y: litStmt("baz"),
+		}, LangZsh),
+	),
+	fileTest(
 		[]string{"( )"},
 		langErr2("1:1: `(` must be followed by a statement list"),
 		langFile(subshell(), LangZsh|LangMirBSDKorn),
@@ -6289,6 +6325,23 @@ var fileTestsKeepComments = []fileTestCase{
 		}),
 	),
 	fileTest(
+		[]string{"{ foo; } always { # c\n}", "{ foo; } always # c\n{}", "{ foo; } always # c\n{ }"},
+		langFile(&TryClause{
+			Try:    block(litStmt("foo")),
+			Always: &Block{Last: []Comment{{Text: " c"}}},
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"{ foo; } always { # c\n\tbar\n}", "{ foo; } always # c\n{ bar; }"},
+		langFile(&TryClause{
+			Try: block(litStmt("foo")),
+			Always: block(&Stmt{
+				Comments: []Comment{{Text: " c"}},
+				Cmd:      litCall("bar"),
+			}),
+		}, LangZsh),
+	),
+	fileTest(
 		[]string{
 			"$(\n\t# foo\n)",
 			"`\n\t# foo\n`",
@@ -6507,6 +6560,8 @@ func (c sanityChecker) visit(node Node) bool {
 	case *Block:
 		c.checkPos(node, node.Lbrace, "{")
 		c.checkPos(node, node.Rbrace, "}")
+	case *TryClause:
+		c.checkPos(node, node.AlwaysPos, "always")
 	case *IfClause:
 		if node.ThenPos.IsValid() {
 			c.checkPos(node, node.Position, "if", "elif")
