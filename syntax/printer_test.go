@@ -138,8 +138,8 @@ var printTests = []printCase{
 	{"#\\\r\n#", "#\\\n#"},
 	{"foo #\\\r\nbar", "foo #\\\nbar"},
 	samePrint("{\n\tfoo\n\t# bar \\\n}"),
-	{"time # c", "time"},                 // wrong: drops the comment
-	{"{\n\ttime # c\n}", "{\n\ttime\n}"}, // wrong: drops the comment
+	samePrint("time # c"),
+	samePrint("{\n\ttime # c\n}"),
 	samePrint("foo\\\\\nbar"),
 	samePrint("a=b # inline\nbar"),
 	samePrint("a=$(b) # inline"),

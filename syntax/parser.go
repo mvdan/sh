@@ -2473,7 +2473,9 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 		p.arithmExpCmd(s)
 	}
 	if s.Cmd == nil && len(s.Redirs) == 0 {
-		return nil // no statement found
+		// No statement found; leave the comments for the caller.
+		p.accComs = append(s.Comments, p.accComs...)
+		return nil
 	}
 	if redirsStart > 0 && s.Cmd != nil {
 		if _, ok := s.Cmd.(*CallExpr); !ok {
