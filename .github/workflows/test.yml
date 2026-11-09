@@ -61,6 +61,8 @@ jobs:
       run: diff <(echo -n) <(gofmt -s -d .)
     - if: matrix.os == 'namespace-profile-linux' && matrix.go-version == '1.27.x'
       run: go vet ./...
+    - if: matrix.os == 'namespace-profile-linux' && matrix.go-version == '1.27.x'
+      run: go generate ./... && git add -N . && git diff --exit-code
 
   test-linux-alpine:
     runs-on: namespace-profile-linux
