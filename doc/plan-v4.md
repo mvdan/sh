@@ -549,8 +549,8 @@ was designed which should shape the new API.
   default, so a default other than zero needs a way to ask for zero, such
   as a negative kill timeout to kill right away.
 - **Room for additions.** The features wanted by open issues fit the new
-  API without another break. More dialects such as ksh (#614) and
-  pre-POSIX (#757) are bits in the `uint32`, of which five are in use.
+  API without another break. More dialects such as ksh (#614) are bits in
+  the `uint32`, of which five are in use.
   A cursor to replace nodes while walking (#1165) and parsing without
   building a tree (#621) are a new function and method. A limit on
   ambiguous parsing (#686) and a single process mode (#171) are options
@@ -579,11 +579,9 @@ was designed which should shape the new API.
 - Whether to keep js/wasm support for the interpreter, which currently forces
   `Stdin` to be an `io.Reader` and adds in-process pipes.
 - Which of the many formatter feature requests without a v4 dependency should
-  still be batched here, so that users see one round of diffs. Those which
-  were put off as breaking in v3 are keeping `do` on its own line in a
-  multi-line `for` (#582) and not printing a multi-line command inline
-  (#720). #1064 suggests a function style option taking the place of
-  `FunctionNextLine`.
+  still be batched here, so that users see one round of diffs. Not printing
+  a multi-line command inline (#720) was put off as breaking in v3. #1064
+  suggests a function style option taking the place of `FunctionNextLine`.
 
 ## TODO
 
@@ -618,10 +616,10 @@ Gaps in the design:
 - TODO: a middleware which overrides a builtin cannot change the shell's
   state, as `HandlerContext` is read-only. Replacing `cd` or `export` is
   then not possible; decide whether that is a goal (#93).
-- TODO: the last command of a pipeline runs in the current shell, so
-  `echo a | read x` sets `x`, unlike in Bash, and pipes are closed late
-  (#1142). Fixing it changes what scripts observe, so it would be a silent
-  behavior change.
+- TODO: the shell holds its ends of a pipeline's pipes until the whole
+  pipeline finishes (#1142), so a reader sees no EOF and a writer no SIGPIPE
+  when the other side stops early. Fixing it changes what scripts observe,
+  so it would be a silent behavior change.
 - TODO: builtins like `history` need the caller's help (#1401), as the
   history belongs to the line editor. Decide whether that is another
   handler, or left to a middleware which overrides the builtin.
