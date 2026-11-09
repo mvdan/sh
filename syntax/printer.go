@@ -408,7 +408,7 @@ func (p *Printer) bslashNewlIfWanted(pos Pos) {
 
 func (p *Printer) spacedString(s string, pos Pos) {
 	p.spacePad(pos)
-	p.w.WriteString(s)
+	p.writeLit(s)
 	p.wantSpace = spaceRequired
 }
 
@@ -442,14 +442,22 @@ func (p *Printer) semiOrNewl(s string, pos Pos) {
 	p.wroteSemi = false
 }
 
+// litEscaper wraps each byte which the tabwriter would otherwise treat as a
+// cell or line terminator in [tabwriter.Escape], which is "\xff".
+var (
+	litEscaper       = strings.NewReplacer("\t", "\xff\t\xff", "\v", "\xff\v\xff", "\f", "\xff\f\xff")
+	litEscaperNoTabs = strings.NewReplacer("\v", "\xff\v\xff", "\f", "\xff\f\xff")
+)
+
+// writeLit writes literal text, escaping it via [litEscaper]. Tabs are left
+// alone when writing to an extraIndenter, which reindents '<<-' heredoc body
+// lines by their leading tabs and escapes the rest itself.
 func (p *Printer) writeLit(s string) {
-	// When writing to an extraIndenter, it escapes any tabs itself while
-	// reindenting '<<-' heredoc body lines.
-	if _, ok := p.w.(*extraIndenter); !ok && strings.Contains(s, "\t") {
-		p.w.WriteByte(tabwriter.Escape)
-		defer p.w.WriteByte(tabwriter.Escape)
+	if _, ok := p.w.(*extraIndenter); ok {
+		litEscaperNoTabs.WriteString(p.w, s)
+	} else {
+		litEscaper.WriteString(p.w, s)
 	}
-	p.w.WriteString(s)
 }
 
 type levelInc struct {
@@ -769,7 +777,7 @@ func (p *Printer) comments(comments ...Comment) {
 	if p.minify {
 		for _, c := range comments {
 			if fileutil.Shebang([]byte("#"+c.Text)) != "" && c.Hash.Col() == 1 && c.Hash.Line() == 1 {
-				p.w.WriteString(strings.TrimRightFunc("#"+c.Text, unicode.IsSpace))
+				p.writeLit(strings.TrimRightFunc("#"+c.Text, unicode.IsSpace))
 				p.w.WriteString("\n")
 				p.line++
 			}
@@ -904,7 +912,7 @@ func (p *Printer) wroteIndex(index ArithmExpr) bool {
 		p.subscriptWord(index)
 	case *FlagsArithm:
 		p.w.WriteByte('(')
-		p.w.WriteString(index.Flags.Value)
+		p.writeLit(index.Flags.Value)
 		p.w.WriteByte(')')
 		if w, ok := index.X.(*Word); ok {
 			p.subscriptWord(w)
@@ -989,7 +997,7 @@ func (p *Printer) paramExp(pe *ParamExp) {
 	case len(pe.Modifiers) > 0:
 		for _, lit := range pe.Modifiers {
 			p.w.WriteByte(':')
-			p.w.WriteString(lit.Value)
+			p.writeLit(lit.Value)
 		}
 	case pe.Slice != nil:
 		saved := p.escapeArithmNewlines
@@ -1043,7 +1051,7 @@ func (p *Printer) cmdSubst(cs *CmdSubst) {
 	case cs.Backquotes && len(cs.Stmts) == 0 &&
 		len(cs.Last) == 1 && cs.Right.Line() == p.line:
 		p.w.WriteString("`#")
-		p.w.WriteString(cs.Last[0].Text)
+		p.writeLit(cs.Last[0].Text)
 		p.w.WriteString("`")
 	default:
 		p.w.WriteString("$(")
@@ -1194,7 +1202,7 @@ func (p *Printer) arithmExprRecurse(expr ArithmExpr, compact, spacePlusMinus boo
 		p.w.WriteByte(')')
 	case *FlagsArithm:
 		p.w.WriteByte('(')
-		p.w.WriteString(expr.Flags.Value)
+		p.writeLit(expr.Flags.Value)
 		p.w.WriteByte(')')
 		if expr.X != nil {
 			p.arithmExprRecurse(expr.X, compact, false)
