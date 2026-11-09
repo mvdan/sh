@@ -732,7 +732,23 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"select foo bar"},
-		langFile(litStmt("select", "foo", "bar"), LangPOSIX),
+		langFile(litStmt("select", "foo", "bar"), LangPOSIX), // wrong: select is a bash feature
+	),
+	fileTest(
+		[]string{"select i in a; do b; done"},
+		langErr2("1:16: `do` can only be used in a loop", LangPOSIX), // wrong: select is a bash feature
+	),
+	fileTest(
+		[]string{"echo select"},
+		langFile(litCall("echo", "select")),
+	),
+	fileTest(
+		[]string{"select() { a; }"},
+		langFile(&FuncDecl{
+			Parens: true,
+			Name:   lit("select"),
+			Body:   stmt(block(litStmt("a"))),
+		}, LangPOSIX),
 	),
 	fileTest(
 		[]string{`' ' "foo bar"`},
@@ -969,6 +985,21 @@ var fileTests = []fileTestCase{
 			Name:     lit("foo"),
 			Body:     stmt(block(litStmt("a"), litStmt("b"))),
 		}, LangBash|LangMirBSDKorn|LangZsh),
+	),
+	fileTest(
+		[]string{"function foo\n{\n\ta\n}"},
+		langFile([]*Stmt{ // wrong: function is a bash feature
+			litStmt("function", "foo"),
+			stmt(block(litStmt("a"))),
+		}, LangPOSIX),
+	),
+	fileTest(
+		[]string{"function() { a; }"},
+		langFile(&FuncDecl{
+			Parens: true,
+			Name:   lit("function"),
+			Body:   stmt(block(litStmt("a"))),
+		}, LangPOSIX),
 	),
 	fileTest(
 		[]string{"function foo() (a)"},
@@ -4740,7 +4771,45 @@ var fileTests = []fileTestCase{
 	fileTest(
 		[]string{"[[ a ]]"},
 		langFile(&TestClause{X: litWord("a")}, LangBash|LangMirBSDKorn|LangZsh),
-		langFile(litStmt("[[", "a", "]]"), LangPOSIX),
+		langFile(litStmt("[[", "a", "]]"), LangPOSIX), // wrong: [[ is a bash feature
+	),
+	fileTest(
+		[]string{"foo | [[ a ]]"},
+		langFile(&BinaryCmd{
+			Op: Pipe,
+			X:  litStmt("foo"),
+			Y:  stmt(&TestClause{X: litWord("a")}),
+		}, LangBash|LangMirBSDKorn|LangZsh),
+		langFile(&BinaryCmd{ // wrong: [[ is a bash feature
+			Op: Pipe,
+			X:  litStmt("foo"),
+			Y:  litStmt("[[", "a", "]]"),
+		}, LangPOSIX),
+	),
+	fileTest(
+		[]string{"echo [[ a ]]"},
+		langFile(litCall("echo", "[[", "a", "]]")),
+	),
+	fileTest(
+		[]string{"]] a"},
+		langFile(litStmt("]]", "a"), LangPOSIX), // wrong: ]] is a bash feature
+	),
+	// Words after a prefix are never reserved.
+	fileTest(
+		[]string{"x=1 [[ a ]]"},
+		langFile(&CallExpr{
+			Assigns: litAssigns("x=1"),
+			Args:    litWords("[[", "a", "]]"),
+		}, LangPOSIX|LangBash|LangMirBSDKorn),
+	),
+	fileTest(
+		[]string{">f [[ a ]]\n>f ]] a\n>f select x\n>f function foo"},
+		langFile([]*Stmt{
+			{Cmd: litCall("[[", "a", "]]"), Redirs: []*Redirect{{Op: RdrOut, Word: litWord("f")}}},
+			{Cmd: litCall("]]", "a"), Redirs: []*Redirect{{Op: RdrOut, Word: litWord("f")}}},
+			{Cmd: litCall("select", "x"), Redirs: []*Redirect{{Op: RdrOut, Word: litWord("f")}}},
+			{Cmd: litCall("function", "foo"), Redirs: []*Redirect{{Op: RdrOut, Word: litWord("f")}}},
+		}, LangPOSIX),
 	),
 	fileTest(
 		[]string{"[[ a ]]\nb"},

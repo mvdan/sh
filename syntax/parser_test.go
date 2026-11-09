@@ -1726,6 +1726,7 @@ var errorCases = []errorCase{
 	errCase(
 		"[[ (a) == b ]]",
 		langErr("1:8: expected `&&`, `||` or `]]` after complex expr", LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `foo(` must be followed by `)`", LangPOSIX), // wrong: [[ is a bash feature
 	),
 	errCase(
 		"[[ a =~ ; ]]",
@@ -1843,6 +1844,10 @@ var errorCases = []errorCase{
 	errCase(
 		"function foo()",
 		langErr("1:1: `foo()` must be followed by a statement", LangBash|LangMirBSDKorn|LangZsh),
+	),
+	errCase(
+		">f function foo { a; }",
+		langErr(`1:17: the "function" builtin is a bash feature; tried parsing as LANG`, LangPOSIX),
 	),
 	errCase(
 		"@test",
