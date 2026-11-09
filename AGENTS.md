@@ -22,7 +22,7 @@ GOARCH=386 go test ./...               # 32-bit
 GOOS=js GOARCH=wasm go test ./...      # needs $(go env GOROOT)/lib/wasm in PATH; no subprocesses
 gofmt -s -l . && go vet ./...          # enforced by CI
 go test -fuzz=FuzzParsePrint ./syntax  # after parser or printer changes
-go generate ./...                      # after modifying types with stringer directives
+go generate ./...                      # after modifying types with stringer directives, or syntax/typedjson/schema.cue
 cd x && go test ./...                  # separate module; tests the released v3, not the working tree
 ```
 
@@ -30,7 +30,7 @@ cd x && go test ./...                  # separate module; tests the released v3,
 
 The codebase follows a pipeline: **parse → expand → interpret/format**.
 
-- **`syntax/`** — Core package. Lexer (`lexer.go`), parser (`parser.go`), AST nodes (`nodes.go`), printer (`printer.go`), and walker (`walk.go`). All dialects are handled via `LangVariant`. `syntax/typedjson` encodes the AST as JSON.
+- **`syntax/`** — Core package. Lexer (`lexer.go`), parser (`parser.go`), AST nodes (`nodes.go`), printer (`printer.go`), and walker (`walk.go`). All dialects are handled via `LangVariant`. `syntax/typedjson` encodes the AST as JSON, described by `schema.cue`, which must follow any node changes; `TestSchema` checks the generated `schema.json`. Tools like `cue` are tracked in the `internal/tools` module.
 - **`expand/`** — Parameter, brace, tilde, and arithmetic expansion, plus globbing via `Config.ReadDir2`.
 - **`interp/`** — Runner that executes a `*syntax.File`. Builtins in `builtin.go`. Handlers (Exec, Call, Open, ReadDir2, Stat, Access, ProcSubst) let callers customize I/O and process execution.
 - **`pattern/`** — Shell pattern matching, including extended globs.

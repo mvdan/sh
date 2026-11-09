@@ -14,7 +14,12 @@
 // described above must be first in each JSON object.
 //
 // shfmt exposes this format via its --to-json and --from-json flags.
+//
+// The format is described by the JSON Schema in schema.json,
+// which is generated from schema.cue in this package's directory.
 package typedjson
+
+//go:generate go tool -modfile=../../internal/tools/go.mod cue export --out jsonschema -f -o schema.json schema.cue
 
 import (
 	"encoding"

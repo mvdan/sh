@@ -161,7 +161,7 @@ Parser and printer API:
   with real node fields, such as `_type`, `_pos`, and `_end`. This changes the
   JSON produced by `shfmt --to-json`, so it must land with the CLI changes.
 - Consider encoding recovered positions, as they still carry information.
-- A JSON schema (#967) should wait for these changes.
+- Update the JSON schema in `schema.cue` (#967) along with these changes.
 
 ### expand
 

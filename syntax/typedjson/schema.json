@@ -1,0 +1,2070 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$defs": {
+        "ArithmCmd": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Left": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Right": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "ArithmCmd"
+                },
+                "Unsigned": {
+                    "type": "boolean"
+                },
+                "X": {
+                    "$ref": "#/$defs/ArithmExpr"
+                }
+            }
+        },
+        "ArithmExp": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Bracket": {
+                    "type": "boolean"
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Left": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Right": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "ArithmExp"
+                },
+                "Unsigned": {
+                    "type": "boolean"
+                },
+                "X": {
+                    "$ref": "#/$defs/ArithmExpr"
+                }
+            }
+        },
+        "ArithmExpr": {
+            "type": "object",
+            "properties": {
+                "Type": true
+            },
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/BinaryArithm"
+                },
+                {
+                    "$ref": "#/$defs/UnaryArithm"
+                },
+                {
+                    "$ref": "#/$defs/ParenArithm"
+                },
+                {
+                    "$ref": "#/$defs/FlagsArithm"
+                },
+                {
+                    "$ref": "#/$defs/CallArithm"
+                },
+                {
+                    "$ref": "#/$defs/Word"
+                }
+            ],
+            "required": [
+                "Type"
+            ]
+        },
+        "ArrayElem": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Comments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Comment"
+                    }
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Index": {
+                    "$ref": "#/$defs/ArithmExpr"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "ArrayElem"
+                },
+                "Value": {
+                    "$ref": "#/$defs/Word"
+                }
+            }
+        },
+        "ArrayExpr": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Elems": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/ArrayElem"
+                    }
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Last": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Comment"
+                    }
+                },
+                "Lparen": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Rparen": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "ArrayExpr"
+                }
+            }
+        },
+        "Assign": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Append": {
+                    "type": "boolean"
+                },
+                "Array": {
+                    "$ref": "#/$defs/ArrayExpr"
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Index": {
+                    "$ref": "#/$defs/ArithmExpr"
+                },
+                "Naked": {
+                    "type": "boolean"
+                },
+                "Name": {
+                    "$ref": "#/$defs/Lit"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "Assign"
+                },
+                "Value": {
+                    "$ref": "#/$defs/Word"
+                }
+            }
+        },
+        "BinAritOperator": {
+            "enum": [
+                "+",
+                "-",
+                "*",
+                "/",
+                "%",
+                "**",
+                "==",
+                ">",
+                "<",
+                "!=",
+                "<=",
+                ">=",
+                "&",
+                "|",
+                "^",
+                ">>",
+                "<<",
+                "&&",
+                "||",
+                "^^",
+                ",",
+                "?",
+                ":",
+                "=",
+                "+=",
+                "-=",
+                "*=",
+                "/=",
+                "%=",
+                "&=",
+                "|=",
+                "^=",
+                "<<=",
+                ">>=",
+                "&&=",
+                "||=",
+                "^^=",
+                "**="
+            ]
+        },
+        "BinCmdOperator": {
+            "enum": [
+                "&&",
+                "||",
+                "|",
+                "|&"
+            ]
+        },
+        "BinTestOperator": {
+            "enum": [
+                "=~",
+                "-nt",
+                "-ot",
+                "-ef",
+                "-eq",
+                "-ne",
+                "-le",
+                "-ge",
+                "-lt",
+                "-gt",
+                "&&",
+                "||",
+                "=",
+                "==",
+                "!=",
+                "<",
+                ">"
+            ]
+        },
+        "BinaryArithm": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Op": {
+                    "$ref": "#/$defs/BinAritOperator"
+                },
+                "OpPos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "BinaryArithm"
+                },
+                "X": {
+                    "$ref": "#/$defs/ArithmExpr"
+                },
+                "Y": {
+                    "$ref": "#/$defs/ArithmExpr"
+                }
+            }
+        },
+        "BinaryCmd": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Op": {
+                    "$ref": "#/$defs/BinCmdOperator"
+                },
+                "OpPos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "BinaryCmd"
+                },
+                "X": {
+                    "$ref": "#/$defs/Stmt"
+                },
+                "Y": {
+                    "$ref": "#/$defs/Stmt"
+                }
+            }
+        },
+        "BinaryTest": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Op": {
+                    "$ref": "#/$defs/BinTestOperator"
+                },
+                "OpPos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "BinaryTest"
+                },
+                "X": {
+                    "$ref": "#/$defs/TestExpr"
+                },
+                "Y": {
+                    "$ref": "#/$defs/TestExpr"
+                }
+            }
+        },
+        "Block": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Last": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Comment"
+                    }
+                },
+                "Lbrace": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Rbrace": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Stmts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Stmt"
+                    }
+                },
+                "Type": {
+                    "const": "Block"
+                }
+            }
+        },
+        "BraceExp": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Elems": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Word"
+                    }
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Lbrace": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Rbrace": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Sequence": {
+                    "type": "boolean"
+                },
+                "Type": {
+                    "const": "BraceExp"
+                }
+            }
+        },
+        "CStyleLoop": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Cond": {
+                    "$ref": "#/$defs/ArithmExpr"
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Init": {
+                    "$ref": "#/$defs/ArithmExpr"
+                },
+                "Lparen": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Post": {
+                    "$ref": "#/$defs/ArithmExpr"
+                },
+                "Rparen": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "CStyleLoop"
+                }
+            }
+        },
+        "CallArithm": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Args": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/ArithmExpr"
+                    }
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Lparen": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Name": {
+                    "$ref": "#/$defs/Lit"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Rparen": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "CallArithm"
+                }
+            }
+        },
+        "CallExpr": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Args": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Word"
+                    }
+                },
+                "Assigns": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Assign"
+                    }
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "CallExpr"
+                }
+            }
+        },
+        "CaseClause": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Braces": {
+                    "type": "boolean"
+                },
+                "Case": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Esac": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "In": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/CaseItem"
+                    }
+                },
+                "Last": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Comment"
+                    }
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "CaseClause"
+                },
+                "Word": {
+                    "$ref": "#/$defs/Word"
+                }
+            }
+        },
+        "CaseItem": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Comments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Comment"
+                    }
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Last": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Comment"
+                    }
+                },
+                "Op": {
+                    "$ref": "#/$defs/CaseOperator"
+                },
+                "OpPos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Patterns": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Word"
+                    }
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Stmts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Stmt"
+                    }
+                },
+                "Type": {
+                    "const": "CaseItem"
+                }
+            }
+        },
+        "CaseOperator": {
+            "enum": [
+                ";;",
+                ";&",
+                ";;&",
+                ";|"
+            ]
+        },
+        "CmdSubst": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Backquotes": {
+                    "type": "boolean"
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Last": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Comment"
+                    }
+                },
+                "Left": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "ReplyVar": {
+                    "type": "boolean"
+                },
+                "Right": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Stmts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Stmt"
+                    }
+                },
+                "TempFile": {
+                    "type": "boolean"
+                },
+                "Type": {
+                    "const": "CmdSubst"
+                }
+            }
+        },
+        "Command": {
+            "type": "object",
+            "properties": {
+                "Type": true
+            },
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/CallExpr"
+                },
+                {
+                    "$ref": "#/$defs/IfClause"
+                },
+                {
+                    "$ref": "#/$defs/WhileClause"
+                },
+                {
+                    "$ref": "#/$defs/ForClause"
+                },
+                {
+                    "$ref": "#/$defs/RepeatClause"
+                },
+                {
+                    "$ref": "#/$defs/CaseClause"
+                },
+                {
+                    "$ref": "#/$defs/Block"
+                },
+                {
+                    "$ref": "#/$defs/TryClause"
+                },
+                {
+                    "$ref": "#/$defs/Subshell"
+                },
+                {
+                    "$ref": "#/$defs/BinaryCmd"
+                },
+                {
+                    "$ref": "#/$defs/FuncDecl"
+                },
+                {
+                    "$ref": "#/$defs/ArithmCmd"
+                },
+                {
+                    "$ref": "#/$defs/TestClause"
+                },
+                {
+                    "$ref": "#/$defs/DeclClause"
+                },
+                {
+                    "$ref": "#/$defs/LetClause"
+                },
+                {
+                    "$ref": "#/$defs/TimeClause"
+                },
+                {
+                    "$ref": "#/$defs/CoprocClause"
+                },
+                {
+                    "$ref": "#/$defs/TestDecl"
+                }
+            ],
+            "required": [
+                "Type"
+            ]
+        },
+        "Comment": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Hash": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Text": {
+                    "type": "string"
+                },
+                "Type": {
+                    "const": "Comment"
+                }
+            }
+        },
+        "CoprocClause": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Coproc": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Name": {
+                    "$ref": "#/$defs/Word"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Stmt": {
+                    "$ref": "#/$defs/Stmt"
+                },
+                "Type": {
+                    "const": "CoprocClause"
+                }
+            }
+        },
+        "DblQuoted": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Dollar": {
+                    "type": "boolean"
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Left": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Parts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/WordPart"
+                    }
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Right": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "DblQuoted"
+                }
+            }
+        },
+        "DeclClause": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Args": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Assign"
+                    }
+                },
+                "Assigns": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Assign"
+                    }
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "DeclClause"
+                },
+                "Variant": {
+                    "$ref": "#/$defs/Lit"
+                }
+            }
+        },
+        "Expansion": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Op": {
+                    "$ref": "#/$defs/ParExpOperator"
+                },
+                "Word": {
+                    "$ref": "#/$defs/Word"
+                }
+            }
+        },
+        "ExtGlob": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Op": {
+                    "$ref": "#/$defs/GlobOperator"
+                },
+                "OpPos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pattern": {
+                    "$ref": "#/$defs/Lit"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "ExtGlob"
+                }
+            }
+        },
+        "File": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Last": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Comment"
+                    }
+                },
+                "Name": {
+                    "type": "string"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Stmts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Stmt"
+                    }
+                },
+                "Type": {
+                    "const": "File"
+                }
+            }
+        },
+        "FlagsArithm": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Flags": {
+                    "$ref": "#/$defs/Lit"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "FlagsArithm"
+                },
+                "X": {
+                    "$ref": "#/$defs/ArithmExpr"
+                }
+            }
+        },
+        "ForClause": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Braces": {
+                    "type": "boolean"
+                },
+                "Do": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Stmt"
+                    }
+                },
+                "DoLast": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Comment"
+                    }
+                },
+                "DoPos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "DonePos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "ForPos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Loop": {
+                    "$ref": "#/$defs/Loop"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Select": {
+                    "type": "boolean"
+                },
+                "Type": {
+                    "const": "ForClause"
+                }
+            }
+        },
+        "FuncDecl": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Args": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Word"
+                    }
+                },
+                "Body": {
+                    "$ref": "#/$defs/Stmt"
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Name": {
+                    "$ref": "#/$defs/Lit"
+                },
+                "Names": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Lit"
+                    }
+                },
+                "Parens": {
+                    "type": "boolean"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Position": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "RsrvWord": {
+                    "type": "boolean"
+                },
+                "Type": {
+                    "const": "FuncDecl"
+                }
+            }
+        },
+        "GlobOperator": {
+            "enum": [
+                "?(",
+                "*(",
+                "+(",
+                "@(",
+                "!("
+            ]
+        },
+        "IfClause": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Cond": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Stmt"
+                    }
+                },
+                "CondLast": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Comment"
+                    }
+                },
+                "Else": {
+                    "$ref": "#/$defs/IfClause"
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "FiPos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Last": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Comment"
+                    }
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Position": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Then": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Stmt"
+                    }
+                },
+                "ThenLast": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Comment"
+                    }
+                },
+                "ThenPos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "IfClause"
+                }
+            }
+        },
+        "LetClause": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Exprs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/ArithmExpr"
+                    }
+                },
+                "Let": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "LetClause"
+                }
+            }
+        },
+        "Lit": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "Lit"
+                },
+                "Value": {
+                    "type": "string"
+                },
+                "ValueEnd": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "ValuePos": {
+                    "$ref": "#/$defs/Pos"
+                }
+            }
+        },
+        "Loop": {
+            "type": "object",
+            "properties": {
+                "Type": true
+            },
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/WordIter"
+                },
+                {
+                    "$ref": "#/$defs/CStyleLoop"
+                }
+            ],
+            "required": [
+                "Type"
+            ]
+        },
+        "Node": {
+            "type": "object",
+            "description": "Node is any syntax node, such as the root node.",
+            "properties": {
+                "Type": true
+            },
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/File"
+                },
+                {
+                    "$ref": "#/$defs/Comment"
+                },
+                {
+                    "$ref": "#/$defs/Stmt"
+                },
+                {
+                    "$ref": "#/$defs/Assign"
+                },
+                {
+                    "$ref": "#/$defs/Redirect"
+                },
+                {
+                    "$ref": "#/$defs/Word"
+                },
+                {
+                    "$ref": "#/$defs/Lit"
+                },
+                {
+                    "$ref": "#/$defs/SglQuoted"
+                },
+                {
+                    "$ref": "#/$defs/DblQuoted"
+                },
+                {
+                    "$ref": "#/$defs/ParamExp"
+                },
+                {
+                    "$ref": "#/$defs/CmdSubst"
+                },
+                {
+                    "$ref": "#/$defs/CallExpr"
+                },
+                {
+                    "$ref": "#/$defs/ArithmExp"
+                },
+                {
+                    "$ref": "#/$defs/ProcSubst"
+                },
+                {
+                    "$ref": "#/$defs/ExtGlob"
+                },
+                {
+                    "$ref": "#/$defs/BraceExp"
+                },
+                {
+                    "$ref": "#/$defs/ArithmCmd"
+                },
+                {
+                    "$ref": "#/$defs/BinaryCmd"
+                },
+                {
+                    "$ref": "#/$defs/IfClause"
+                },
+                {
+                    "$ref": "#/$defs/ForClause"
+                },
+                {
+                    "$ref": "#/$defs/RepeatClause"
+                },
+                {
+                    "$ref": "#/$defs/WhileClause"
+                },
+                {
+                    "$ref": "#/$defs/CaseClause"
+                },
+                {
+                    "$ref": "#/$defs/Block"
+                },
+                {
+                    "$ref": "#/$defs/TryClause"
+                },
+                {
+                    "$ref": "#/$defs/Subshell"
+                },
+                {
+                    "$ref": "#/$defs/FuncDecl"
+                },
+                {
+                    "$ref": "#/$defs/TestClause"
+                },
+                {
+                    "$ref": "#/$defs/DeclClause"
+                },
+                {
+                    "$ref": "#/$defs/LetClause"
+                },
+                {
+                    "$ref": "#/$defs/TimeClause"
+                },
+                {
+                    "$ref": "#/$defs/CoprocClause"
+                },
+                {
+                    "$ref": "#/$defs/TestDecl"
+                },
+                {
+                    "$ref": "#/$defs/UnaryArithm"
+                },
+                {
+                    "$ref": "#/$defs/BinaryArithm"
+                },
+                {
+                    "$ref": "#/$defs/ParenArithm"
+                },
+                {
+                    "$ref": "#/$defs/FlagsArithm"
+                },
+                {
+                    "$ref": "#/$defs/CallArithm"
+                },
+                {
+                    "$ref": "#/$defs/UnaryTest"
+                },
+                {
+                    "$ref": "#/$defs/BinaryTest"
+                },
+                {
+                    "$ref": "#/$defs/ParenTest"
+                },
+                {
+                    "$ref": "#/$defs/WordIter"
+                },
+                {
+                    "$ref": "#/$defs/CStyleLoop"
+                },
+                {
+                    "$ref": "#/$defs/CaseItem"
+                },
+                {
+                    "$ref": "#/$defs/ArrayExpr"
+                },
+                {
+                    "$ref": "#/$defs/ArrayElem"
+                }
+            ],
+            "required": [
+                "Type"
+            ]
+        },
+        "OptState": {
+            "description": "OptState is either unset, on, or off.",
+            "enum": [
+                0,
+                1,
+                2
+            ]
+        },
+        "ParExpOperator": {
+            "enum": [
+                "+",
+                ":+",
+                "-",
+                ":-",
+                "?",
+                ":?",
+                "=",
+                ":=",
+                "%",
+                "%%",
+                "#",
+                "##",
+                ":#",
+                ":|",
+                ":*",
+                "^",
+                "^^",
+                ",",
+                ",,",
+                "@"
+            ]
+        },
+        "ParNamesOperator": {
+            "enum": [
+                "*",
+                "@"
+            ]
+        },
+        "ParamExp": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Dollar": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Excl": {
+                    "type": "boolean"
+                },
+                "Exp": {
+                    "$ref": "#/$defs/Expansion"
+                },
+                "Flags": {
+                    "$ref": "#/$defs/Lit"
+                },
+                "GlobSubst": {
+                    "$ref": "#/$defs/OptState"
+                },
+                "Index": {
+                    "$ref": "#/$defs/ArithmExpr"
+                },
+                "IsSet": {
+                    "type": "boolean"
+                },
+                "Length": {
+                    "type": "boolean"
+                },
+                "Modifiers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Lit"
+                    }
+                },
+                "Names": {
+                    "$ref": "#/$defs/ParNamesOperator"
+                },
+                "NestedParam": {
+                    "$ref": "#/$defs/WordPart"
+                },
+                "Param": {
+                    "$ref": "#/$defs/Lit"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Rbrace": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "RcExpand": {
+                    "$ref": "#/$defs/OptState"
+                },
+                "Repl": {
+                    "$ref": "#/$defs/Replace"
+                },
+                "Short": {
+                    "type": "boolean"
+                },
+                "Slice": {
+                    "$ref": "#/$defs/Slice"
+                },
+                "Split": {
+                    "$ref": "#/$defs/OptState"
+                },
+                "Subscripts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/ArithmExpr"
+                    }
+                },
+                "Type": {
+                    "const": "ParamExp"
+                },
+                "Width": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "ParenArithm": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Lparen": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Rparen": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "ParenArithm"
+                },
+                "X": {
+                    "$ref": "#/$defs/ArithmExpr"
+                }
+            }
+        },
+        "ParenTest": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Lparen": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Rparen": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "ParenTest"
+                },
+                "X": {
+                    "$ref": "#/$defs/TestExpr"
+                }
+            }
+        },
+        "Pos": {
+            "type": "object",
+            "description": "Pos is a position in the source. Offset counts bytes from 0,\nwhile Line and Col count from 1, or are 0 when too large to track.",
+            "additionalProperties": false,
+            "properties": {
+                "Col": {
+                    "type": "integer",
+                    "maximum": 4294967295,
+                    "minimum": 0
+                },
+                "Line": {
+                    "type": "integer",
+                    "maximum": 4294967295,
+                    "minimum": 0
+                },
+                "Offset": {
+                    "type": "integer",
+                    "maximum": 4294967295,
+                    "minimum": 0
+                }
+            },
+            "required": [
+                "Col",
+                "Line",
+                "Offset"
+            ]
+        },
+        "ProcOperator": {
+            "enum": [
+                "<(",
+                "=(",
+                ">("
+            ]
+        },
+        "ProcSubst": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Last": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Comment"
+                    }
+                },
+                "Op": {
+                    "$ref": "#/$defs/ProcOperator"
+                },
+                "OpPos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Rparen": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Stmts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Stmt"
+                    }
+                },
+                "Type": {
+                    "const": "ProcSubst"
+                }
+            }
+        },
+        "RedirOperator": {
+            "enum": [
+                ">",
+                ">>",
+                "<",
+                "<>",
+                "<&",
+                ">&",
+                ">|",
+                ">>|",
+                "<<",
+                "<<-",
+                "<<<",
+                "&>",
+                "&>|",
+                "&>>",
+                "&>>|"
+            ]
+        },
+        "Redirect": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "ClosePos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Hdoc": {
+                    "$ref": "#/$defs/Word"
+                },
+                "N": {
+                    "$ref": "#/$defs/Lit"
+                },
+                "Op": {
+                    "$ref": "#/$defs/RedirOperator"
+                },
+                "OpPos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "Redirect"
+                },
+                "Word": {
+                    "$ref": "#/$defs/Word"
+                }
+            }
+        },
+        "RepeatClause": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Braces": {
+                    "type": "boolean"
+                },
+                "Count": {
+                    "$ref": "#/$defs/Word"
+                },
+                "Do": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Stmt"
+                    }
+                },
+                "DoLast": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Comment"
+                    }
+                },
+                "DoPos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "DonePos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "RepeatPos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "RepeatClause"
+                }
+            }
+        },
+        "Replace": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "All": {
+                    "type": "boolean"
+                },
+                "Orig": {
+                    "$ref": "#/$defs/Word"
+                },
+                "With": {
+                    "$ref": "#/$defs/Word"
+                }
+            }
+        },
+        "SglQuoted": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Dollar": {
+                    "type": "boolean"
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Left": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Right": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "SglQuoted"
+                },
+                "Value": {
+                    "type": "string"
+                }
+            }
+        },
+        "Slice": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Length": {
+                    "$ref": "#/$defs/ArithmExpr"
+                },
+                "Offset": {
+                    "$ref": "#/$defs/ArithmExpr"
+                }
+            }
+        },
+        "Stmt": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Background": {
+                    "type": "boolean"
+                },
+                "Cmd": {
+                    "$ref": "#/$defs/Command"
+                },
+                "Comments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Comment"
+                    }
+                },
+                "Coprocess": {
+                    "type": "boolean"
+                },
+                "Disown": {
+                    "type": "boolean"
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Negated": {
+                    "type": "boolean"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Position": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Redirs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Redirect"
+                    }
+                },
+                "Semicolon": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "Stmt"
+                }
+            }
+        },
+        "Subshell": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Last": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Comment"
+                    }
+                },
+                "Lparen": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Rparen": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Stmts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Stmt"
+                    }
+                },
+                "Type": {
+                    "const": "Subshell"
+                }
+            }
+        },
+        "TestClause": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Left": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Right": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "TestClause"
+                },
+                "X": {
+                    "$ref": "#/$defs/TestExpr"
+                }
+            }
+        },
+        "TestDecl": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Body": {
+                    "$ref": "#/$defs/Stmt"
+                },
+                "Description": {
+                    "$ref": "#/$defs/Word"
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Position": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "TestDecl"
+                }
+            }
+        },
+        "TestExpr": {
+            "type": "object",
+            "properties": {
+                "Type": true
+            },
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/BinaryTest"
+                },
+                {
+                    "$ref": "#/$defs/UnaryTest"
+                },
+                {
+                    "$ref": "#/$defs/ParenTest"
+                },
+                {
+                    "$ref": "#/$defs/Word"
+                }
+            ],
+            "required": [
+                "Type"
+            ]
+        },
+        "TimeClause": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "PosixFormat": {
+                    "type": "boolean"
+                },
+                "Stmt": {
+                    "$ref": "#/$defs/Stmt"
+                },
+                "Time": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "TimeClause"
+                }
+            }
+        },
+        "TryClause": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Always": {
+                    "$ref": "#/$defs/Block"
+                },
+                "AlwaysPos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Try": {
+                    "$ref": "#/$defs/Block"
+                },
+                "Type": {
+                    "const": "TryClause"
+                }
+            }
+        },
+        "UnAritOperator": {
+            "enum": [
+                "!",
+                "~",
+                "++",
+                "--",
+                "+",
+                "-"
+            ]
+        },
+        "UnTestOperator": {
+            "enum": [
+                "-e",
+                "-f",
+                "-d",
+                "-c",
+                "-b",
+                "-p",
+                "-S",
+                "-L",
+                "-k",
+                "-g",
+                "-u",
+                "-G",
+                "-O",
+                "-N",
+                "-r",
+                "-w",
+                "-x",
+                "-s",
+                "-t",
+                "-z",
+                "-n",
+                "-o",
+                "-v",
+                "-R",
+                "!",
+                "("
+            ]
+        },
+        "UnaryArithm": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Op": {
+                    "$ref": "#/$defs/UnAritOperator"
+                },
+                "OpPos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Post": {
+                    "type": "boolean"
+                },
+                "Type": {
+                    "const": "UnaryArithm"
+                },
+                "X": {
+                    "$ref": "#/$defs/ArithmExpr"
+                }
+            }
+        },
+        "UnaryTest": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Op": {
+                    "$ref": "#/$defs/UnTestOperator"
+                },
+                "OpPos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "UnaryTest"
+                },
+                "X": {
+                    "$ref": "#/$defs/TestExpr"
+                }
+            }
+        },
+        "WhileClause": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "Cond": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Stmt"
+                    }
+                },
+                "CondLast": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Comment"
+                    }
+                },
+                "Do": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Stmt"
+                    }
+                },
+                "DoLast": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Comment"
+                    }
+                },
+                "DoPos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "DonePos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "WhileClause"
+                },
+                "Until": {
+                    "type": "boolean"
+                },
+                "WhilePos": {
+                    "$ref": "#/$defs/Pos"
+                }
+            }
+        },
+        "Word": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Parts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/WordPart"
+                    }
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "Word"
+                }
+            }
+        },
+        "WordIter": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "End": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "InPos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Word"
+                    }
+                },
+                "Name": {
+                    "$ref": "#/$defs/Lit"
+                },
+                "Names": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/Lit"
+                    }
+                },
+                "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Type": {
+                    "const": "WordIter"
+                }
+            }
+        },
+        "WordPart": {
+            "type": "object",
+            "properties": {
+                "Type": true
+            },
+            "anyOf": [
+                {
+                    "$ref": "#/$defs/Lit"
+                },
+                {
+                    "$ref": "#/$defs/SglQuoted"
+                },
+                {
+                    "$ref": "#/$defs/DblQuoted"
+                },
+                {
+                    "$ref": "#/$defs/ParamExp"
+                },
+                {
+                    "$ref": "#/$defs/CmdSubst"
+                },
+                {
+                    "$ref": "#/$defs/ArithmExp"
+                },
+                {
+                    "$ref": "#/$defs/ProcSubst"
+                },
+                {
+                    "$ref": "#/$defs/ExtGlob"
+                },
+                {
+                    "$ref": "#/$defs/BraceExp"
+                }
+            ],
+            "required": [
+                "Type"
+            ]
+        }
+    },
+    "type": "object",
+    "description": "The typed JSON format as described by the package documentation.\nEach definition matches the syntax type of the same name,\ndocumented at https://pkg.go.dev/mvdan.cc/sh/v3/syntax.\n\nFields holding zero values are omitted when encoding.\nThe Type field is required where a node's type cannot be inferred,\nand the derived Pos and End fields are ignored when decoding.",
+    "$ref": "#/$defs/Node"
+}

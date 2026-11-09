@@ -136,7 +136,9 @@ predictable. Some aspects of the format can be configured via printer flags.
 	paths are separated by a newline or a null character if -f=0.
 
 *--to-json*
-	Print syntax tree to stdout as a typed JSON.
+	Print syntax tree to stdout as a typed JSON, described by the JSON Schema
+	in syntax/typedjson/schema.json from the source of the same shfmt version,
+	available at <https://github.com/mvdan/sh>.
 
 *--from-json*
 	Read syntax tree from stdin as a typed JSON.
