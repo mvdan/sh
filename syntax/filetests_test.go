@@ -301,6 +301,11 @@ var fileTests = []fileTestCase{
 		}),
 	),
 	fileTest(
+		[]string{"else"},
+		langFile(litStmt("else")),          // wrong: else is a reserved word
+		flipConfirm2(langResolvedVariants), // wrong: shells reject it
+	),
+	fileTest(
 		[]string{
 			"if a; then a; elif b; then b; else c; fi",
 		},
