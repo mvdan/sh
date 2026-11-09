@@ -168,6 +168,7 @@ func TestDecodeErrors(t *testing.T) {
 		{"ArrayIntoStruct", `{"Type":"File","Stmts":[[]]}`, "cannot decode JSON array into *syntax.Stmt"},
 		{"MismatchedType", `{"Type":"File","Stmts":[{"Cmd":{"Type":"Word"}}]}`, "cannot decode Word into syntax.Command"},
 		{"NoTypeForInterface", `{"Type":"File","Stmts":[{"Cmd":{}}]}`, `missing "Type" to decode a JSON object into syntax.Command`},
+		{"MismatchedValueType", `{"Type":"File","Last":[{"Type":"Lit"}]}`, "cannot decode Lit into syntax.Comment"},
 
 		{"StringIntoPos", `{"Type":"Lit","ValuePos":"x"}`, `cannot decode JSON string into a position`},
 		{"ArrayIntoPos", `{"Type":"Lit","ValuePos":[]}`, `cannot decode JSON array into a position`},
@@ -193,6 +194,19 @@ func TestDecodeErrors(t *testing.T) {
 			qt.Assert(t, qt.StringContains(err.Error(), test.want))
 		})
 	}
+}
+
+// TestDecodeTypedValue checks that a node held by value, like a comment,
+// can carry an explicit Type like any other node, even though the encoder
+// omits it where the type is known from the parent field.
+func TestDecodeTypedValue(t *testing.T) {
+	t.Parallel()
+
+	input := `{"Type":"File","Last":[{"Type":"Comment","Text":"x"}]}`
+	node, err := typedjson.Decode(strings.NewReader(input))
+	// The decoder only accepts an explicit Type into a pointer or interface.
+	qt.Assert(t, qt.ErrorMatches(err, "cannot decode Comment into syntax.Comment"))
+	qt.Assert(t, qt.IsNil(node))
 }
 
 // FuzzDecode checks that no input can cause the decoder to panic.
