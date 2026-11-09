@@ -2583,6 +2583,224 @@ var fileTests = []fileTestCase{
 		[]string{"{ }", "{}"}, // Note that "{}" is a command in POSIX/Bash.
 		langFile(block(), LangZsh),
 	),
+	// Zsh splits a leading `{` off a word in command position,
+	// and an unmatched trailing `}` off any unquoted word.
+	fileTest(
+		[]string{"{foo; bar baz}"},
+		langFile([]*Stmt{litStmt("{foo"), litStmt("bar", "baz}")}),
+		// zsh wrongly parses no block; see #1295.
+		printsAs("{foo\nbar baz}"),
+	),
+	fileTest(
+		[]string{"{foo bar;}"},
+		langErr2("1:10: `}` can only be used to close a block"),
+		flipConfirm2(LangZsh), // zsh wrongly errors; see #1295.
+		printsAs("{ foo bar; }"),
+	),
+	fileTest(
+		[]string{"{foo bar }"},
+		langFile(litStmt("{foo", "bar", "}")),
+		langErr2("1:10: `}` can only be used to close a block", LangZsh),
+		flipConfirm2(LangZsh), // zsh wrongly errors; see #1295.
+	),
+	fileTest(
+		[]string{"{ foo bar}"},
+		langErr2("1:1: reached EOF without matching `{` with `}`"),
+		flipConfirm2(LangZsh), // zsh wrongly errors; see #1295.
+		printsAs("{ foo bar; }"),
+	),
+	fileTest(
+		[]string{"{ foo $bar \"baz\"}"},
+		langErr2("1:1: reached EOF without matching `{` with `}`"),
+		flipConfirm2(LangZsh), // zsh wrongly errors; see #1295.
+		printsAs("{ foo $bar \"baz\"; }"),
+	),
+	fileTest(
+		[]string{"{ foo {a,b} {$c,d} x{$(e),f}}"},
+		langErr2("1:1: reached EOF without matching `{` with `}`"),
+		flipConfirm2(LangZsh), // zsh wrongly errors; see #1295.
+		printsAs("{ foo {a,b} {$c,d} x{$(e),f}; }"),
+	),
+	fileTest(
+		[]string{"{foo,bar}"},
+		langFile(litWord("{foo,bar}")),
+		// zsh wrongly parses no block; see #1295.
+	),
+	fileTest(
+		// In zsh, this is a block followed by a word, not a brace expansion.
+		[]string{"{true,x} y"},
+		langFile(litStmt("{true,x}", "y")),
+		flipConfirm2(LangZsh), // zsh wrongly parses no block; see #1295.
+	),
+	fileTest(
+		[]string{"echo a}"},
+		langFile(litStmt("echo", "a}")),
+		flipConfirm2(LangZsh), // zsh wrongly parses no closing brace; see #1295.
+	),
+	fileTest(
+		[]string{"echo {a} a}b }a"},
+		langFile(litStmt("echo", "{a}", "a}b", "}a")),
+	),
+	fileTest(
+		[]string{"{foo bar}}"},
+		langFile(litStmt("{foo", "bar}}")),
+		// zsh wrongly parses no block; see #1295.
+	),
+	fileTest(
+		// zsh only splits one `}` off the word, closing the inner block.
+		[]string{"{{true}}"},
+		langFile(litWord("{{true}}")),
+		flipConfirm2(LangZsh), // zsh wrongly parses no block; see #1295.
+	),
+	fileTest(
+		[]string{"{{true}} }"},
+		langErr2("1:10: `}` can only be used to close a block", LangZsh),
+		flipConfirm2(LangZsh), // valid zsh, but `true}` cannot be formatted
+	),
+	fileTest(
+		[]string{"{{true} }"},
+		langErr2("1:9: `}` can only be used to close a block", LangZsh),
+		flipConfirm2(LangZsh), // zsh wrongly errors; see #1295.
+	),
+	fileTest(
+		// A lone `}` is not kept in a word.
+		[]string{"{ { true; }}"},
+		langErr2("1:3: reached EOF without matching `{` with `}`", LangZsh),
+		flipConfirm2(LangZsh), // zsh wrongly errors; see #1295.
+	),
+	fileTest(
+		[]string{">f {true}"},
+		langFile(&Stmt{
+			Cmd:    litCall("{true}"),
+			Redirs: []*Redirect{{Op: RdrOut, Word: litWord("f")}},
+		}, LangZsh),
+		// zsh wrongly parses no block; see #1295.
+	),
+	fileTest(
+		// A numeric range glob continues the word.
+		[]string{"echo a}<1-5>"},
+		langFile(litStmt("echo", "a}<1-5>"), LangZsh),
+	),
+	fileTest(
+		// Braces are counted separately within a command substitution.
+		[]string{"{ a{$(b})}"},
+		langErr2("1:1: reached EOF without matching `{` with `}`", LangZsh),
+	),
+	fileTest(
+		[]string{"`{foo bar}`"},
+		langFile(cmdSubst(litStmt("{foo", "bar}"))),
+		// zsh wrongly parses no block; see #1295.
+		printsAs("$({foo bar})"),
+	),
+	fileTest(
+		[]string{"{ foo {a>f}"},
+		langErr2("1:1: reached EOF without matching `{` with `}`"),
+		flipConfirm2(LangZsh), // zsh wrongly errors; see #1295.
+		printsAs("{ foo {a >f; }"),
+	),
+	fileTest(
+		[]string{"{ local a b=c }"},
+		langErr2("1:1: reached EOF without matching `{` with `}`"),
+		flipConfirm2(LangZsh), // zsh wrongly errors; see #1295.
+		printsAs("{ local a b=c; }"),
+	),
+	fileTest(
+		[]string{"{ local a}"},
+		langErr2("1:1: reached EOF without matching `{` with `}`"),
+		flipConfirm2(LangZsh), // zsh wrongly errors; see #1295.
+		printsAs("{ local a; }"),
+	),
+	// Zsh does not split a `}` off an assignment.
+	fileTest(
+		[]string{"x=a}"},
+		langFile(&CallExpr{Assigns: litAssigns("x=a}")}),
+	),
+	fileTest(
+		[]string{"{ x=a} }"},
+		langFile(block(stmt(&CallExpr{Assigns: litAssigns("x=a}")})), LangZsh),
+		printsAs("{ x=a}; }"),
+	),
+	fileTest(
+		[]string{"{ local a=b}"},
+		langErr2("1:1: reached EOF without matching `{` with `}`"),
+	),
+	fileTest(
+		[]string{"for i in a}; do true; done"},
+		langFile(&ForClause{
+			Loop: &WordIter{Name: lit("i"), Items: litWords("a}")},
+			Do:   litStmts("true"),
+		}),
+		flipConfirm2(LangZsh), // zsh wrongly parses no closing brace; see #1295.
+	),
+	fileTest(
+		[]string{"case i in a}) true ;; esac"},
+		langFile(&CaseClause{
+			Word: litWord("i"),
+			Items: []*CaseItem{{
+				Op:       Break,
+				Patterns: litWords("a}"),
+				Stmts:    litStmts("true"),
+			}},
+		}),
+		flipConfirm2(LangZsh), // zsh wrongly parses no closing brace; see #1295.
+	),
+	fileTest(
+		[]string{"case i in a) {foo};; esac"},
+		langFile(&CaseClause{
+			Word: litWord("i"),
+			Items: []*CaseItem{{
+				Op:       Break,
+				Patterns: litWords("a"),
+				Stmts:    litStmts("{foo}"),
+			}},
+		}),
+		// zsh wrongly parses no block; see #1295.
+		printsAs("case i in a) {foo} ;; esac"),
+	),
+	fileTest(
+		// Only assignments keep a trailing `}`, not arguments.
+		[]string{"{ foo a=b}"},
+		langErr2("1:1: reached EOF without matching `{` with `}`"),
+		flipConfirm2(LangZsh), // zsh wrongly errors; see #1295.
+		printsAs("{ foo a=b; }"),
+	),
+	fileTest(
+		[]string{"{ x[1]=a} }"},
+		langFile(block(stmt(&CallExpr{Assigns: []*Assign{{
+			Name:  lit("x"),
+			Index: litWord("1"),
+			Value: litWord("a}"),
+		}}})), LangZsh),
+		printsAs("{ x[1]=a}; }"),
+	),
+	fileTest(
+		[]string{"{ x[1]=a}"},
+		langErr2("1:1: reached EOF without matching `{` with `}`", LangZsh),
+	),
+	fileTest(
+		[]string{"{ local a=b} }"},
+		langErr2("1:1: reached EOF without matching `{` with `}`", LangZsh),
+		flipConfirm2(LangZsh), // zsh wrongly errors; see #1295.
+		printsAs("{ local a=b}; }"),
+	),
+	fileTest(
+		[]string{"{ let x=1}"},
+		langErr2("1:1: reached EOF without matching `{` with `}`", LangZsh),
+		flipConfirm2(LangZsh), // zsh wrongly errors; see #1295.
+		printsAs("{ let x=1; }"),
+	),
+	fileTest(
+		[]string{"{ [[ a ]]}"},
+		langErr2("1:8: not a valid test operator: `]]}`", LangZsh),
+		flipConfirm2(LangZsh), // zsh wrongly errors; see #1295.
+		printsAs("{ [[ a ]]; }"),
+	),
+	fileTest(
+		[]string{"{ foo <<EOF}\nbar\nEOF"},
+		langErr2("1:1: reached EOF without matching `{` with `}`", LangZsh),
+		flipConfirm2(LangZsh), // zsh wrongly errors; see #1295.
+		printsAs("{ foo <<EOF; }\nbar\nEOF"),
+	),
 	fileTest(
 		[]string{"{ foo; } always { bar; }", "{ foo; } always\n{ bar; }", "{ foo; } always ; ;\n{ bar; }"},
 		langFile(&TryClause{
@@ -2590,6 +2808,11 @@ var fileTests = []fileTestCase{
 			Always: block(litStmt("bar")),
 		}, LangZsh),
 		langErr2("1:10: `always` blocks are a zsh feature; tried parsing as LANG", LangPOSIX|LangBash|LangMirBSDKorn),
+	),
+	fileTest(
+		[]string{"{foo} always {bar}"},
+		langFile(litStmt("{foo}", "always", "{bar}"), LangZsh),
+		// zsh wrongly parses no blocks; see #1295.
 	),
 	fileTest(
 		[]string{
@@ -2780,6 +3003,7 @@ var fileTests = []fileTestCase{
 	fileTest(
 		[]string{`{foo}`},
 		langFile(litWord(`{foo}`)),
+		// zsh wrongly parses no block; see #1295.
 	),
 	fileTest(
 		[]string{`{"foo"`},

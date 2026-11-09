@@ -2413,6 +2413,19 @@ func TestParseWords(t *testing.T) {
 	}
 }
 
+func TestParseWordsZsh(t *testing.T) {
+	t.Parallel()
+	p := NewParser(Variant(LangZsh))
+	var got []string
+	for w, err := range p.WordsSeq(strings.NewReader(`a}} {b} c}d "e"}`)) {
+		qt.Assert(t, qt.IsNil(err))
+		got = append(got, w.Lit())
+	}
+	// Like zsh's ${(z)x}, split an unmatched '}' off the end of a word.
+	// LangZsh wrongly keeps each '}' in the word; see #1295.
+	qt.Assert(t, qt.DeepEquals(got, []string{"a}}", "{b}", "c}d", ""}))
+}
+
 func TestParseWordsStopEarly(t *testing.T) {
 	t.Parallel()
 	p := NewParser()
