@@ -1537,7 +1537,7 @@ var errorCases = []errorCase{
 	errCase(
 		"]] )",
 		langErr("1:1: `]]` can only be used to close a test"),
-		langErr("1:4: a command can only contain words and redirects; encountered `)`", LangPOSIX),
+		langErr("1:1: `[[ ]]` tests are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
 	),
 	errCase(
 		"((foo",
@@ -1726,7 +1726,7 @@ var errorCases = []errorCase{
 	errCase(
 		"[[ (a) == b ]]",
 		langErr("1:8: expected `&&`, `||` or `]]` after complex expr", LangBash|LangMirBSDKorn|LangZsh),
-		langErr("1:1: `foo(` must be followed by `)`", LangPOSIX), // wrong: [[ is a bash feature
+		langErr("1:1: `[[ ]]` tests are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
 	),
 	errCase(
 		"[[ a =~ ; ]]",
@@ -1847,7 +1847,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		">f function foo { a; }",
-		langErr(`1:17: the "function" builtin is a bash feature; tried parsing as LANG`, LangPOSIX),
+		langErr("1:22: `}` can only be used to close a block", LangPOSIX),
 	),
 	errCase(
 		"@test",

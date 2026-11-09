@@ -732,11 +732,12 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"select foo bar"},
-		langFile(litStmt("select", "foo", "bar"), LangPOSIX), // wrong: select is a bash feature
+		langErr2("1:1: `select` loops are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
+		flipConfirm2(LangPOSIX), // dash runs it as a command
 	),
 	fileTest(
 		[]string{"select i in a; do b; done"},
-		langErr2("1:16: `do` can only be used in a loop", LangPOSIX), // wrong: select is a bash feature
+		langErr2("1:1: `select` loops are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
 	),
 	fileTest(
 		[]string{"echo select"},
@@ -973,7 +974,7 @@ var fileTests = []fileTestCase{
 			Name:     lit("foo"),
 			Body:     stmt(block(litStmt("a"), litStmt("b"))),
 		}, LangBash|LangMirBSDKorn|LangZsh),
-		langErr2("1:13: the `function` builtin is a bash feature; tried parsing as LANG", LangPOSIX),
+		langErr2("1:1: `function` declarations are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
 	),
 	fileTest(
 		[]string{
@@ -988,10 +989,8 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"function foo\n{\n\ta\n}"},
-		langFile([]*Stmt{ // wrong: function is a bash feature
-			litStmt("function", "foo"),
-			stmt(block(litStmt("a"))),
-		}, LangPOSIX),
+		langErr2("1:1: `function` declarations are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
+		flipConfirm2(LangPOSIX), // dash runs it as a command and a block
 	),
 	fileTest(
 		[]string{"function() { a; }"},
@@ -1009,7 +1008,7 @@ var fileTests = []fileTestCase{
 			Name:     lit("foo"),
 			Body:     stmt(subshell(litStmt("a"))),
 		}, LangBash),
-		langErr2("1:13: the `function` builtin is a bash feature; tried parsing as LANG", LangPOSIX),
+		langErr2("1:1: `function` declarations are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
 	),
 	fileTest(
 		[]string{"function f1 f2 f3() {\n\ta\n}"},
@@ -4771,7 +4770,8 @@ var fileTests = []fileTestCase{
 	fileTest(
 		[]string{"[[ a ]]"},
 		langFile(&TestClause{X: litWord("a")}, LangBash|LangMirBSDKorn|LangZsh),
-		langFile(litStmt("[[", "a", "]]"), LangPOSIX), // wrong: [[ is a bash feature
+		langErr2("1:1: `[[ ]]` tests are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
+		flipConfirm2(LangPOSIX), // dash runs it as a command
 	),
 	fileTest(
 		[]string{"foo | [[ a ]]"},
@@ -4780,11 +4780,8 @@ var fileTests = []fileTestCase{
 			X:  litStmt("foo"),
 			Y:  stmt(&TestClause{X: litWord("a")}),
 		}, LangBash|LangMirBSDKorn|LangZsh),
-		langFile(&BinaryCmd{ // wrong: [[ is a bash feature
-			Op: Pipe,
-			X:  litStmt("foo"),
-			Y:  litStmt("[[", "a", "]]"),
-		}, LangPOSIX),
+		langErr2("1:7: `[[ ]]` tests are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
+		flipConfirm2(LangPOSIX), // dash runs it as a command
 	),
 	fileTest(
 		[]string{"echo [[ a ]]"},
@@ -4792,7 +4789,8 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"]] a"},
-		langFile(litStmt("]]", "a"), LangPOSIX), // wrong: ]] is a bash feature
+		langErr2("1:1: `[[ ]]` tests are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
+		flipConfirm2(LangPOSIX), // dash runs it as a command
 	),
 	// Words after a prefix are never reserved.
 	fileTest(

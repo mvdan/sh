@@ -581,9 +581,9 @@ was designed which should shape the new API.
 - Which of the many formatter feature requests without a v4 dependency should
   still be batched here, so that users see one round of diffs. Those which
   were put off as breaking in v3 are keeping `do` on its own line in a
-  multi-line `for` (#582), not printing a multi-line command inline (#720),
-  and rejecting `[[` in POSIX mode (#1092). #1064 suggests a function style
-  option taking the place of `FunctionNextLine`.
+  multi-line `for` (#582) and not printing a multi-line command inline
+  (#720). #1064 suggests a function style option taking the place of
+  `FunctionNextLine`.
 
 ## TODO
 

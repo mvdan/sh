@@ -51,6 +51,10 @@ const (
 	// LangPOSIX corresponds to the POSIX Shell language, as described at
 	// https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html.
 	//
+	// The words `[[`, `]]`, `select`, and `function`, which POSIX says may be
+	// reserved with unspecified results, are rejected at the start of a command,
+	// as they are reserved in the other dialects.
+	//
 	// Its string representation is "posix" or "sh".
 	LangPOSIX
 
@@ -2306,6 +2310,16 @@ func (p *Parser) gotLineCom(s *Stmt) {
 	}
 }
 
+// posixReserved reports a word which POSIX says may be reserved with
+// unspecified results, as an error is more helpful than parsing it as a
+// command name. It is only reserved when it starts a command,
+// so not after a redirect.
+func (p *Parser) posixReserved(s *Stmt, pos Pos, feature string) {
+	if len(s.Redirs) == 0 {
+		p.checkLang(pos, langBashLike|LangMirBSDKorn|LangZsh, "%s", feature)
+	}
+}
+
 func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 	s.Comments, p.accComs = p.accComs, nil
 	for p.peekRedir() {
@@ -2314,6 +2328,9 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 	redirsStart := len(s.Redirs)
 	switch p.tok {
 	case _LitWord:
+		// Set for POSIX words which [Parser.posixReserved] rejects
+		// unless they name a func declaration.
+		var rsrvFeature string
 		switch p.val {
 		case "{", "{}":
 			// Zsh treats closing braces in a special way, allowing "{}".
@@ -2346,12 +2363,13 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 				p.curErr(`%#q can only be used in full statements`, exclMark)
 				break
 			}
-		case "[[":
-			if p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
+		case "[[", "]]":
+			if !p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
+				// Unlike `function` and `select`, not valid func names either.
+				p.posixReserved(s, p.pos, "`[[ ]]` tests")
+			} else if p.val == "[[" {
 				p.testClause(s)
-			}
-		case "]]":
-			if p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
+			} else {
 				p.curErr(`%#q can only be used to close a test`, dblRightBrack)
 			}
 		case "let":
@@ -2361,6 +2379,8 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 		case "function":
 			if p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
 				p.bashFuncDecl(s)
+			} else {
+				rsrvFeature = "`function` declarations"
 			}
 		case "declare", "local", "export", "readonly", "typeset", "nameref":
 			if p.isDeclKeyword() {
@@ -2377,6 +2397,8 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 		case "select":
 			if p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
 				p.selectClause(s)
+			} else {
+				rsrvFeature = "`select` loops"
 			}
 		case "@test":
 			if p.lang.in(LangBats) {
@@ -2402,6 +2424,9 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			}
 			p.funcDecl(s, name.ValuePos, false, true, name)
 		} else {
+			if rsrvFeature != "" {
+				p.posixReserved(s, name.ValuePos, rsrvFeature)
+			}
 			w := p.wordOne(name)
 			if p.lang.in(LangZsh) && !p.spaced {
 				w.Parts = append(w.Parts, p.wordParts(nil)...)
@@ -3105,10 +3130,6 @@ loop:
 				p.checkInlineAssigns(ce.Assigns)
 				p.declClause(s, ce.Assigns)
 				return
-			}
-			// Avoid failing later with the confusing "} can only be used to close a block".
-			if p.val == "{" && w != nil && w.Lit() == "function" {
-				p.checkLang(p.pos, langBashLike, `the "function" builtin`)
 			}
 			// Zsh does not require a semicolon to close a block.
 			if p.lang.in(LangZsh) && p.val == "}" {
