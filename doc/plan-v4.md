@@ -104,8 +104,8 @@ Types and naming:
 
 Nodes:
 
-- `FuncDecl`: join `Name` and `Names` into one field, even if it is mildly
-  annoying to non-Zsh users.
+- `FuncDecl` and `WordIter`: join `Name` and `Names` into one field, even if
+  it is mildly annoying to non-Zsh users.
 - `ParamExp`: replace the mutually exclusive booleans `Excl`, `Length`,
   `Width`, and `IsSet` with a single operator token; consider joining `Repl`,
   `Exp`, and `Slice` into a single expansion field or type.
@@ -127,6 +127,12 @@ Nodes:
   qualifiers. The `expand` package has to stringify the node again anyway, and
   regular glob operators like `*` do not get their own nodes either.
 - `Comment` and other nodes with `Pos` fields are fine; nothing to change.
+- Make clear which node fields are required, meaning never nil in a parsed
+  tree, like `BinaryCmd.X`, unlike `Stmt.Cmd` for `>f` (#374). The Go types
+  should say so, either with value types where a pointer is only used for
+  consistency, like `CaseClause.Word`, or a doc convention that `TestSchema`
+  can read. `schema.cue` marks the same fields as required, and `TestSchema`
+  checks that both agree.
 
 Parser and printer API:
 
@@ -623,8 +629,6 @@ Gaps in the design:
 - TODO: builtins like `history` need the caller's help (#1401), as the
   history belongs to the line editor. Decide whether that is another
   handler, or left to a middleware which overrides the builtin.
-- TODO: document which node fields may be nil (#374), at least for the
-  nodes which change shape: `FuncDecl` and `ParamExp`.
 
 Housekeeping:
 
