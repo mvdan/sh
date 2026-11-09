@@ -18,6 +18,13 @@ func TestQuote(t *testing.T) {
 	}{
 		{"", LangBash, `''`},
 		{"foo", LangBash, `foo`},
+		{"if", LangBash, `'if'`},
+		{"repeat", LangBash, `repeat`},
+		{"repeat", LangZsh, `'repeat'`},
+		{"end", LangBash, `end`},
+		{"end", LangZsh, `'end'`},
+		{"typeset", LangBash, `typeset`},
+		{"typeset", LangZsh, `typeset`},
 		{"a]b", LangBash, `'a]b'`},
 		{"a}b", LangBash, `'a}b'`},
 		{"\a", LangBash, `$'\a'`},

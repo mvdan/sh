@@ -6206,6 +6206,7 @@ func TestRunnerUnsupported(t *testing.T) {
 		{syntax.LangZsh, "() { echo $1; } a b", "unsupported\nexit status 1"},
 		{syntax.LangZsh, "function f g { echo multi; }", "unsupported\nexit status 1"},
 		{syntax.LangZsh, "for a b in 1 2; do echo $a $b; done", "unsupported\nexit status 1"},
+		{syntax.LangZsh, "repeat 2 do echo x; done", "unsupported\nexit status 1"},
 		{syntax.LangZsh, "cat =(echo hi)", "unsupported\n"},
 		{syntax.LangMirBSDKorn, "echo ${%a}", "unsupported\n"},
 	}

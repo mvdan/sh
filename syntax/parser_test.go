@@ -1109,6 +1109,44 @@ var errorCases = []errorCase{
 		langErr("1:1: `select foo` must be followed by `in`, `do`, `;`, or a newline", LangBash|LangMirBSDKorn|LangZsh),
 	),
 	errCase(
+		"for a repeat in 1 2; do echo $a; done",
+		langErr("1:1: `for foo` must be followed by `in`, `do`, `;`, or a newline", LangZsh),
+		langErr("1:1: multi-name for loops are a zsh feature; tried parsing as LANG", LangPOSIX|LangBash|LangMirBSDKorn),
+	),
+	errCase(
+		"for a typeset in 1 2; do echo $a; done",
+		langErr("1:1: `for foo` must be followed by `in`, `do`, `;`, or a newline", LangZsh),
+		langErr("1:1: multi-name for loops are a zsh feature; tried parsing as LANG", LangPOSIX|LangBash|LangMirBSDKorn),
+	),
+	errCase(
+		"repeat",
+		langErr("1:1: `repeat` must be followed by a word", LangZsh),
+	),
+	errCase(
+		"repeat 3 fi",
+		langErr("1:10: `fi` can only be used to end an `if`", LangZsh),
+	),
+	errCase(
+		"{ repeat 3 else }",
+		langErr("1:12: `else` can only be used in an `if`", LangZsh),
+	),
+	errCase(
+		"repeat 3 foo; done",
+		langErr("1:15: `done` can only be used to end a loop", LangZsh),
+	),
+	errCase(
+		"repeat 3; do foo",
+		langErr("1:1: `repeat` statement must end with `done`", LangZsh),
+	),
+	errCase(
+		"repeat 3 { foo",
+		langErr("1:1: `repeat` statement must end with `}`", LangZsh),
+	),
+	errCase(
+		"repeat 3 { foo; done",
+		langErr("1:17: `done` can only be used to end a loop", LangZsh),
+	),
+	errCase(
 		"echo foo &\n;",
 		langErr("2:1: `;` can only immediately follow a statement"),
 	),
@@ -2792,13 +2830,29 @@ func TestNodeEndPos(t *testing.T) {
 	f, err = p.Parse(strings.NewReader("case x { a) b ;; }"), "")
 	qt.Assert(t, qt.IsNil(err))
 	qt.Check(t, qt.Equals(f.Stmts[0].Cmd.(*CaseClause).End().Offset(), uint(18)))
+
+	// The short forms of zsh repeat loops end with their body, if any.
+	p = NewParser(Variant(LangZsh), RecoverErrors(1))
+	f, err = p.Parse(strings.NewReader("repeat 3 foo"), "")
+	qt.Assert(t, qt.IsNil(err))
+	qt.Check(t, qt.Equals(f.Stmts[0].Cmd.(*RepeatClause).End().Offset(), uint(12)))
+
+	f, err = p.Parse(strings.NewReader("repeat 3"), "")
+	qt.Assert(t, qt.IsNil(err))
+	qt.Check(t, qt.Equals(f.Stmts[0].Cmd.(*RepeatClause).End().Offset(), uint(8)))
+
+	// The long form ends with its recovered "done", not its last statement.
+	f, err = p.Parse(strings.NewReader("repeat 3; do foo"), "")
+	qt.Assert(t, qt.IsNil(err))
+	qt.Check(t, qt.IsTrue(f.Stmts[0].Cmd.(*RepeatClause).End().IsRecovered()))
 }
 
 func TestParseRecoverErrors(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		src string
+		src  string
+		lang LangVariant
 
 		wantErr     bool
 		wantMissing int
@@ -2854,6 +2908,16 @@ func TestParseRecoverErrors(t *testing.T) {
 			wantMissing: 1,
 		},
 		{
+			src:         "repeat",
+			lang:        LangZsh,
+			wantMissing: 1,
+		},
+		{
+			src:         "repeat 3; do foo",
+			lang:        LangZsh,
+			wantMissing: 1,
+		},
+		{
 			src:         `"incomp`,
 			wantMissing: 1,
 		},
@@ -2894,11 +2958,15 @@ func TestParseRecoverErrors(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	parser := NewParser(RecoverErrors(3))
 	printer := NewPrinter()
 	for _, tc := range tests {
 		t.Run("", func(t *testing.T) {
 			t.Logf("input: %s", tc.src)
+			lang := tc.lang
+			if lang == 0 {
+				lang = LangBash
+			}
+			parser := NewParser(RecoverErrors(3), Variant(lang))
 			r := strings.NewReader(tc.src)
 			f, err := parser.Parse(r, "")
 			if tc.wantErr {

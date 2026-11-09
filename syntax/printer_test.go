@@ -52,6 +52,10 @@ func TestPrintZsh(t *testing.T) {
 		{"{ foo; } always # c\n{ }", "{ foo; } always { # c\n}"},
 		samePrint("if a & then; fi"),
 		samePrint("while a & do; done"),
+		{"repeat 3\n\n\nfoo", "repeat 3; do foo; done"},
+		{"repeat 3 # c\n\nfoo", "repeat 3; do # c\n\tfoo\ndone"},
+		{"repeat 3\n# c", "repeat 3; do; done\n# c"},
+		{"{ repeat 3\n# c\n}", "{\n\trepeat 3; do; done\n\t# c\n}"},
 	} {
 		t.Run("", func(t *testing.T) {
 			printTest(t, parser, printer, tc.in, tc.want)

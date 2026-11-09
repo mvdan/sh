@@ -258,9 +258,9 @@ func (s *Stmt) End() Pos {
 // Command represents all nodes that are simple or compound commands, including
 // function declarations.
 //
-// These are [*CallExpr], [*IfClause], [*WhileClause], [*ForClause], [*CaseClause],
-// [*Block], [*TryClause], [*Subshell], [*BinaryCmd], [*FuncDecl], [*ArithmCmd],
-// [*TestClause], [*DeclClause], [*LetClause], [*TimeClause], and [*CoprocClause].
+// These are [*CallExpr], [*IfClause], [*WhileClause], [*ForClause], [*RepeatClause],
+// [*CaseClause], [*Block], [*TryClause], [*Subshell], [*BinaryCmd], [*FuncDecl],
+// [*ArithmCmd], [*TestClause], [*DeclClause], [*LetClause], [*TimeClause], and [*CoprocClause].
 type Command interface {
 	Node
 	commandNode()
@@ -270,6 +270,7 @@ func (*CallExpr) commandNode()     {}
 func (*IfClause) commandNode()     {}
 func (*WhileClause) commandNode()  {}
 func (*ForClause) commandNode()    {}
+func (*RepeatClause) commandNode() {}
 func (*CaseClause) commandNode()   {}
 func (*Block) commandNode()        {}
 func (*TryClause) commandNode()    {}
@@ -472,6 +473,38 @@ func (f *ForClause) End() Pos {
 		return posAddCol(f.DonePos, len("}"))
 	}
 	return posAddCol(f.DonePos, len("done"))
+}
+
+// RepeatClause represents a zsh repeat loop, like `repeat word do list done`,
+// which runs the list as many times as the word evaluates to arithmetically.
+//
+// In the short form `repeat word sublist`, DoPos and DonePos are invalid
+// positions, and Do holds the single statement, if any.
+//
+// Unlike [ForClause], it has no [Loop].
+//
+// This node will only appear with [LangZsh].
+type RepeatClause struct {
+	RepeatPos, DoPos, DonePos Pos
+	Braces                    bool // alternate form with { } instead of do/done
+
+	Count *Word
+
+	Do     []*Stmt
+	DoLast []Comment
+}
+
+func (r *RepeatClause) Pos() Pos { return r.RepeatPos }
+func (r *RepeatClause) End() Pos {
+	switch {
+	case r.Braces:
+		return posAddCol(r.DonePos, len("}"))
+	case r.DoPos.IsValid():
+		return posAddCol(r.DonePos, len("done"))
+	case len(r.Do) > 0:
+		return r.Do[len(r.Do)-1].End()
+	}
+	return r.Count.End()
 }
 
 // Loop holds either [*WordIter] or [*CStyleLoop].

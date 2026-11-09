@@ -561,6 +561,11 @@ type Parser struct {
 	accComs []Comment
 	curComs *[]Comment
 
+	// stops holds the reserved words which end the statement list
+	// being parsed, such as "fi", "elif", and "else" in an if body.
+	// An array, unlike a slice, does not make the stop words escape.
+	stops [3]string
+
 	// lineCom is the position of the comment which ended the logical line
 	// of the token before the current one, if any. Such a comment may be
 	// on a later line when it follows escaped newlines.
@@ -935,7 +940,7 @@ func (p *Parser) followStmts(left string, lpos Pos, stops ...string) ([]*Stmt, [
 	return stmts, last
 }
 
-func (p *Parser) followWordTok(tok token, pos Pos) *Word {
+func (p *Parser) followWordTok(tok any, pos Pos) *Word {
 	w := p.getWord()
 	if w == nil {
 		if p.recoverError() {
@@ -1003,7 +1008,6 @@ func IsIncomplete(err error) bool {
 // in POSIX Shell or Bash.
 func IsKeyword(word string) bool {
 	// This list has been copied from the bash 5.1 source code, file y.tab.c +4460
-	// TODO: should we include entries for zsh here? e.g. "{}", "repeat", "always", ...
 	switch word {
 	case
 		"!",
@@ -1028,6 +1032,30 @@ func IsKeyword(word string) bool {
 		"{",
 		"}":
 		return true
+	}
+	return false
+}
+
+// isKeyword is like [IsKeyword], but also covers the reserved words
+// of other language variants, such as zsh's.
+//
+// Zsh's declaration builtins like `typeset` are reserved words too,
+// but they only differ from the builtins in how they parse assignment
+// arguments, so they are only included when decl is true.
+//
+// TODO(v4): fold into IsKeyword by adding a LangVariant parameter.
+func isKeyword(word string, lang LangVariant, decl bool) bool {
+	if IsKeyword(word) {
+		return true
+	}
+	if lang.in(LangZsh) {
+		// See the "Reserved Words" section of the zshmisc manual.
+		switch word {
+		case "end", "foreach", "nocorrect", "repeat":
+			return true
+		case "declare", "export", "float", "integer", "local", "readonly", "typeset":
+			return decl
+		}
 	}
 	return false
 }
@@ -1131,6 +1159,9 @@ func (p *Parser) checkLang(pos Pos, langSet LangVariant, format string, a ...any
 }
 
 func (p *Parser) stmts(yield func(*Stmt, error) bool, stops ...string) {
+	defer func(old [3]string) { p.stops = old }(p.stops)
+	p.stops = [3]string{}
+	copy(p.stops[:], stops)
 	gotEnd := true
 loop:
 	for p.tok != _EOF {
@@ -2340,10 +2371,13 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 		case "if":
 			p.ifClause(s)
 		case "while", "until":
-			// TODO(zsh): "repeat"
 			p.whileClause(s, p.val == "until")
 		case "for":
 			p.forClause(s)
+		case "repeat":
+			if p.lang.in(LangZsh) {
+				p.repeatClause(s)
+			}
 		case "case":
 			p.caseClause(s)
 		case "}", "then", "elif", "else", "fi", "do", "done", "esac", "!":
@@ -2667,6 +2701,46 @@ func (p *Parser) forClause(s *Stmt) {
 	s.Cmd = fc
 }
 
+func (p *Parser) repeatClause(s *Stmt) {
+	rc := &RepeatClause{RepeatPos: p.pos}
+	p.next()
+	rc.Count = p.followWordTok("repeat", rc.RepeatPos)
+	for p.got(semicolon) || p.got(_Newl) {
+	}
+
+	start, end := "do", "done"
+	if pos, ok := p.gotRsrv("{"); ok {
+		rc.DoPos = pos
+		rc.Braces = true
+		start, end = "{", "}"
+	} else if pos, ok := p.gotRsrv("do"); ok {
+		rc.DoPos = pos
+	}
+	switch {
+	case rc.DoPos.IsValid():
+		s.Comments = append(s.Comments, p.accComs...)
+		p.accComs = nil
+		rc.Do, rc.DoLast = p.followStmts(start, rc.DoPos, end)
+		rc.DonePos = p.stmtEnd(rc, "repeat", end)
+	case p.tok == _LitWord && slices.Contains(p.stops[:], p.val):
+		// The short form, allowed by zsh's SHORT_LOOPS option, which is on by default.
+		// Like zsh, allow an empty body, such as before the enclosing list's closing word.
+		// Any comments are left for the enclosing list.
+	default:
+		body := p.getStmt(false, false, true)
+		switch {
+		case body != nil:
+			// Comments before the body go before the implied `do`, as with the long form.
+			s.Comments, body.Comments = append(s.Comments, body.Comments...), nil
+			rc.Do = []*Stmt{body}
+		case p.tok == and || p.tok == andPipe || p.tok == andBang:
+			// Unlike `|` or `&&`, zsh does not allow backgrounding an empty body.
+			p.invalidStmtStart()
+		}
+	}
+	s.Cmd = rc
+}
+
 func (p *Parser) loop(fpos Pos) Loop {
 	switch p.tok {
 	case leftParen, dblLeftParen:
@@ -2696,7 +2770,7 @@ func (p *Parser) wordIter(ftok string, fpos Pos) *WordIter {
 	if wi.Name = p.getLit(); wi.Name == nil {
 		p.followErr(fpos, ftok, noQuote("a literal"))
 	}
-	for ftok == "for" && p.tok == _LitWord && ValidName(p.val) && !IsKeyword(p.val) {
+	for ftok == "for" && p.tok == _LitWord && ValidName(p.val) && !isKeyword(p.val, p.lang, true) {
 		if wi.Names == nil {
 			p.checkLang(fpos, LangZsh, "multi-name for loops")
 			wi.Names = []*Lit{wi.Name}

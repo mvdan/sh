@@ -915,6 +915,9 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				}
 			}
 		}
+	case *syntax.RepeatClause: // only with zsh
+		r.errf("unsupported\n")
+		r.exit.code = 1
 	case *syntax.FuncDecl:
 		if cm.Name == nil { // e.g. zsh's anonymous or multi-name functions
 			r.errf("unsupported\n")

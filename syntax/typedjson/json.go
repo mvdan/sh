@@ -317,6 +317,7 @@ var nodeByName = map[string]reflect.Type{
 	"BinaryCmd":    reflect.TypeFor[syntax.BinaryCmd](),
 	"IfClause":     reflect.TypeFor[syntax.IfClause](),
 	"ForClause":    reflect.TypeFor[syntax.ForClause](),
+	"RepeatClause": reflect.TypeFor[syntax.RepeatClause](),
 	"WhileClause":  reflect.TypeFor[syntax.WhileClause](),
 	"CaseClause":   reflect.TypeFor[syntax.CaseClause](),
 	"Block":        reflect.TypeFor[syntax.Block](),

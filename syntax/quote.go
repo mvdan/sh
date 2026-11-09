@@ -80,7 +80,7 @@ func Quote(s string, lang LangVariant) (string, error) {
 		rem = rem[size:]
 		offs += size
 	}
-	if !shellChars && !nonPrintable && !IsKeyword(s) {
+	if !shellChars && !nonPrintable && !isKeyword(s, lang, false) {
 		// Nothing to quote; avoid allocating.
 		return s, nil
 	}

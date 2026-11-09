@@ -51,9 +51,9 @@ var allNodeNames = []string{
 	"CmdSubst", "Comment", "CoprocClause", "DblQuoted", "DeclClause",
 	"ExtGlob", "File", "FlagsArithm", "ForClause", "FuncDecl", "IfClause",
 	"LetClause", "Lit", "ParamExp", "ParenArithm", "ParenTest", "ProcSubst",
-	"Redirect", "SglQuoted", "Stmt", "Subshell", "TestClause", "TestDecl",
-	"TimeClause", "TryClause", "UnaryArithm", "UnaryTest", "WhileClause",
-	"Word", "WordIter",
+	"Redirect", "RepeatClause", "SglQuoted", "Stmt", "Subshell", "TestClause",
+	"TestDecl", "TimeClause", "TryClause", "UnaryArithm", "UnaryTest",
+	"WhileClause", "Word", "WordIter",
 }
 
 // TestRoundtripAnyNode checks that any node can be encoded and decoded,
@@ -88,8 +88,8 @@ coproc foo
 # comment
 `},
 		// FlagsArithm, CallArithm, multiple subscripts, multi-name for loops,
-		// anonymous functions with arguments, and TryClause only appear with zsh.
-		{syntax.LangZsh, "echo ${a[(r)foo]} ${a[1][(r)b]} $((abs(-1)))\nfor a b in x y; do foo; done\n() { echo $1; } a b\n{ foo; } always { bar; }\n"},
+		// anonymous functions with arguments, TryClause, and RepeatClause only appear with zsh.
+		{syntax.LangZsh, "echo ${a[(r)foo]} ${a[1][(r)b]} $((abs(-1)))\nfor a b in x y; do foo; done\n() { echo $1; } a b\n{ foo; } always { bar; }\nrepeat 3 do foo; done\n"},
 		// TestDecl only appears with bats.
 		{syntax.LangBats, "@test \"name\" {\n\tfoo\n}\n"},
 	}

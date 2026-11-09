@@ -1447,12 +1447,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		}
 		condLine := p.line
 		p.nestedStmts(cmd.Cond, cmd.CondLast, Pos{})
-		if p.blockNewline(cmd.Do, cmd.DoLast, cmd.DonePos) || p.keepBlockNewline(condLine, cmd.DoPos) {
-			p.wantNewline = true
-		}
-		p.semiOrNewl("do", cmd.DoPos)
-		p.nestedStmts(cmd.Do, cmd.DoLast, cmd.DonePos)
-		p.semiRsrv("done", cmd.DonePos)
+		p.doBlock(condLine, cmd.DoPos, cmd.Do, cmd.DoLast, cmd.DonePos)
 	case *ForClause:
 		if cmd.Select {
 			p.w.WriteString("select ")
@@ -1461,12 +1456,17 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		}
 		loopLine := p.line
 		p.loop(cmd.Loop)
-		if p.blockNewline(cmd.Do, cmd.DoLast, cmd.DonePos) || p.keepBlockNewline(loopLine, cmd.DoPos) {
-			p.wantNewline = true
+		p.doBlock(loopLine, cmd.DoPos, cmd.Do, cmd.DoLast, cmd.DonePos)
+	case *RepeatClause:
+		p.w.WriteString("repeat ")
+		countLine := p.line
+		p.word(cmd.Count)
+		doPos := cmd.DoPos
+		if !doPos.IsValid() && len(cmd.Do) > 0 {
+			// The short form has no `do`, so place it right before the body.
+			doPos = cmd.Do[0].Pos()
 		}
-		p.semiOrNewl("do", cmd.DoPos)
-		p.nestedStmts(cmd.Do, cmd.DoLast, cmd.DonePos)
-		p.semiRsrv("done", cmd.DonePos)
+		p.doBlock(countLine, doPos, cmd.Do, cmd.DoLast, cmd.DonePos)
 	case *BinaryCmd:
 		p.stmt(cmd.X)
 		if p.minify || p.singleLine || cmd.Y.Pos().Line() <= p.line {
@@ -1829,6 +1829,17 @@ func (p *Printer) keepBlockNewline(startLine uint, pos Pos) bool {
 		return false
 	}
 	return p.line > startLine && pos.Line() > p.line
+}
+
+// doBlock prints the body of a loop whose header started at startLine,
+// as `do` and `done` with the statements nested between them.
+func (p *Printer) doBlock(startLine uint, doPos Pos, do []*Stmt, last []Comment, donePos Pos) {
+	if p.blockNewline(do, last, donePos) || p.keepBlockNewline(startLine, doPos) {
+		p.wantNewline = true
+	}
+	p.semiOrNewl("do", doPos)
+	p.nestedStmts(do, last, donePos)
+	p.semiRsrv("done", donePos)
 }
 
 func (p *Printer) nestedStmts(stmts []*Stmt, last []Comment, closing Pos) {

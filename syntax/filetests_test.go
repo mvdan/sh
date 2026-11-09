@@ -649,6 +649,138 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{
+			"repeat 3; do foo; done",
+			"repeat 3 do foo; done",
+			"repeat 3\ndo foo\ndone",
+			"repeat 3;\ndo foo\ndone",
+			"repeat 3 #c\ndo foo\ndone",
+			"repeat 3 { foo; }",
+			"repeat 3 { foo }",
+			"repeat 3; { foo; }",
+			"repeat 3\n{ foo; }",
+			"repeat 3 ; ;\n;do foo; done",
+			"repeat 3 foo",
+			"repeat 3; foo",
+			"repeat 3\nfoo",
+		},
+		langFile(&RepeatClause{
+			Count: litWord("3"),
+			Do:    litStmts("foo"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"repeat 3; do foo && bar | baz; done", "repeat 3 foo && bar | baz"},
+		langFile(&RepeatClause{
+			Count: litWord("3"),
+			Do: stmts(&BinaryCmd{
+				Op: AndStmt,
+				X:  litStmt("foo"),
+				Y: stmt(&BinaryCmd{
+					Op: Pipe,
+					X:  litStmt("bar"),
+					Y:  litStmt("baz"),
+				}),
+			}),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"repeat 3; do foo; done &\nbar", "repeat 3 foo &\nbar", "repeat 3 foo & bar"},
+		langFile([]*Stmt{
+			{
+				Cmd:        &RepeatClause{Count: litWord("3"), Do: litStmts("foo")},
+				Background: true,
+			},
+			litStmt("bar"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"repeat 3; do repeat 2; do foo; done; done", "repeat 3 repeat 2 foo"},
+		langFile(&RepeatClause{
+			Count: litWord("3"),
+			Do: stmts(&RepeatClause{
+				Count: litWord("2"),
+				Do:    litStmts("foo"),
+			}),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{
+			"repeat $((n + 1)); do\n\tfoo\n\tbar\ndone",
+			"repeat $((n+1)) {\nfoo\nbar\n}",
+		},
+		langFile(&RepeatClause{
+			Count: word(arithmExp(&BinaryArithm{
+				Op: Add,
+				X:  litWord("n"),
+				Y:  litWord("1"),
+			})),
+			Do: litStmts("foo", "bar"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"repeat \"$(\n\tfoo\n)\"\ndo\n\tbar\ndone", "repeat \"$(foo)\"; do bar; done"},
+		langFile(&RepeatClause{
+			Count: word(dblQuoted(cmdSubst(litStmt("foo")))),
+			Do:    litStmts("bar"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"repeat 3; do; done", "repeat 3 { }", "repeat 3 do\ndone", "repeat 3", "repeat 3;"},
+		langFile(&RepeatClause{Count: litWord("3")}, LangZsh),
+	),
+	fileTest(
+		[]string{"repeat 3; do; done && foo", "repeat 3 && foo"},
+		langFile(&BinaryCmd{
+			Op: AndStmt,
+			X:  stmt(&RepeatClause{Count: litWord("3")}),
+			Y:  litStmt("foo"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"repeat 3 & foo"},
+		langErr2("1:10: `&` can only immediately follow a statement", LangZsh),
+	),
+	fileTest(
+		[]string{"repeat 3 &| foo"},
+		langErr2("1:10: `&|` can only immediately follow a statement", LangZsh),
+	),
+	fileTest(
+		[]string{"repeat 3 &! foo"},
+		langErr2("1:10: `&!` can only immediately follow a statement", LangZsh),
+	),
+	fileTest(
+		[]string{"{ repeat 3; do; done; }", "{ repeat 3 }", "{ repeat 3; }"},
+		langFile(block(stmt(&RepeatClause{Count: litWord("3")})), LangZsh),
+	),
+	fileTest(
+		[]string{"while foo; do repeat 3; do; done; done", "while foo; do repeat 3; done"},
+		langFile(&WhileClause{
+			Cond: litStmts("foo"),
+			Do:   stmts(&RepeatClause{Count: litWord("3")}),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"repeat 3; do foo; done >a | bar"},
+		langFile(&BinaryCmd{
+			Op: Pipe,
+			X: &Stmt{
+				Cmd: &RepeatClause{
+					Count: litWord("3"),
+					Do:    litStmts("foo"),
+				},
+				Redirs: []*Redirect{{Op: RdrOut, Word: litWord("a")}},
+			},
+			Y: litStmt("bar"),
+		}, LangZsh),
+	),
+	fileTest(
+		// Only a reserved word with zsh.
+		[]string{"repeat 3 foo"},
+		langFile(litCall("repeat", "3", "foo")),
+		langSkip(LangZsh),
+	),
+	fileTest(
+		[]string{
 			"for ((i = 0; i < 10; i++)); do echo $i; done",
 			"for ((i=0;i<10;i++)) do echo $i; done",
 			"for (( i = 0 ; i < 10 ; i++ ))\ndo echo $i\ndone",
@@ -6679,6 +6811,18 @@ func (c sanityChecker) visit(node Node) bool {
 			// The printer ignores the field anyway.
 			node.Braces = false
 		} else {
+			c.checkPos(node, node.DoPos, "do")
+			c.checkPos(node, node.DonePos, "done")
+		}
+	case *RepeatClause:
+		c.checkPos(node, node.RepeatPos, "repeat")
+		if node.Braces {
+			c.checkPos(node, node.DoPos, "{")
+			c.checkPos(node, node.DonePos, "}")
+			// Zero out Braces, to not duplicate all the test cases.
+			// The printer ignores the field anyway.
+			node.Braces = false
+		} else if node.DoPos.IsValid() {
 			c.checkPos(node, node.DoPos, "do")
 			c.checkPos(node, node.DonePos, "done")
 		}
