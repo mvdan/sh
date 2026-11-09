@@ -65,9 +65,27 @@ func TestPrintZsh(t *testing.T) {
 	for _, tc := range []printCase{
 		{"if a & then; elif b & then; else; fi", "if a&then;elif b&then;else;fi"},
 		{"while a & do; done", "while a&do;done"},
+		// TODO: see https://github.com/mvdan/sh/issues/1169
+		{"echo ${${x:-$((a +\nb))}}", "echo ${${x:-$((a + \\\nb))}}"},
 	} {
 		t.Run("", func(t *testing.T) {
 			printTest(t, parser, minifier, tc.in, tc.want)
+		})
+	}
+}
+
+// TestPrintMksh covers formatting which only arises with mksh syntax.
+func TestPrintMksh(t *testing.T) {
+	t.Parallel()
+	parser := NewParser(Variant(LangMirBSDKorn), KeepComments(true))
+	printer := NewPrinter()
+	for _, tc := range []printCase{
+		samePrint("((# a)) && echo $((# b))"),
+		// TODO: see https://github.com/mvdan/sh/issues/1169
+		{"((#\na)) && echo $((#\nb))", "((# \\\na)) && echo $((# \\\nb))"},
+	} {
+		t.Run("", func(t *testing.T) {
+			printTest(t, parser, printer, tc.in, tc.want)
 		})
 	}
 }
@@ -523,6 +541,37 @@ var printTests = []printCase{
 	{
 		"((a + (1\n) + 2))",
 		"((a + (1) + 2))",
+	},
+	// Newlines need no escaping within "((" and "$((",
+	// but they do within array indices and slices.
+	// TODO: see https://github.com/mvdan/sh/issues/1169
+	{
+		"((\n a > 2\n &&\n a < 10\n)) && echo in range",
+		"((\\\na > 2 && \\\na < 10)) && echo in range",
+	},
+	{
+		"if x; then\n((a &&\nb))\nfi",
+		"if x; then\n\t((a && \\\n\tb))\nfi",
+	},
+	{
+		"echo $((a +\n\tb)) \"$((c,\n\td))\"",
+		"echo $((a + \\\nb)) \"$((c, \\\nd))\"",
+	},
+	{
+		"for ((i = 0;\n\ti < 3;\n\ti++)); do\n\tfoo\ndone",
+		"for ((i = 0;  \\\ni < 3;  \\\ni++)); do\n\tfoo\ndone",
+	},
+	{
+		"echo $((a[b +\nc] +\nd)) ${a[b +\nc]} ${a:b +\nc}",
+		"echo $((a[b + \\\nc] + \\\nd)) ${a[b + \\\nc]} ${a:b+ \\\nc}",
+	},
+	{
+		"echo ${a[$((b +\nc))]}\na[$((b +\nc))]=x",
+		"echo ${a[$((b + \\\nc))]}\na[$((b + \\\n\tc))]=x",
+	},
+	{
+		"echo $((a +\n-b)) $((\n(a + b))) $((\n! a))",
+		"echo $((a + -\\\nb)) $(((\\\na + b))) $((! \\\na))",
 	},
 	{
 		"[[ (a\n) && b ]]",
@@ -1040,7 +1089,10 @@ func TestPrintBinaryNextLine(t *testing.T) {
 			"if [[ a ||\nb ]]; then\nc\nfi",
 			"if [[ a\n\t|| b ]]; then\n\tc\nfi",
 		},
-		samePrint("((a \\\n\t|| b))"),
+		{
+			"((a \\\n\t|| b))",
+			"((a \\\n\t|| b))",
+		},
 		{
 			"((a &&\nb))",
 			"((a \\\n\t&& b))",
@@ -1381,6 +1433,10 @@ func TestPrintMinify(t *testing.T) {
 		{
 			"((a > 0 &&\na < 10))",
 			"((a>0&& \\\na<10))",
+		},
+		{
+			"echo ${a[b +\nc]} ${s:1 +\n2} ${a[$((b +\nc))]}\nlet x=$((a +\nb))",
+			"echo ${a[b+ \\\nc]} ${s:1+ \\\n2} ${a[$((b+ \\\nc))]}\nlet x=$((a+ \\\nb))",
 		},
 		{
 			"echo $a ${b} ${c}-d ${e}f ${g}_h",
