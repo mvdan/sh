@@ -204,9 +204,8 @@ func TestDecodeTypedValue(t *testing.T) {
 
 	input := `{"Type":"File","Last":[{"Type":"Comment","Text":"x"}]}`
 	node, err := typedjson.Decode(strings.NewReader(input))
-	// The decoder only accepts an explicit Type into a pointer or interface.
-	qt.Assert(t, qt.ErrorMatches(err, "cannot decode Comment into syntax.Comment"))
-	qt.Assert(t, qt.IsNil(node))
+	qt.Assert(t, qt.IsNil(err))
+	qt.Assert(t, qt.Equals(node.(*syntax.File).Last[0].Text, "x"))
 }
 
 // FuzzDecode checks that no input can cause the decoder to panic.

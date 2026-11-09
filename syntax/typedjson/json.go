@@ -360,10 +360,12 @@ func decodeValue(val reflect.Value, enc any) error {
 			if nodeType == nil {
 				return fmt.Errorf("unknown type: %q", typeName)
 			}
-			if !reflect.PointerTo(nodeType).AssignableTo(typ) {
+			switch {
+			case reflect.PointerTo(nodeType).AssignableTo(typ):
+				val.Set(reflect.New(nodeType))
+			case nodeType != typ: // a node held by value, like Comment
 				return fmt.Errorf("cannot decode %s into %s", typeName, typ)
 			}
-			val.Set(reflect.New(nodeType))
 		} else if val.Kind() == reflect.Pointer && val.IsNil() {
 			val.Set(reflect.New(typ.Elem()))
 		}
