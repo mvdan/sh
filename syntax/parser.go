@@ -2348,7 +2348,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			p.caseClause(s)
 		case "}":
 			p.curErr(`%#q can only be used to close a block`, rightBrace)
-		case "then", "elif":
+		case "then", "elif", "else":
 			p.curErr("%#q can only be used in an `if`", p.val)
 		case "fi":
 			p.curErr("%#q can only be used to end an `if`", p.val)

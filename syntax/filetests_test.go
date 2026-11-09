@@ -302,8 +302,7 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"else"},
-		langFile(litStmt("else")),          // wrong: else is a reserved word
-		flipConfirm2(langResolvedVariants), // wrong: shells reject it
+		langErr2("1:1: `else` can only be used in an `if`"),
 	),
 	fileTest(
 		[]string{
