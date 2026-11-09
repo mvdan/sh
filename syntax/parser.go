@@ -1017,6 +1017,7 @@ func IsKeyword(word string) bool {
 		"coproc", // only if COPROCESS_SUPPORT is defined
 		"do",
 		"done",
+		"elif",
 		"else",
 		"esac",
 		"fi",

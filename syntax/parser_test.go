@@ -130,6 +130,32 @@ func TestParseConfirm(t *testing.T) {
 	}
 }
 
+// TestKeywordsConfirm checks that the reserved words of real shells are keywords.
+func TestKeywordsConfirm(t *testing.T) {
+	if testing.Short() {
+		t.Skip("calling external shells is slow")
+	}
+	t.Parallel()
+	for _, tc := range []struct {
+		lang LangVariant
+		args []string
+	}{
+		{LangBash, []string{"-c", "compgen -k"}},
+		{LangZsh, []string{"-f", "-c", "zmodload zsh/parameter; print -rl -- ${(k)reswords}"}},
+	} {
+		t.Run(tc.lang.String(), func(t *testing.T) {
+			t.Parallel()
+			ext := externalShells[tc.lang]
+			ext.require(t)
+			out, err := exec.Command(ext.cmd, tc.args...).Output()
+			qt.Assert(t, qt.IsNil(err))
+			for w := range strings.FieldsSeq(string(out)) {
+				qt.Check(t, qt.IsTrue(isKeyword(w, tc.lang, true)), qt.Commentf("%q", w))
+			}
+		})
+	}
+}
+
 func TestParseKeepComments(t *testing.T) {
 	t.Parallel()
 	for lang := range langResolvedVariants.bits() {

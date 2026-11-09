@@ -3638,7 +3638,7 @@ done <<< 2`,
 	{"PATH=/; type -P $PATH_PROG", "exit status 1"},
 	{"shopt -s expand_aliases; alias interp_foo='bar'; type -t interp_foo", "alias\n"},
 	{"type -t case", "keyword\n"},
-	{"type -t elif", "exit status 1 #IGNORE"}, // wrong: a reserved word
+	{"type -t elif", "keyword\n"},
 	{"interp_foo(){ :; }; type -t interp_foo", "function\n"},
 	{"type -t type", "builtin\n"},
 	{"type -t $PATH_PROG", "file\n"},

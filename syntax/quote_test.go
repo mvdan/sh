@@ -19,7 +19,7 @@ func TestQuote(t *testing.T) {
 		{"", LangBash, `''`},
 		{"foo", LangBash, `foo`},
 		{"if", LangBash, `'if'`},
-		{"elif", LangBash, `elif`}, // wrong: a reserved word
+		{"elif", LangBash, `'elif'`},
 		{"repeat", LangBash, `repeat`},
 		{"repeat", LangZsh, `'repeat'`},
 		{"end", LangBash, `end`},
