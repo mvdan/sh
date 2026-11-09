@@ -222,7 +222,7 @@ func (c *colCounter) addByte(b byte) {
 	case '\n':
 		c.column = 0
 		c.lineStart = true
-	case '\t', ' ', tabwriter.Escape:
+	case '\t', '\v', ' ', tabwriter.Escape:
 	default:
 		c.lineStart = false
 	}
@@ -758,7 +758,9 @@ func (p *Printer) flushComments() {
 			if p.keepPadding {
 				p.spacePad(c.Pos())
 			} else {
-				p.w.WriteByte('\t')
+				// A vertical tab ends a tabwriter cell like a tab,
+				// without an extraIndenter escaping it as a literal tab.
+				p.w.WriteByte('\v')
 			}
 		case p.wantSpace != spaceWritten:
 			p.space()

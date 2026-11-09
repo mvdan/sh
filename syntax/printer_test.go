@@ -734,10 +734,9 @@ var printTests = []printCase{
 	samePrint("f <<EOF\na\vb\fc\nEOF"),
 	samePrint("f <<-EOF\n\ta\vb\f\tc\nEOF"),
 	samePrint("f <<-EOF\n\ta $(\n\t\techo \"x\ty\"\n\t)\nEOF"),
-	// TODO: a literal tab wrongly separates each comment, so they do not align.
 	{
 		"f <<-EOF\n\t$(\n\tfoo #c1\n\tfoobar #c2\n\t)\nEOF",
-		"f <<-EOF\n\t$(\n\t\tfoo\t#c1\n\t\tfoobar\t#c2\n\t)\nEOF",
+		"f <<-EOF\n\t$(\n\t\tfoo    #c1\n\t\tfoobar #c2\n\t)\nEOF",
 	},
 	samePrint("f <<-A\n\ta $(\n\t\tg <<B\nb1\nB\n\t)\nA"),
 	samePrint("f <<-A\n\ta $(\n\t\tg <<B\nb1\tx\n\t\tkeep\nB\n\t)\nA"),
