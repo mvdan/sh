@@ -215,14 +215,21 @@ type colCounter struct {
 	*bufio.Writer
 	column    int
 	lineStart bool
+	escaped   bool // within a tabwriter escape sequence
 }
 
 func (c *colCounter) addByte(b byte) {
 	switch b {
-	case '\n':
+	case '\n', '\f':
+		if c.escaped {
+			c.lineStart = false // literal content, not a line break
+			break
+		}
 		c.column = 0
 		c.lineStart = true
-	case '\t', '\v', ' ', tabwriter.Escape:
+	case tabwriter.Escape:
+		c.escaped = !c.escaped
+	case '\t', '\v', ' ':
 	default:
 		c.lineStart = false
 	}
@@ -251,6 +258,7 @@ func (c *colCounter) WriteString(s string) (int, error) {
 func (c *colCounter) Reset(w io.Writer) {
 	c.column = 1
 	c.lineStart = true
+	c.escaped = false
 	c.Writer.Reset(w)
 }
 
@@ -450,8 +458,8 @@ var (
 )
 
 // writeLit writes literal text, escaping it via [litEscaper]. Tabs are left
-// alone when writing to an extraIndenter, which reindents '<<-' heredoc body
-// lines by their leading tabs and escapes the rest itself.
+// alone when writing to an extraIndenter, which tells the leading tabs of a
+// '<<-' heredoc body line apart from literal ones itself.
 func (p *Printer) writeLit(s string) {
 	if _, ok := p.w.(*extraIndenter); ok {
 		litEscaperNoTabs.WriteString(p.w, s)
@@ -530,10 +538,23 @@ func (p *Printer) indent() {
 func (p *Printer) newline(pos Pos) {
 	p.flushHeredocs()
 	p.flushComments()
-	p.w.WriteByte('\n')
+	p.lineBreak()
 	p.wantSpace = spaceWritten
 	p.wantNewline, p.mustNewline = false, false
 	p.advanceLine(pos.Line())
+}
+
+// lineBreak ends the current line, with a formfeed when the indentation
+// changes so that the tabwriter only aligns trailing comments at the same
+// level. Lines which never carry a comment, like blank lines, write a newline
+// directly. Minified output has no comments to align, and does not track
+// the indentation level.
+func (p *Printer) lineBreak() {
+	if !p.minify && p.level != p.lastLevel {
+		p.w.WriteByte('\f')
+	} else {
+		p.w.WriteByte('\n')
+	}
 }
 
 func (p *Printer) advanceLine(line uint) {
@@ -566,7 +587,9 @@ func (p *Printer) flushHeredocs() {
 
 	for _, r := range hdocs {
 		p.line++
-		p.w.WriteByte('\n')
+		// The body's first line may carry a comment, as in "$({ # c",
+		// so end the column block as with an indentation change.
+		p.w.WriteByte('\f')
 		p.wantSpace = spaceWritten
 		p.wantNewline, p.mustNewline = false, false
 		if r.Op == DashHdoc && p.indentSpaces == 0 && !p.minify {
@@ -676,7 +699,7 @@ func (p *Printer) newlines(pos Pos) {
 	}
 	p.flushHeredocs()
 	p.flushComments()
-	p.w.WriteByte('\n')
+	p.lineBreak()
 	p.wantSpace = spaceWritten
 	p.wantNewline, p.mustNewline = false, false
 
@@ -747,7 +770,7 @@ func (p *Printer) flushComments() {
 		cline := c.Hash.Line()
 		switch {
 		case p.mustNewline, i > 0, cline > p.line && p.line > 0:
-			p.w.WriteByte('\n')
+			p.lineBreak()
 			if cline > p.line+1 {
 				p.w.WriteByte('\n')
 			}
@@ -1979,16 +2002,27 @@ type extraIndenter struct {
 	firstIndent int
 	firstChange int
 	curLine     []byte
+	escaped     bool // within a tabwriter escape sequence
 }
 
 func (e *extraIndenter) WriteByte(b byte) error {
+	switch {
+	case b == tabwriter.Escape:
+		e.escaped = !e.escaped
+	case b == '\t' && !e.escaped && len(bytes.TrimLeft(e.curLine, "\t")) > 0:
+		// A tab after the leading indentation is literal content.
+		e.curLine = append(e.curLine, tabwriter.Escape, '\t', tabwriter.Escape)
+		return nil
+	}
 	e.curLine = append(e.curLine, b)
-	if b != '\n' {
+	// A line ends with a newline, or with an unescaped formfeed
+	// from [Printer.lineBreak]; an escaped one is literal content.
+	if b != '\n' && (b != '\f' || e.escaped) {
 		return nil
 	}
 	trimmed := bytes.TrimLeft(e.curLine, "\t")
 	if len(trimmed) == 1 {
-		// no tabs if this is an empty line, i.e. "\n"
+		// no tabs if this is an empty line, i.e. "\n" or "\f"
 		e.bufWriter.Write(trimmed)
 		e.curLine = e.curLine[:0]
 		return nil
@@ -2016,30 +2050,9 @@ func (e *extraIndenter) WriteByte(b byte) error {
 		e.bufWriter.WriteByte('\t')
 	}
 	e.bufWriter.WriteByte(tabwriter.Escape)
-	e.writeEscapingTabs(trimmed)
+	e.bufWriter.Write(trimmed)
 	e.curLine = e.curLine[:0]
 	return nil
-}
-
-// writeEscapingTabs writes a line, wrapping any tab outside an existing
-// escape sequence in [tabwriter.Escape] so that the tabwriter treats it as
-// literal content rather than a column separator turned into spaces.
-func (e *extraIndenter) writeEscapingTabs(line []byte) {
-	escaped := false
-	for _, b := range line {
-		switch b {
-		case tabwriter.Escape:
-			escaped = !escaped
-		case '\t':
-			if !escaped {
-				e.bufWriter.WriteByte(tabwriter.Escape)
-				e.bufWriter.WriteByte('\t')
-				e.bufWriter.WriteByte(tabwriter.Escape)
-				continue
-			}
-		}
-		e.bufWriter.WriteByte(b)
-	}
 }
 
 // sink returns the writer that this indenter, and any enclosing indenters
