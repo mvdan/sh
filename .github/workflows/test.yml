@@ -26,10 +26,6 @@ jobs:
     timeout-minutes: 10
     steps:
     - uses: namespacelabs/nscloud-checkout-action@v9
-    # Namespace's macOS runners leave TMPDIR unset, so Go falls back to /tmp,
-    # where new files belong to the wheel group and chmod g+s fails.
-    - if: matrix.os == 'namespace-profile-macos'
-      run: echo "TMPDIR=$(getconf DARWIN_USER_TEMP_DIR)" >> "$GITHUB_ENV"
     - uses: actions/setup-go@v7
       with:
         go-version: ${{ matrix.go-version }}
