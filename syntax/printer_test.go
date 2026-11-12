@@ -1319,6 +1319,12 @@ func TestPrintMinify(t *testing.T) {
 			"case $a in\nx)c;;\ny|z)d\nesac",
 		},
 		{
+			// The last item without statements of its own still needs its
+			// operator, as "case a in b) ; esac" is not valid shell.
+			"case a in b) ;; esac",
+			"case a in b);;esac",
+		},
+		{
 			"a && b | c",
 			"a&&b|c",
 		},

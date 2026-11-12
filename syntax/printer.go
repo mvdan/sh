@@ -1539,7 +1539,11 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 
 			p.nestedStmts(ci.Stmts, ci.Last, ci.OpPos)
 			p.level++
-			if !p.minify || i != len(cmd.Items)-1 {
+			// When minifying, the last item's operator is left out, as a ";"
+			// is enough to end its statements. An item without statements of
+			// its own needs its operator, though, as "case x in y) ; esac" is
+			// not valid shell.
+			if !p.minify || i != len(cmd.Items)-1 || len(ci.Stmts) == 0 {
 				if p.wantsNewline(ci.OpPos, false) {
 					p.newlines(ci.OpPos)
 					p.wantNewline = true
