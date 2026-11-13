@@ -102,6 +102,11 @@ var printTests = []printCase{
 	samePrint("foo; continue"),
 	samePrint("foo; ! exit 1"),
 	samePrint("foo & exit 1"),
+	samePrint("{ echo $(a &); }"),
+	samePrint("{ echo >$(a &); }"),
+	samePrint("for f in $(a &); do b; done"),
+	samePrint("select f in <(a &); do b; done"),
+	samePrint("for f in x; do case a in b) c ;; esac; done"),
 	samePrint("cat <<DOC; exit 1\nbody\nDOC"),
 	{"foo; exit 1; bar", "foo; exit 1\nbar"},
 	{"if a; then b; exit 1; fi", "if a; then\n\tb; exit 1\nfi"},
@@ -1317,6 +1322,10 @@ func TestPrintMinify(t *testing.T) {
 		{
 			"case $a in\nx) c ;;\ny | z)\n\td\n\t;;\nesac",
 			"case $a in\nx)c;;\ny|z)d\nesac",
+		},
+		{
+			"{ case a in b) c ;; d) ;; esac; }",
+			"{ case a in b)c;;d)esac;}",
 		},
 		{
 			"a && b | c",

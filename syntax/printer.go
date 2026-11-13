@@ -275,7 +275,7 @@ type Printer struct {
 
 	wantNewline bool // newline is wanted for pretty-printing; ignored by singleLine; ignored by singleLine
 	mustNewline bool // newline is required to keep shell syntax valid
-	wroteSemi   bool // wrote ';' for the current statement
+	wroteSemi   bool // the last token written, such as ';' or ';;', ends a statement
 
 	// pendingComments are any comments in the current line or statement
 	// that we have yet to print. This is useful because that way, we can
@@ -644,6 +644,7 @@ func (p *Printer) rightParen(pos Pos) {
 	}
 	p.w.WriteByte(')')
 	p.wantSpace = spaceRequired
+	p.wroteSemi = false
 }
 
 // closingParen prints a closing parenthesis at closePos, separating it from a
@@ -671,6 +672,7 @@ func (p *Printer) semiRsrv(s string, pos Pos) {
 	}
 	p.w.WriteString(s)
 	p.wantSpace = spaceRequired
+	p.wroteSemi = false
 }
 
 func (p *Printer) flushComments() {
