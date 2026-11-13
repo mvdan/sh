@@ -1210,12 +1210,14 @@ func (p *Printer) wordJoin(ws []*Word) {
 	}
 }
 
-func (p *Printer) casePatternJoin(pats []*Word) {
+// casePatternJoin reports whether it printed a leading "(".
+func (p *Printer) casePatternJoin(pats []*Word) (lparen bool) {
 	anyNewline := false
 	for i, w := range pats {
 		// Only valid situation for a literal 'esac' here is with a preceding left paran.
 		if i == 0 && w.Lit() == "esac" {
 			p.w.WriteString("(")
+			lparen = true
 		}
 		if i > 0 {
 			p.spacedToken("|", Pos{})
@@ -1234,6 +1236,7 @@ func (p *Printer) casePatternJoin(pats []*Word) {
 	if anyNewline {
 		p.decLevel()
 	}
+	return lparen
 }
 
 func (p *Printer) elemJoin(elems []*ArrayElem, last []Comment) {
@@ -1532,9 +1535,10 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			}
 			p.newlines(ci.Pos())
 			p.spacePad(ci.Pos())
-			p.casePatternJoin(ci.Patterns)
+			lparen := p.casePatternJoin(ci.Patterns)
 			p.w.WriteByte(')')
-			if !p.minify {
+			// zsh reads "(esac)foo" as a single pattern.
+			if !p.minify || lparen {
 				p.wantSpace = spaceRequired
 			} else {
 				p.wantSpace = spaceNotRequired
@@ -1550,6 +1554,12 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 				p.spacedToken(ci.Op.String(), ci.OpPos)
 				p.advanceLine(ci.OpPos.Line())
 				// avoid ; directly after tokens like ;;
+				p.wroteSemi = true
+			} else if len(ci.Stmts) == 0 {
+				// "case x in y);esac" is invalid; print "y)esac".
+				if lparen && !p.wantsNewline(cmd.Esac, false) {
+					p.space()
+				}
 				p.wroteSemi = true
 			}
 			p.comments(last...)

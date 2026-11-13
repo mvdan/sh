@@ -1339,6 +1339,26 @@ func TestPrintMinify(t *testing.T) {
 			"{ case a in b)c;;d)esac;}",
 		},
 		{
+			"case a in b) ;; esac",
+			"case a in b)esac",
+		},
+		{
+			"{ case a in b) ;; esac; }",
+			"{ case a in b)esac;}",
+		},
+		{
+			"case a in (esac) ;; esac",
+			"case a in (esac) esac",
+		},
+		{
+			"case a in (esac)\nesac",
+			"case a in (esac)\nesac",
+		},
+		{
+			"case a in (esac) b ;; c) ;; esac",
+			"case a in (esac) b;;c)esac",
+		},
+		{
 			"a && b | c",
 			"a&&b|c",
 		},
