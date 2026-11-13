@@ -50,9 +50,20 @@ func TestPrintZsh(t *testing.T) {
 		{"{ foo; } always # c\n{ bar; }", "{ foo; } always { # c\n\tbar\n}"},
 		{"{ foo; } always # c\n{}", "{ foo; } always { # c\n}"},
 		{"{ foo; } always # c\n{ }", "{ foo; } always { # c\n}"},
+		samePrint("if a & then; fi"),
+		samePrint("while a & do; done"),
 	} {
 		t.Run("", func(t *testing.T) {
 			printTest(t, parser, printer, tc.in, tc.want)
+		})
+	}
+	minifier := NewPrinter(Minify(true))
+	for _, tc := range []printCase{
+		{"if a & then; elif b & then; else; fi", "if a&then;elif b&then;else;fi"},
+		{"while a & do; done", "while a&do;done"},
+	} {
+		t.Run("", func(t *testing.T) {
+			printTest(t, parser, minifier, tc.in, tc.want)
 		})
 	}
 }

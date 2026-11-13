@@ -420,6 +420,7 @@ func (p *Printer) semiOrNewl(s string, pos Pos) {
 	}
 	p.w.WriteString(s)
 	p.wantSpace = spaceRequired
+	p.wroteSemi = false
 }
 
 func (p *Printer) writeLit(s string) {
