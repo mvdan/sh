@@ -299,6 +299,15 @@ type Printer struct {
 
 	nestedBinary bool
 
+	// keepParamBraces is set within a zsh nested parameter expansion,
+	// where minifying must not drop the braces of a parameter expansion.
+	keepParamBraces bool
+
+	// escapeArithmNewlines is set within array indices, slices, and let,
+	// where newlines in arithmetic expressions must be escaped,
+	// even within a nested arithmetic expansion.
+	escapeArithmNewlines bool
+
 	// pendingHdocs is the list of pending heredocs to write.
 	pendingHdocs []*Redirect
 
@@ -318,6 +327,8 @@ func (p *Printer) reset() {
 	p.lastLevel, p.level = 0, 0
 	p.levelIncs = p.levelIncs[:0]
 	p.nestedBinary = false
+	p.keepParamBraces = false
+	p.escapeArithmNewlines = false
 	p.pendingHdocs = p.pendingHdocs[:0]
 }
 
@@ -819,7 +830,7 @@ func (p *Printer) wordPart(wp, next WordPart) {
 		if nextLit, ok := next.(*Lit); ok && nextLit.Value != "" {
 			litCont = nextLit.Value[:1]
 		}
-		if p.minify && !wp.Short && wp.simple() {
+		if p.minify && !p.keepParamBraces && !wp.Short && wp.simple() {
 			name := wp.Param.Value
 			switch {
 			case len(name) > 1 && !ValidName(name): // ${10}
@@ -835,7 +846,8 @@ func (p *Printer) wordPart(wp, next WordPart) {
 	case *ArithmExp:
 		p.w.WriteString("$((")
 		if wp.Unsigned {
-			p.w.WriteString("# ")
+			p.w.WriteByte('#')
+			p.arithmSpace(wp.X)
 		}
 		p.arithmExpr(wp.X, false, false)
 		p.w.WriteString("))")
@@ -875,6 +887,8 @@ func (p *Printer) wroteIndex(index ArithmExpr) bool {
 		return false
 	}
 	p.w.WriteByte('[')
+	saved := p.escapeArithmNewlines
+	p.escapeArithmNewlines = true
 	// Spaces around a comma would split an assignment word like a[1,3]=x,
 	// so keep Bash and mksh commas compact. Zsh subscripts are words,
 	// printed as they were written.
@@ -895,6 +909,7 @@ func (p *Printer) wroteIndex(index ArithmExpr) bool {
 		compact := ok && binary.Op == Comma
 		p.arithmExpr(index, compact, false)
 	}
+	p.escapeArithmNewlines = saved
 	p.w.WriteByte(']')
 	return true
 }
@@ -954,10 +969,10 @@ func (p *Printer) paramExp(pe *ParamExp) {
 	case pe.NestedParam != nil:
 		// Note that Zsh supports ${${nested}} but not ${$nested},
 		// so we need to avoid that simplification here.
-		saved := p.minify
-		p.minify = false
+		saved := p.keepParamBraces
+		p.keepParamBraces = true
 		p.wordPart(pe.NestedParam, nil)
-		p.minify = saved
+		p.keepParamBraces = saved
 	}
 	p.wroteIndex(pe.Index)
 	for _, sub := range pe.Subscripts {
@@ -970,12 +985,15 @@ func (p *Printer) paramExp(pe *ParamExp) {
 			p.w.WriteString(lit.Value)
 		}
 	case pe.Slice != nil:
+		saved := p.escapeArithmNewlines
+		p.escapeArithmNewlines = true
 		p.w.WriteByte(':')
 		p.arithmExpr(pe.Slice.Offset, true, true)
 		if pe.Slice.Length != nil {
 			p.w.WriteByte(':')
 			p.arithmExpr(pe.Slice.Length, true, false)
 		}
+		p.escapeArithmNewlines = saved
 	case pe.Repl != nil:
 		if pe.Repl.All {
 			p.w.WriteByte('/')
@@ -1066,9 +1084,11 @@ func (p *Printer) loop(loop Loop) {
 			p.space()
 		}
 		p.arithmExpr(loop.Init, false, false)
-		p.w.WriteString("; ")
+		p.w.WriteByte(';')
+		p.arithmSpace(loop.Cond)
 		p.arithmExpr(loop.Cond, false, false)
-		p.w.WriteString("; ")
+		p.w.WriteByte(';')
+		p.arithmSpace(loop.Post)
 		p.arithmExpr(loop.Post, false, false)
 		p.w.WriteString("))")
 	}
@@ -1081,7 +1101,34 @@ func (p *Printer) arithmExpr(expr ArithmExpr, compact, spacePlusMinus bool) {
 	p.arithmExprRecurse(expr, compact, spacePlusMinus)
 }
 
+// arithmNewl starts a new line within an arithmetic expression.
+func (p *Printer) arithmNewl() {
+	if p.escapeArithmNewlines {
+		p.bslashNewl()
+	} else {
+		p.w.WriteByte('\n')
+		p.indent()
+		p.wantSpace = spaceWritten
+	}
+}
+
+// arithmSpace writes a space before x, unless x starts a plain new line.
+func (p *Printer) arithmSpace(x ArithmExpr) {
+	if x == nil || p.escapeArithmNewlines || !p.wantsNewline(x.Pos(), true) {
+		p.space()
+	}
+}
+
 func (p *Printer) arithmExprRecurse(expr ArithmExpr, compact, spacePlusMinus bool) {
+	// A binary expression starts with its X operand,
+	// whose own call starts any new line.
+	if _, ok := expr.(*BinaryArithm); !ok && expr != nil {
+		pos := expr.Pos()
+		if p.wantsNewline(pos, true) {
+			p.arithmNewl()
+		}
+		p.advanceLine(pos.Line())
+	}
 	switch expr := expr.(type) {
 	case *Word:
 		p.word(expr)
@@ -1092,20 +1139,18 @@ func (p *Printer) arithmExprRecurse(expr ArithmExpr, compact, spacePlusMinus boo
 			p.arithmExprRecurse(expr.Y, compact, false)
 		} else {
 			p.arithmExprRecurse(expr.X, compact, spacePlusMinus)
-			// Escaped newlines, as some contexts require them,
-			// such as C-style loops.
 			nextLine := p.binNextLine && expr.Op != Comma &&
 				p.wantsNewline(expr.Y.Pos(), true)
 			switch {
 			case nextLine:
 				p.incLevel()
-				p.bslashNewl()
+				p.arithmNewl()
 				p.advanceLine(expr.Y.Pos().Line())
 			case expr.Op != Comma:
 				p.space()
 			}
 			p.w.WriteString(expr.Op.String())
-			p.space()
+			p.arithmSpace(expr.Y)
 			p.arithmExprRecurse(expr.Y, compact, false)
 			if nextLine {
 				p.decLevel()
@@ -1126,7 +1171,7 @@ func (p *Printer) arithmExprRecurse(expr ArithmExpr, compact, spacePlusMinus boo
 			if expr.Op == Not && !compact {
 				// "!" followed by a word triggers history expansion
 				// in interactive shells; a space prevents that.
-				p.space()
+				p.arithmSpace(expr.X)
 			}
 			p.arithmExprRecurse(expr.X, compact, false)
 		}
@@ -1147,7 +1192,7 @@ func (p *Printer) arithmExprRecurse(expr ArithmExpr, compact, spacePlusMinus boo
 		for i, arg := range expr.Args {
 			if i > 0 {
 				p.w.WriteByte(',')
-				p.space()
+				p.arithmSpace(arg)
 			}
 			p.arithmExprRecurse(arg, false, false)
 		}
@@ -1606,7 +1651,8 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 	case *ArithmCmd:
 		p.w.WriteString("((")
 		if cmd.Unsigned {
-			p.w.WriteString("# ")
+			p.w.WriteByte('#')
+			p.arithmSpace(cmd.X)
 		}
 		p.arithmExpr(cmd.X, false, false)
 		p.w.WriteString("))")
@@ -1641,10 +1687,13 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.stmt(cmd.Stmt)
 	case *LetClause:
 		p.spacedString("let", cmd.Pos())
+		saved := p.escapeArithmNewlines
+		p.escapeArithmNewlines = true
 		for _, n := range cmd.Exprs {
 			p.space()
 			p.arithmExpr(n, true, false)
 		}
+		p.escapeArithmNewlines = saved
 	case *TestDecl:
 		p.spacedString("@test", cmd.Pos())
 		p.space()

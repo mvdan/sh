@@ -65,8 +65,7 @@ func TestPrintZsh(t *testing.T) {
 	for _, tc := range []printCase{
 		{"if a & then; elif b & then; else; fi", "if a&then;elif b&then;else;fi"},
 		{"while a & do; done", "while a&do;done"},
-		// TODO: see https://github.com/mvdan/sh/issues/1169
-		{"echo ${${x:-$((a +\nb))}}", "echo ${${x:-$((a + \\\nb))}}"},
+		{"echo ${${x:-$((a +\nb))}}", "echo ${${x:-$((a+b))}}"},
 	} {
 		t.Run("", func(t *testing.T) {
 			printTest(t, parser, minifier, tc.in, tc.want)
@@ -81,8 +80,7 @@ func TestPrintMksh(t *testing.T) {
 	printer := NewPrinter()
 	for _, tc := range []printCase{
 		samePrint("((# a)) && echo $((# b))"),
-		// TODO: see https://github.com/mvdan/sh/issues/1169
-		{"((#\na)) && echo $((#\nb))", "((# \\\na)) && echo $((# \\\nb))"},
+		samePrint("((#\na)) && echo $((#\nb))"),
 	} {
 		t.Run("", func(t *testing.T) {
 			printTest(t, parser, printer, tc.in, tc.want)
@@ -544,26 +542,25 @@ var printTests = []printCase{
 	},
 	// Newlines need no escaping within "((" and "$((",
 	// but they do within array indices and slices.
-	// TODO: see https://github.com/mvdan/sh/issues/1169
 	{
 		"((\n a > 2\n &&\n a < 10\n)) && echo in range",
-		"((\\\na > 2 && \\\na < 10)) && echo in range",
+		"((\na > 2 &&\na < 10)) && echo in range",
 	},
 	{
 		"if x; then\n((a &&\nb))\nfi",
-		"if x; then\n\t((a && \\\n\tb))\nfi",
+		"if x; then\n\t((a &&\n\tb))\nfi",
 	},
 	{
 		"echo $((a +\n\tb)) \"$((c,\n\td))\"",
-		"echo $((a + \\\nb)) \"$((c, \\\nd))\"",
+		"echo $((a +\nb)) \"$((c,\nd))\"",
 	},
 	{
 		"for ((i = 0;\n\ti < 3;\n\ti++)); do\n\tfoo\ndone",
-		"for ((i = 0;  \\\ni < 3;  \\\ni++)); do\n\tfoo\ndone",
+		"for ((i = 0;\ni < 3;\ni++)); do\n\tfoo\ndone",
 	},
 	{
 		"echo $((a[b +\nc] +\nd)) ${a[b +\nc]} ${a:b +\nc}",
-		"echo $((a[b + \\\nc] + \\\nd)) ${a[b + \\\nc]} ${a:b+ \\\nc}",
+		"echo $((a[b + \\\nc] +\nd)) ${a[b + \\\nc]} ${a:b+ \\\nc}",
 	},
 	{
 		"echo ${a[$((b +\nc))]}\na[$((b +\nc))]=x",
@@ -571,7 +568,7 @@ var printTests = []printCase{
 	},
 	{
 		"echo $((a +\n-b)) $((\n(a + b))) $((\n! a))",
-		"echo $((a + -\\\nb)) $(((\\\na + b))) $((! \\\na))",
+		"echo $((a +\n-b)) $((\n(a + b))) $((\n! a))",
 	},
 	{
 		"[[ (a\n) && b ]]",
@@ -1091,23 +1088,23 @@ func TestPrintBinaryNextLine(t *testing.T) {
 		},
 		{
 			"((a \\\n\t|| b))",
-			"((a \\\n\t|| b))",
+			"((a\n\t|| b))",
 		},
 		{
 			"((a &&\nb))",
-			"((a \\\n\t&& b))",
+			"((a\n\t&& b))",
 		},
 		{
 			"((a ||\nb ||\nc))",
-			"((a \\\n\t|| b \\\n\t|| c))",
+			"((a\n\t|| b\n\t|| c))",
 		},
 		{
 			"if ((a ||\nb)); then\nc\nfi",
-			"if ((a \\\n\t|| b)); then\n\tc\nfi",
+			"if ((a\n\t|| b)); then\n\tc\nfi",
 		},
 		{
 			"echo $((a +\nb))",
-			"echo $((a \\\n\t+ b))",
+			"echo $((a\n\t+ b))",
 		},
 		samePrint("a \\\n\tb \\\n\tc \\\n\t# EOC"),
 		samePrint("a \\\n\t| b \\\n\t| c \\\n\t# EOC"),
@@ -1421,22 +1418,21 @@ func TestPrintMinify(t *testing.T) {
 			"((1 + 2))",
 			"((1+2))",
 		},
-		// TODO: see https://github.com/mvdan/sh/issues/1169
 		{
 			"((\nfoo\n))",
-			"((\\\nfoo))",
+			"((foo))",
 		},
 		{
 			"((\na > 0\n&&\na < 10\n))",
-			"((\\\na>0&& \\\na<10))",
+			"((a>0&&a<10))",
 		},
 		{
 			"((a > 0 &&\na < 10))",
-			"((a>0&& \\\na<10))",
+			"((a>0&&a<10))",
 		},
 		{
 			"echo ${a[b +\nc]} ${s:1 +\n2} ${a[$((b +\nc))]}\nlet x=$((a +\nb))",
-			"echo ${a[b+ \\\nc]} ${s:1+ \\\n2} ${a[$((b+ \\\nc))]}\nlet x=$((a+ \\\nb))",
+			"echo ${a[b+c]} ${s:1+2} ${a[$((b+c))]}\nlet x=$((a+b))",
 		},
 		{
 			"echo $a ${b} ${c}-d ${e}f ${g}_h",
