@@ -675,9 +675,88 @@ var printTests = []printCase{
 		"a <<EOF\n$(\n\tb\n\tc\n)\nEOF",
 	},
 	samePrint("<<EOF1\n$(\n\t<<EOF2\ninner\nEOF2\n)\nEOF1"),
+	// With a single command or pipeline whose heredocs end right before
+	// the closing token, it should stay on the opening line.
 	{
 		"<(<<EOF\nbody\nEOF\n)",
 		"<(\n\t<<EOF\nbody\nEOF\n)",
+	},
+	{
+		"$(cat <<EOF\nbody\nEOF\n)",
+		"$(\n\tcat <<EOF\nbody\nEOF\n)",
+	},
+	{
+		"\"$(cat <<EOF | sed x\nbody\nEOF\n)\"",
+		"\"$(\n\tcat <<EOF | sed x\nbody\nEOF\n)\"",
+	},
+	{
+		"$(cat <<EOF\nEOF\n)",
+		"$(\n\tcat <<EOF\nEOF\n)",
+	},
+	{
+		"$(cat <<-EOF\n\tEOF\n)",
+		"$(\n\tcat <<-EOF\n\tEOF\n)",
+	},
+	{
+		"${ cat <<EOF\nbody\nEOF\n}",
+		"${\n\tcat <<EOF\nbody\nEOF\n}",
+	},
+	{
+		"f() {\n\tx=$(cat <<-EOF\n\t\tbody\n\tEOF\n\t)\n}",
+		"f() {\n\tx=$(\n\t\tcat <<-EOF\n\t\t\tbody\n\t\tEOF\n\t)\n}",
+	},
+	{
+		"{ cat <<EOF\nbody\nEOF\n}",
+		"{\n\tcat <<EOF\nbody\nEOF\n}",
+	},
+	{
+		"usage() { cat <<EOF\nbody\nEOF\n}",
+		"usage() {\n\tcat <<EOF\nbody\nEOF\n}",
+	},
+	{
+		"if a; then cat <<EOF\nbody\nEOF\nfi",
+		"if a; then\n\tcat <<EOF\nbody\nEOF\nfi",
+	},
+	{
+		"$(if a; then cat <<EOF\nbody\nEOF\nfi)",
+		"$(if a; then\n\tcat <<EOF\nbody\nEOF\nfi)",
+	},
+	{
+		"$(cat \"$(a; b)\" <<EOF\nbody\nEOF\n)",
+		"$(\n\tcat \"$(\n\t\ta\n\t\tb\n\t)\" <<EOF\nbody\nEOF\n)",
+	},
+	{
+		"$(a &&\n\tcat <<EOF\nbody\nEOF\n)",
+		"$(\n\ta &&\n\t\tcat <<EOF\nbody\nEOF\n)",
+	},
+	{
+		"$(cat <<EOF >\"$(dirname x)/y\"\nbody\nEOF\n)",
+		"$(\n\tcat <<EOF >\"$(dirname x)/y\"\nbody\nEOF\n)",
+	},
+	// Otherwise, it goes on its own line.
+	{
+		"$({ cat <<EOF; }\nbody\nEOF\n)",
+		"$(\n\t{ cat <<EOF; }\nbody\nEOF\n)",
+	},
+	{
+		"$({ a; cat <<EOF; }\nbody\nEOF\n)",
+		"$(\n\t{\n\t\ta\n\t\tcat <<EOF\nbody\nEOF\n\t}\n)",
+	},
+	{
+		"$(cat <<EOF && { a; b; }\nbody\nEOF\n)",
+		"$(\n\tcat <<EOF && {\nbody\nEOF\n\t\ta\n\t\tb\n\t}\n)",
+	},
+	samePrint("$(\n\tcat <<EOF\nbody\nEOF\n)"),
+	samePrint("$(\n\tcat <<EOF\nbody\nEOF\n\n)"),
+	samePrint("$(\n\tcat <<EOF\nbody\nEOF\n\t# c\n)"),
+	samePrint("$(if a; then\n\tcat <<EOF\nbody\nEOF\nfi)"),
+	{
+		"$(cat <<EOF \\\n\t| sed x\nbody\nEOF\n)",
+		"$(\n\tcat <<EOF |\nbody\nEOF\n\t\tsed x\n)",
+	},
+	{
+		"$(cat <<EOF \"a\nb\"\nbody\nEOF\n)",
+		"$(\n\tcat \"a\nb\" <<EOF\nbody\nEOF\n)",
 	},
 	{
 		"( (foo) )\n$( (foo) )\n<( (foo) )",
