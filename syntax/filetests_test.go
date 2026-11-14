@@ -4817,9 +4817,18 @@ var fileTests = []fileTestCase{
 	// a compound command when they start a command, so not after a redirect.
 	fileTest(
 		[]string{">f }\n>f then\n>f elif\n>f else\n>f fi\n>f do\n>f done\n>f esac\n>f !"},
-		langErr2("1:4: `}` can only be used to close a block", LangPOSIX|LangBash|LangMirBSDKorn), // wrong: these are commands
+		langFile([]*Stmt{
+			{Cmd: litCall("}"), Redirs: []*Redirect{{Op: RdrOut, Word: litWord("f")}}},
+			{Cmd: litCall("then"), Redirs: []*Redirect{{Op: RdrOut, Word: litWord("f")}}},
+			{Cmd: litCall("elif"), Redirs: []*Redirect{{Op: RdrOut, Word: litWord("f")}}},
+			{Cmd: litCall("else"), Redirs: []*Redirect{{Op: RdrOut, Word: litWord("f")}}},
+			{Cmd: litCall("fi"), Redirs: []*Redirect{{Op: RdrOut, Word: litWord("f")}}},
+			{Cmd: litCall("do"), Redirs: []*Redirect{{Op: RdrOut, Word: litWord("f")}}},
+			{Cmd: litCall("done"), Redirs: []*Redirect{{Op: RdrOut, Word: litWord("f")}}},
+			{Cmd: litCall("esac"), Redirs: []*Redirect{{Op: RdrOut, Word: litWord("f")}}},
+			{Cmd: litCall("!"), Redirs: []*Redirect{{Op: RdrOut, Word: litWord("f")}}},
+		}, LangPOSIX|LangBash|LangMirBSDKorn),
 		langErr2("1:4: `}` can only be used to close a block", LangZsh),
-		flipConfirm2(LangPOSIX|LangBash|LangMirBSDKorn), // wrong: shells run them as commands
 	),
 	fileTest(
 		[]string{"[[ a ]]\nb"},

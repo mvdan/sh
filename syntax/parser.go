@@ -2346,22 +2346,29 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			p.forClause(s)
 		case "case":
 			p.caseClause(s)
-		case "}":
-			p.curErr(`%#q can only be used to close a block`, rightBrace)
-		case "then", "elif", "else":
-			p.curErr("%#q can only be used in an `if`", p.val)
-		case "fi":
-			p.curErr("%#q can only be used to end an `if`", p.val)
-		case "do":
-			p.curErr(`%#q can only be used in a loop`, p.val)
-		case "done":
-			p.curErr(`%#q can only be used to end a loop`, p.val)
-		case "esac":
-			p.curErr("%#q can only be used to end a `case`", p.val)
-		case "!":
-			if !s.Negated {
-				p.curErr(`%#q can only be used in full statements`, exclMark)
+		case "}", "then", "elif", "else", "fi", "do", "done", "esac", "!":
+			// Only reserved as the first word, so not after a redirect,
+			// except in zsh.
+			if redirsStart > 0 && !p.lang.in(LangZsh) {
 				break
+			}
+			switch p.val {
+			case "}":
+				p.curErr(`%#q can only be used to close a block`, rightBrace)
+			case "then", "elif", "else":
+				p.curErr("%#q can only be used in an `if`", p.val)
+			case "fi":
+				p.curErr("%#q can only be used to end an `if`", p.val)
+			case "do":
+				p.curErr(`%#q can only be used in a loop`, p.val)
+			case "done":
+				p.curErr(`%#q can only be used to end a loop`, p.val)
+			case "esac":
+				p.curErr("%#q can only be used to end a `case`", p.val)
+			case "!":
+				if !s.Negated {
+					p.curErr(`%#q can only be used in full statements`, exclMark)
+				}
 			}
 		case "[[", "]]":
 			if !p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
