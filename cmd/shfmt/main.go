@@ -16,6 +16,7 @@ import (
 	"regexp"
 	"runtime/debug"
 	"strings"
+	"sync"
 
 	maybeio "github.com/google/renameio/v2/maybe"
 	diffpkg "github.com/rogpeppe/go-internal/diff"
@@ -298,7 +299,7 @@ For more information and to report bugs, see https://github.com/mvdan/sh.
 				// TODO: Should there be a way to explicitly turn off ignore rules when walking?
 				// Perhaps swapping the default to --apply-ignore=auto and allowing --apply-ignore=false?
 				// I don't imagine it's a particularly useful scenario for now.
-				props, err := ecQuery.Find(path, []string{"shell"})
+				props, err := ecFind(path, []string{"shell"})
 				if err != nil {
 					return err
 				}
@@ -372,7 +373,7 @@ func formatStdin(name string) error {
 	}
 	if applyIgnore.val {
 		// Mimic the logic from walkPath to apply the ignore rules.
-		props, err := ecQuery.Find(name, []string{"shell"})
+		props, err := ecFind(name, []string{"shell"})
 		if err != nil {
 			return err
 		}
@@ -422,6 +423,56 @@ func langFromFilename(name string) syntax.LangVariant {
 var ecQuery = editorconfig.Query{
 	FileCache:   make(map[string]*editorconfig.File),
 	RegexpCache: make(map[string]*regexp.Regexp),
+}
+
+// fallbackEditorConfig loads the user's fallback EditorConfig file, if any.
+var fallbackEditorConfig = sync.OnceValues(func() (*editorconfig.File, error) {
+	dir, err := os.UserConfigDir()
+	if err != nil {
+		// e.g. $HOME is unset or $XDG_CONFIG_HOME is relative;
+		// skip the fallback rather than failing for every file.
+		return nil, nil
+	}
+	path := filepath.Join(dir, "shfmt", "editorconfig")
+	f, err := os.Open(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	file, err := editorconfig.Parse(f)
+	if err != nil {
+		return nil, err
+	}
+	// The file has no directory of its own for slashes to be relative to.
+	for _, section := range file.Sections {
+		if strings.Contains(section.Name, "/") {
+			return nil, fmt.Errorf("%s: section [%s] must not contain a slash", path, section.Name)
+		}
+	}
+	return file, nil
+})
+
+// ecFind is like [editorconfig.Query.Find] with [ecQuery],
+// but properties left unset are taken from [fallbackEditorConfig],
+// even past an EditorConfig file with root=true.
+func ecFind(path string, langs []string) (editorconfig.Section, error) {
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return editorconfig.Section{}, err
+	}
+	props, err := ecQuery.Find(abs, langs)
+	if err != nil {
+		return props, err
+	}
+	fallback, err := fallbackEditorConfig()
+	if fallback == nil || err != nil {
+		return props, err
+	}
+	// The fallback file's patterns have no slashes, so they only match base names.
+	props.Add(fallback.Filter(filepath.Base(abs), langs, ecQuery.RegexpCache).Properties...)
+	return props, nil
 }
 
 func propsOptions(lang syntax.LangVariant, props editorconfig.Section) (_ syntax.LangVariant, validLang bool) {
@@ -542,7 +593,7 @@ func editorConfigLangs(l syntax.LangVariant) []string {
 func formatBytes(src []byte, path string, fileLang syntax.LangVariant) error {
 	fileLangFromEditorConfig := false
 	if useEditorConfig {
-		props, err := ecQuery.Find(path, editorConfigLangs(fileLang))
+		props, err := ecFind(path, editorConfigLangs(fileLang))
 		if err != nil {
 			return err
 		}

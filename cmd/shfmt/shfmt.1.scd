@@ -23,6 +23,11 @@ If any EditorConfig files are found, they will be used to apply formatting
 options. If any parser or printer flags are given to the tool, no EditorConfig
 formatting options will be used. A default like *-i=0* can be used for this purpose.
 
+A fallback EditorConfig file at *$XDG_CONFIG_HOME/shfmt/editorconfig*,
+or the platform's equivalent, fills in properties left unset by a script's
+EditorConfig files, even past *root = true*. Its section patterns
+cannot contain slashes, as the file has no directory of its own.
+
 shfmt's default shell formatting was chosen to be consistent, common, and
 predictable. Some aspects of the format can be configured via printer flags.
 

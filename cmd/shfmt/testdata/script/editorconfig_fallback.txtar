@@ -1,0 +1,78 @@
+env XDG_CONFIG_HOME=$WORK/config
+env AppData=$WORK/config
+[darwin] env HOME=$WORK/home
+[darwin] mkdir $HOME/Library/'Application Support'/shfmt
+[darwin] cp config/shfmt/editorconfig $HOME/Library/'Application Support'/shfmt/editorconfig
+
+# The fallback file applies when no EditorConfig files are found,
+# including its [[language]] sections and ignore rules.
+exec shfmt -l noproject
+! stdout .
+! stderr .
+
+stdin noproject/ignored_bad.sh
+exec shfmt --apply-ignore --filename=noproject/ignored_bad.sh
+! stdout .
+! stderr .
+
+# Properties set by a project take precedence, but the fallback file
+# still fills the gaps, even past an EditorConfig file with root=true.
+exec shfmt -l project
+! stdout .
+! stderr .
+
+# The fallback file has no directory of its own, so sections cannot contain slashes.
+env XDG_CONFIG_HOME=$WORK/slashconfig
+env AppData=$WORK/slashconfig
+[darwin] cp slashconfig/shfmt/editorconfig $HOME/Library/'Application Support'/shfmt/editorconfig
+! exec shfmt -l noproject
+! stdout .
+stderr -count=1 'editorconfig: section \[noproject/\*\.sh\] must not contain a slash'
+
+-- config/shfmt/editorconfig --
+[*]
+indent_style = space
+indent_size = 2
+
+[*.sh]
+switch_case_indent = true
+
+[ignored_*.sh]
+ignore = true
+
+[vendor]
+ignore = true
+
+[[zsh]]
+indent_size = 4
+
+-- noproject/f.sh --
+{
+  case "$1" in
+    A) echo foo ;;
+  esac
+}
+-- noproject/ignored_bad.sh --
+bad (syntax
+-- noproject/vendor/bad.sh --
+bad (syntax
+-- noproject/zshscript --
+#!/bin/zsh
+
+{
+    indented
+}
+-- slashconfig/shfmt/editorconfig --
+[noproject/*.sh]
+indent_style = space
+-- project/.editorconfig --
+root = true
+
+[*]
+indent_style = tab
+-- project/f.sh --
+{
+	case "$1" in
+		A) echo foo ;;
+	esac
+}
