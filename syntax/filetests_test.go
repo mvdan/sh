@@ -4813,6 +4813,14 @@ var fileTests = []fileTestCase{
 			{Cmd: litCall("function", "foo"), Redirs: []*Redirect{{Op: RdrOut, Word: litWord("f")}}},
 		}, LangPOSIX),
 	),
+	// Unlike zsh, other shells only reserve words which end or continue
+	// a compound command when they start a command, so not after a redirect.
+	fileTest(
+		[]string{">f }\n>f then\n>f elif\n>f else\n>f fi\n>f do\n>f done\n>f esac\n>f !"},
+		langErr2("1:4: `}` can only be used to close a block", LangPOSIX|LangBash|LangMirBSDKorn), // wrong: these are commands
+		langErr2("1:4: `}` can only be used to close a block", LangZsh),
+		flipConfirm2(LangPOSIX|LangBash|LangMirBSDKorn), // wrong: shells run them as commands
+	),
 	fileTest(
 		[]string{"[[ a ]]\nb"},
 		langFile(stmts(
