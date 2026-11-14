@@ -737,11 +737,12 @@ dispatch:
 			r.builtin(ctx, syntax.Pos{}, "dirs", nil)
 		case 1:
 			if change {
+				r.dirStack = append(r.dirStack, r.Dir)
 				if code := r.changeDir(ctx, "pushd", args[0]); code != 0 {
+					r.dirStack = r.dirStack[:len(r.dirStack)-1]
 					exit.code = code
 					return exit
 				}
-				r.dirStack = append(r.dirStack, r.Dir)
 			} else {
 				r.dirStack = append(r.dirStack, args[0])
 				swap()
@@ -1338,6 +1339,7 @@ func (r *Runner) checkDir(ctx context.Context, path string) (string, error) {
 
 func (r *Runner) setDir(path string) {
 	r.Dir = path
+	r.dirStack[len(r.dirStack)-1] = path // the top is the current directory
 	r.setVarString("OLDPWD", r.envGet("PWD"))
 	r.setVarString("PWD", path)
 }

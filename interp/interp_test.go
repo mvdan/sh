@@ -1480,8 +1480,8 @@ var runTests = []runTest{
 	{"pushd does-not-exist; set -- $(dirs); echo $#", "pushd: no such file or directory: \"does-not-exist\"\n1\n #IGNORE"},
 	{"mkdir a; pushd a >/dev/null; set -- $(dirs); echo $#", "2\n"},
 	{"mkdir a; set -- $(pushd a); echo $#", "2\n"},
-	{`mkdir a; cd a; [[ $(dirs) == "$PWD" ]]`, "exit status 1 #IGNORE cd does not update the directory stack"},
-	{`mkdir a b; pushd a >/dev/null; cd ../b; set -- $(dirs); [[ $1 == "$PWD" ]] && echo $#`, "exit status 1 #IGNORE cd does not update the directory stack"},
+	{`mkdir a; cd a; [[ $(dirs) == "$PWD" ]]`, ""},
+	{`mkdir a b; pushd a >/dev/null; cd ../b; set -- $(dirs); [[ $1 == "$PWD" ]] && echo $#`, "2\n"},
 	{
 		`mkdir a; pushd a >/dev/null; set -- $(dirs); [[ $1 == "$HOME" ]]`,
 		"exit status 1",
