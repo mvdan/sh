@@ -566,6 +566,15 @@ var printTests = []printCase{
 		"echo ${a[$((b +\nc))]}\na[$((b +\nc))]=x",
 		"echo ${a[$((b + \\\nc))]}\na[$((b + \\\n\tc))]=x",
 	},
+	// Each let argument is a single word, which spaces would split.
+	{
+		"let a+\\\nb y=e[f+\\\ng] a[i+1]=x",
+		"let a+b y=e[f+g] a[i+1]=x",
+	},
+	{
+		"f() {\n\tlet a+\\\nb x=$((c +\nd))\n}",
+		"f() {\n\tlet a+b x=$((c + d))\n}",
+	},
 	{
 		"echo $((a +\n-b)) $((\n(a + b))) $((\n! a))",
 		"echo $((a +\n-b)) $((\n(a + b))) $((\n! a))",

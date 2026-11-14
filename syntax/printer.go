@@ -303,10 +303,16 @@ type Printer struct {
 	// where minifying must not drop the braces of a parameter expansion.
 	keepParamBraces bool
 
-	// escapeArithmNewlines is set within array indices, slices, and let,
+	// escapeArithmNewlines is set within array indices and slices,
 	// where newlines in arithmetic expressions must be escaped,
 	// even within a nested arithmetic expansion.
 	escapeArithmNewlines bool
+
+	// letArithm is set within let, whose arithmetic expressions are
+	// single words which spaces would split. Even an escaped newline
+	// would be preceded by a space or followed by indentation,
+	// so the lines are joined.
+	letArithm bool
 
 	// pendingHdocs is the list of pending heredocs to write.
 	pendingHdocs []*Redirect
@@ -329,6 +335,7 @@ func (p *Printer) reset() {
 	p.nestedBinary = false
 	p.keepParamBraces = false
 	p.escapeArithmNewlines = false
+	p.letArithm = false
 	p.pendingHdocs = p.pendingHdocs[:0]
 }
 
@@ -906,7 +913,7 @@ func (p *Printer) wroteIndex(index ArithmExpr) bool {
 		}
 	default:
 		binary, ok := index.(*BinaryArithm)
-		compact := ok && binary.Op == Comma
+		compact := p.letArithm || (ok && binary.Op == Comma)
 		p.arithmExpr(index, compact, false)
 	}
 	p.escapeArithmNewlines = saved
@@ -1101,6 +1108,12 @@ func (p *Printer) arithmExpr(expr ArithmExpr, compact, spacePlusMinus bool) {
 	p.arithmExprRecurse(expr, compact, spacePlusMinus)
 }
 
+// arithmWantsNewline is like [Printer.wantsNewline] for arithmetic
+// expressions, which never start a new line within let.
+func (p *Printer) arithmWantsNewline(pos Pos) bool {
+	return !p.letArithm && p.wantsNewline(pos, true)
+}
+
 // arithmNewl starts a new line within an arithmetic expression.
 func (p *Printer) arithmNewl() {
 	if p.escapeArithmNewlines {
@@ -1114,7 +1127,7 @@ func (p *Printer) arithmNewl() {
 
 // arithmSpace writes a space before x, unless x starts a plain new line.
 func (p *Printer) arithmSpace(x ArithmExpr) {
-	if x == nil || p.escapeArithmNewlines || !p.wantsNewline(x.Pos(), true) {
+	if x == nil || p.escapeArithmNewlines || !p.arithmWantsNewline(x.Pos()) {
 		p.space()
 	}
 }
@@ -1124,7 +1137,7 @@ func (p *Printer) arithmExprRecurse(expr ArithmExpr, compact, spacePlusMinus boo
 	// whose own call starts any new line.
 	if _, ok := expr.(*BinaryArithm); !ok && expr != nil {
 		pos := expr.Pos()
-		if p.wantsNewline(pos, true) {
+		if p.arithmWantsNewline(pos) {
 			p.arithmNewl()
 		}
 		p.advanceLine(pos.Line())
@@ -1140,7 +1153,7 @@ func (p *Printer) arithmExprRecurse(expr ArithmExpr, compact, spacePlusMinus boo
 		} else {
 			p.arithmExprRecurse(expr.X, compact, spacePlusMinus)
 			nextLine := p.binNextLine && expr.Op != Comma &&
-				p.wantsNewline(expr.Y.Pos(), true)
+				p.arithmWantsNewline(expr.Y.Pos())
 			switch {
 			case nextLine:
 				p.incLevel()
@@ -1687,13 +1700,13 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.stmt(cmd.Stmt)
 	case *LetClause:
 		p.spacedString("let", cmd.Pos())
-		saved := p.escapeArithmNewlines
-		p.escapeArithmNewlines = true
+		saved := p.letArithm
+		p.letArithm = true
 		for _, n := range cmd.Exprs {
 			p.space()
 			p.arithmExpr(n, true, false)
 		}
-		p.escapeArithmNewlines = saved
+		p.letArithm = saved
 	case *TestDecl:
 		p.spacedString("@test", cmd.Pos())
 		p.space()
