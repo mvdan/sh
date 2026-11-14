@@ -193,6 +193,7 @@ func DefaultExecHandler(killTimeout time.Duration) ExecHandlerFunc {
 		}
 		if err == nil {
 			hc.runner.reportBgStart(cmd.Process.Pid)
+			hc.runner.execStarted()
 			err = cmd.Wait()
 		}
 

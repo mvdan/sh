@@ -529,6 +529,22 @@ func (r *Runner) dropUnusedHolds(n int) int {
 	return len(kept)
 }
 
+// execStarted closes [Runner.execHolds] once a program inherits them,
+// like a forking shell, so that e.g. a pipe's reader sees EOF in time.
+func (r *Runner) execStarted() {
+	// A middleware may use the files after calling the next handler.
+	if r.execHandlerIsDefault {
+		for _, h := range r.execHolds {
+			// Unless shared, e.g. with a process substitution.
+			// Closing an [os.File] again on release is a no-op.
+			if h.users.Load() == 1 {
+				h.closer.Close()
+			}
+		}
+	}
+	r.execHolds = nil
+}
+
 // reportBgStart is called by a background subshell once we first know whether
 // its statement amounts to starting exactly one external program, with its
 // process ID, or with zero when that is not the case. No-op for any other
@@ -575,7 +591,16 @@ func (r *Runner) stmtSync(ctx context.Context, st *syntax.Stmt) {
 		n = r.dropUnusedHolds(n)
 	}
 	if r.exit.ok() && st.Cmd != nil {
+		if _, ok := st.Cmd.(*syntax.CallExpr); ok {
+			for _, h := range files {
+				// Rather than copied by goroutines while the program runs.
+				if f, ok := h.closer.(*os.File); ok && h.file == any(f) {
+					r.execHolds = append(r.execHolds, h)
+				}
+			}
+		}
 		r.cmd(ctx, st.Cmd)
+		r.execHolds = nil
 	}
 	if st.Negated {
 		if r.exit.ok() {
@@ -736,24 +761,30 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			} else {
 				r2.stderr = r.stderr
 			}
+			handed := r.execHolds // when running a pipeline element
+			r.execHolds = nil
+			if handed != nil && r2.stderr == r.stdout {
+				handed = nil // the handed pipe end is used by both elements
+			}
 			var wg sync.WaitGroup
 			wg.Go(func() {
-				r2.stmt(ctx, cm.X)
+				r2.pipeElem(ctx, cm.X, pw, nil)
 				r2.exitSubshell()
-				pw.Close()
 			})
 			if r.opts[optLastPipe] {
+				// Like Bash, the shell holds its stdin while the command runs.
 				oldIn := r.stdin
 				r.stdin = pr
 				r.stmt(ctx, cm.Y)
 				r.stdin = oldIn
+				pr.Close()
 			} else {
 				// Like Bash, the last command runs in a subshell too,
 				// so `cmd | read x` does not set x in the current shell.
 				r3 := r.subshell(false)
 				r3.inLoop = r.inLoop && pipeElemInLoop(cm.Y)
 				r3.stdin = pr
-				r3.stmt(ctx, cm.Y)
+				r3.pipeElem(ctx, cm.Y, pr, handed)
 				r3.exitSubshell()
 				r.exit = r3.exit
 				// Its background jobs are not the parent shell's,
@@ -767,7 +798,6 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 				}
 				r.pipeProcSubsts = append(r.pipeProcSubsts, r3.pipeProcSubsts...)
 			}
-			pr.Close()
 			wg.Wait()
 			if r.opts[optPipeFail] && !r2.exit.ok() && r.exit.ok() {
 				r.exit = r2.exit
@@ -1287,6 +1317,23 @@ func (r *Runner) trapCallback(ctx context.Context, callback, name string) {
 	r.exit, r.lastExit = oldExit, oldLastExit // traps on EXIT or ERR should not modify the result
 }
 
+// pipeElem runs a pipeline element holding its end of the pipe,
+// which a nested pipeline hands to its last element.
+func (r *Runner) pipeElem(ctx context.Context, st *syntax.Stmt, end io.Closer, handed []*stmtHold) {
+	n := len(r.holds)
+	h := r.hold(end, end)
+	switch cm := st.Cmd.(type) {
+	case *syntax.CallExpr:
+		r.execHolds = append(handed, h)
+	case *syntax.BinaryCmd:
+		if cm.Op == syntax.Pipe || cm.Op == syntax.PipeAll {
+			r.execHolds = append(handed, h)
+		}
+	}
+	r.stmt(ctx, st)
+	r.releaseHolds(n)
+}
+
 // pipeElemInLoop reports whether a pipeline element keeps the enclosing loop.
 // Like in Bash, a simple command does, so that break or continue only end
 // its subshell, whereas a compound command like { break; } does not.
@@ -1667,6 +1714,9 @@ func (r *Runner) call(ctx context.Context, pos syntax.Pos, args []string) {
 		}
 	}
 	name := args[0]
+	if r.Funcs[name] != nil || IsBuiltin(name) {
+		r.execHolds = nil // the files may be used after any program they start
+	}
 	if body := r.Funcs[name]; body != nil {
 		r.reportBgStart(0) // not one external program
 		if !r.enterCall(name, &r.callDepth) {

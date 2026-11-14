@@ -240,6 +240,10 @@ type Runner struct {
 	// its standard streams; see [Runner.dropUnusedHolds].
 	bgDropHolds bool
 
+	// execHolds are only used by the current simple command;
+	// see [Runner.execStarted].
+	execHolds []*stmtHold
+
 	// cmdSubst is the innermost command substitution this runner is within,
 	// if any, which stops the runner once it fails; see [Runner.stop].
 	cmdSubst *cmdSubstWriter

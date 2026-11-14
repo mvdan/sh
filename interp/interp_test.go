@@ -6033,12 +6033,12 @@ var runTestsDefaultExec = []runTest{
 	// Like a forking shell, once a simple command starts an external program,
 	// only the program holds the pipe ends and redirected files it inherits,
 	// so the other side sees EOF or SIGPIPE when the program closes them.
-	{"sh -c 'exec >/dev/null; " + waitMarker + "' | { cat; >marker; }", " #IGNORE the shell holds them until the program exits"},
-	{"sh -c 'exec >/dev/null; " + waitMarker + "' | cat | { cat; >marker; }", " #IGNORE the shell holds them until the program exits"},
-	{"{ yes; >marker; } | sh -c 'exec </dev/null; " + waitMarker + "'", "exit status 1 #IGNORE the shell holds them until the program exits"},
-	{"{ yes; >marker; } | sh -c 'exec </dev/null; " + waitMarker + "' | cat", " #IGNORE the shell holds them until the program exits"},
-	{"mkfifo f; sh -c 'exec >/dev/null; " + waitMarker + "' >f & { cat; >marker; } <f; wait", " #IGNORE the shell holds them until the program exits"},
-	{"mkfifo f; { yes; >marker; } >f & sh -c 'exec </dev/null; " + waitMarker + "' <f; wait", " #IGNORE the shell holds them until the program exits"},
+	{"sh -c 'exec >/dev/null; " + waitMarker + "' | { cat; >marker; }", "seen\n"},
+	{"sh -c 'exec >/dev/null; " + waitMarker + "' | cat | { cat; >marker; }", "seen\n"},
+	{"{ yes; >marker; } | sh -c 'exec </dev/null; " + waitMarker + "'", "seen\n"},
+	{"{ yes; >marker; } | sh -c 'exec </dev/null; " + waitMarker + "' | cat", "seen\n"},
+	{"mkfifo f; sh -c 'exec >/dev/null; " + waitMarker + "' >f & { cat; >marker; } <f; wait", "seen\n"},
+	{"mkfifo f; { yes; >marker; } >f & sh -c 'exec </dev/null; " + waitMarker + "' <f; wait", "seen\n"},
 	// A compound command or function call keeps holding them for the rest of its commands.
 	{"{ sh -c 'exec >/dev/null'; echo after; } | cat", "after\n"},
 	{"{ sh -c 'exec >/dev/null'; echo after; } | cat | cat", "after\n"},
