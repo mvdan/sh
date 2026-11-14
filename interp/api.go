@@ -1387,7 +1387,8 @@ func (r *Runner) WaitBackground() {
 // Subshell makes a copy of the given [Runner], suitable for use concurrently
 // with the original. The copy will have the same environment, including
 // variables and functions, but they can all be modified without affecting the
-// original.
+// original. Resetting the copy via [Runner.Reset] returns it to the same
+// initial state that resetting the original would.
 //
 // Subshell is not safe to use concurrently with [Run]. Orchestrating this is
 // left up to the caller; no locking is performed.
@@ -1414,6 +1415,7 @@ func (r *Runner) subshell(background bool) *Runner {
 	// Keep in sync with the Runner type. Manually copy fields, to not copy
 	// sensitive ones like [errgroup.Group], and to do deep copies of slices.
 	r2 := &Runner{
+		Env:                  r.Env,
 		Dir:                  r.Dir,
 		tempDir:              r.tempDir,
 		umask:                r.umask,
@@ -1445,7 +1447,14 @@ func (r *Runner) subshell(background bool) *Runner {
 		holds:                r.inheritedHolds(),
 		cmdSubst:             r.cmdSubst,
 
-		origStdout: r.origStdout, // used for process substitutions
+		// Used by Reset, by Run after redirections by the exec builtin,
+		// and by process substitutions.
+		origDir:    r.origDir,
+		origParams: r.origParams,
+		origOpts:   r.origOpts,
+		origStdin:  r.origStdin,
+		origStdout: r.origStdout,
+		origStderr: r.origStderr,
 	}
 	// Variables, funcs, and aliases might be modified. A subshell which
 	// does not run alongside the parent shell only copies them once it

@@ -7398,6 +7398,33 @@ func TestRunnerSubshell(t *testing.T) {
 	}
 }
 
+func TestRunnerSubshellReset(t *testing.T) {
+	t.Parallel()
+
+	tdir := t.TempDir()
+	var b bytes.Buffer
+	r, err := interp.New(
+		interp.Env(expand.ListEnviron("FOO=bar")),
+		interp.Dir(tdir),
+		interp.Params("-f", "--", "arg"),
+		interp.StdIO(strings.NewReader("input\n"), &b, &b),
+	)
+	qt.Assert(t, qt.IsNil(err))
+	ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
+	defer cancel()
+	err = r.Run(ctx, parse(t, nil, "cd ..; set +f -- changed; FOO=changed"))
+	qt.Assert(t, qt.IsNil(err))
+
+	sub := r.Subshell()
+	qt.Assert(t, qt.IsNil(interp.StdIO(nil, io.Discard, io.Discard)(sub)))
+	sub.Reset()
+	err = sub.Run(ctx, parse(t, nil, `read line; echo "$PWD" $1 $FOO $line $([[ -o noglob ]] && echo noglob); nosuchcmd`))
+	qt.Assert(t, qt.ErrorMatches(err, "exit status 127"))
+	out, errOut, _ := strings.Cut(b.String(), "\n")
+	qt.Assert(t, qt.Equals(out, tdir+" arg bar input noglob"))
+	qt.Assert(t, qt.StringContains(errOut, "nosuchcmd"))
+}
+
 func TestRunnerNonFileStdin(t *testing.T) {
 	const src = "while read a; do echo $a; GOSH_CMD=print_ok $GOSH_PROG; done"
 	skipIfUnsupported(t, src)
