@@ -566,7 +566,8 @@ func (p *Printer) flushHeredocs() {
 		return
 	}
 	hdocs := p.pendingHdocs
-	p.pendingHdocs = p.pendingHdocs[:0]
+	// Don't reuse the backing array, as the bodies may hold more heredocs.
+	p.pendingHdocs = nil
 	coms := p.pendingComments
 	p.pendingComments = nil
 	if len(coms) > 0 {
@@ -646,6 +647,16 @@ func (p *Printer) flushHeredocs() {
 	p.mustNewline = true
 }
 
+// holdHeredocs calls f to print a substitution, holding back the pending
+// heredocs as its newlines cannot start their bodies, as in
+// `cat <<EOF | tee $(a; b)`.
+func (p *Printer) holdHeredocs(f func()) {
+	outer := p.pendingHdocs
+	p.pendingHdocs = nil
+	f()
+	p.pendingHdocs = append(outer, p.pendingHdocs...)
+}
+
 // hasUnclosedHdoc reports whether s has a heredoc without its closing word.
 func hasUnclosedHdoc(s *Stmt) bool {
 	found := false
@@ -660,10 +671,12 @@ func hasUnclosedHdoc(s *Stmt) bool {
 
 // hdocsEndBefore reports whether s is a simple command or pipeline, such as
 // `$(cat <<EOF`, whose heredocs directly follow the first operator's line
-// and end right before closing. Lines the printer adds before that operator
-// move its body alike.
+// and end right before closing. Lines the printer adds to that line, such as
+// within `cat <<EOF | tee $(a; b)`, or before the operator move the body alike.
 func hdocsEndBefore(s *Stmt, closing Pos) bool {
-	var op, body, end uint // lines of the first operator and body, and the last closing word
+	var first *Redirect
+	var end uint // line of the last closing word
+	var words []*Word
 	var visit func(s *Stmt) bool
 	visit = func(s *Stmt) bool {
 		switch cmd := s.Cmd.(type) {
@@ -673,23 +686,44 @@ func hdocsEndBefore(s *Stmt, closing Pos) bool {
 		default:
 			return false // may be printed across multiple lines
 		}
-		for _, r := range s.Redirs {
-			if r.Op != Hdoc && r.Op != DashHdoc {
-				continue
-			}
-			if op == 0 {
-				op, body = r.OpPos.Line(), r.ClosePos.Line() // an empty body has no Hdoc
-				if r.Hdoc != nil {
-					body = r.Hdoc.Pos().Line()
+		Walk(s, func(node Node) bool {
+			switch node := node.(type) {
+			case *Word:
+				words = append(words, node)
+				return false
+			case *Redirect:
+				words = append(words, node.Word)
+				if node.Op == Hdoc || node.Op == DashHdoc {
+					if first == nil {
+						first = node
+					}
+					end = max(end, node.ClosePos.Line())
 				}
+				return false // skip the heredoc body
 			}
-			end = max(end, r.ClosePos.Line())
-		}
+			return true
+		})
 		return true
 	}
-	// A line break after the first operator would move its body down,
-	// as would any token between the last heredoc and the closing token.
-	return visit(s) && op+1 == body && end+1 == closing.Line()
+	if !visit(s) || first == nil {
+		return false
+	}
+	body := first.ClosePos // an empty body has no Hdoc
+	if first.Hdoc != nil {
+		body = first.Hdoc.Pos()
+	}
+	// Bash starts the body right after the operator's line, so any line
+	// break before it must be within a word, such as a substitution,
+	// rather than an escaped newline which the printer may move.
+	line := first.OpPos.Line()
+	for _, w := range words {
+		if w.Pos().After(first.OpPos) && body.After(w.Pos()) {
+			line += w.End().Line() - w.Pos().Line()
+		}
+	}
+	// Any token between the last heredoc and the closing token would also
+	// move the body down.
+	return line+1 == body.Line() && end+1 == closing.Line()
 }
 
 // hdocBody prints a heredoc's body, ending it with a newline if it lacks one,
@@ -898,7 +932,7 @@ func (p *Printer) wordPart(wp, next WordPart) {
 		p.dblQuoted(wp)
 	case *CmdSubst:
 		p.advanceLine(wp.Pos().Line())
-		p.cmdSubst(wp)
+		p.holdHeredocs(func() { p.cmdSubst(wp) })
 	case *ParamExp:
 		litCont := ";"
 		if nextLit, ok := next.(*Lit); ok && nextLit.Value != "" {
@@ -935,8 +969,10 @@ func (p *Printer) wordPart(wp, next WordPart) {
 			p.space()
 		}
 		p.w.WriteString(wp.Op.String())
-		p.nestedStmts(wp.Stmts, wp.Last, wp.Rparen)
-		p.rightParen(wp.Rparen)
+		p.holdHeredocs(func() {
+			p.nestedStmts(wp.Stmts, wp.Last, wp.Rparen)
+			p.rightParen(wp.Rparen)
+		})
 	}
 }
 
@@ -1451,9 +1487,6 @@ func (p *Printer) stmt(s *Stmt) {
 		} else {
 			p.wantSpace = spaceRequired
 		}
-		// TODO: a heredoc is flushed at the next newline, even one within
-		// a later redirect's word, as in `cat <<EOF <$(\n\techo\n)`,
-		// placing the heredoc's body inside the command substitution.
 		p.word(r.Word)
 		if r.Op == Hdoc || r.Op == DashHdoc {
 			p.pendingHdocs = append(p.pendingHdocs, r)

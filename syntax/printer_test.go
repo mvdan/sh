@@ -670,6 +670,16 @@ var printTests = []printCase{
 	samePrint("a=(\n\n)"),
 	samePrint("a=(\n\tx\n\n\ty\n)"),
 	samePrint("foo <<EOF | $(bar)\n3\nEOF"),
+	// A heredoc's body cannot start within a later substitution.
+	{
+		"cat <<EOF | tee >({ a; b; } >&2)\nbody\nEOF",
+		"cat <<EOF | tee >({\n\ta\n\tb\n} >&2)\nbody\nEOF",
+	},
+	samePrint("cat <<EOF | tee $(\n\ta\n\tb\n)\nbody\nEOF"),
+	{
+		"cat <<EOF <$(a; b)\nbody\nEOF",
+		"cat <<EOF <$(\n\ta\n\tb\n)\nbody\nEOF",
+	},
 	{
 		"a <<EOF\n$(\n\tb\n\tc)\nEOF",
 		"a <<EOF\n$(\n\tb\n\tc\n)\nEOF",
@@ -737,6 +747,23 @@ var printTests = []printCase{
 		"$(cat <<EOF >\"$(dirname x)/y\"\nbody\nEOF\n)",
 		"$(cat <<EOF >\"$(dirname x)/y\"\nbody\nEOF\n)",
 	},
+	{
+		"$(cat <<EOF | tee $(a && b)\nbody\nEOF\n)",
+		"$(cat <<EOF | tee $(a && b)\nbody\nEOF\n)",
+	},
+	samePrint("$(cat <<A | cat - <<B\na\nA\n$(\n\tb\n\tc\n)\nB\n)"),
+	{
+		"$(cat <<EOF | tee $(a; b)\nbody\nEOF\n)",
+		"$(cat <<EOF | tee $(\n\ta\n\tb\n)\nbody\nEOF\n)",
+	},
+	{
+		"$(cat <<EOF <$(a; b)\nbody\nEOF\n)",
+		"$(cat <<EOF <$(\n\ta\n\tb\n)\nbody\nEOF\n)",
+	},
+	{
+		"$(cat <<EOF \"a\nb\" >\"c\nd\"\nbody\nEOF\n)",
+		"$(cat \"a\nb\" <<EOF >\"c\nd\"\nbody\nEOF\n)",
+	},
 	// Otherwise, it goes on its own line.
 	{
 		"$({ cat <<EOF; }\nbody\nEOF\n)",
@@ -757,10 +784,6 @@ var printTests = []printCase{
 	{
 		"$(cat <<EOF \\\n\t| sed x\nbody\nEOF\n)",
 		"$(\n\tcat <<EOF |\nbody\nEOF\n\t\tsed x\n)",
-	},
-	{
-		"$(cat <<EOF \"a\nb\"\nbody\nEOF\n)",
-		"$(\n\tcat \"a\nb\" <<EOF\nbody\nEOF\n)",
 	},
 	{
 		"( (foo) )\n$( (foo) )\n<( (foo) )",
