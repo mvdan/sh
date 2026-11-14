@@ -364,6 +364,10 @@ func (p *Parser) Interactive(r io.Reader, fn func([]*Stmt) bool) error {
 // If a line ending in an incomplete statement is parsed, the function will be
 // called with any fully parsed statements, and [Parser.Incomplete] will return true.
 //
+// Once the input ends without an error, the function is called with any
+// statements left, such as on a last line without a newline,
+// or with a heredoc ended by EOF.
+//
 // One can imagine a simple interactive shell implementation as follows:
 //
 //	fmt.Fprintf(os.Stdout, "$ ")
@@ -405,6 +409,11 @@ func (p *Parser) InteractiveSeq(r io.Reader) iter.Seq2[[]*Stmt, error] {
 				// another "$ " print thinking that nothing was parsed.
 				w.lastLine = w.p.line + 1
 			}
+		}
+		// Like Bash, run the statements on a last line without a newline,
+		// including any heredoc ended by EOF.
+		if p.err == nil && len(w.accumulated) > 0 {
+			w.send(w.accumulated, nil)
 		}
 	}
 }

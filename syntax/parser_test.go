@@ -2428,14 +2428,14 @@ func TestParseInteractiveSeq(t *testing.T) {
 		{"if true\nthen :\nfi\n", []string{"0>", "0>", "1"}},
 		{"cat <<EOF\nbody\nEOF\n", []string{"0>", "0>", "1"}},
 		{"cat <<EOF;\nbody\nEOF\n", []string{"0>", "0>", "1"}},
-		// Bash runs a last line without a newline, but we drop it.
-		{"echo foo", nil},
-		{"foo\nbar", []string{"1"}},
-		// Bash ends a heredoc at EOF and runs it, but we drop it.
-		{"cat <<EOF\n", []string{"0>"}},
-		{"cat <<EOF;\n", []string{"0>"}},
-		{"cat <<EOF;\nbody\n", []string{"0>", "0>"}},
-		{"cat <<EOF;\nbody", []string{"0>"}},
+		// Like Bash, run a last line without a newline.
+		{"echo foo", []string{"1"}},
+		{"foo\nbar", []string{"1", "1"}},
+		// Like Bash, EOF ends a heredoc.
+		{"cat <<EOF\n", []string{"0>", "1"}},
+		{"cat <<EOF;\n", []string{"0>", "1"}},
+		{"cat <<EOF;\nbody\n", []string{"0>", "0>", "1"}},
+		{"cat <<EOF;\nbody", []string{"0>", "1"}},
 	}
 	for _, tc := range tests {
 		t.Run(fmt.Sprintf("%q", tc.in), func(t *testing.T) {
