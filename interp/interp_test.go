@@ -6022,6 +6022,31 @@ hello, world
 	},
 }
 
+// waitMarker is a script for an external program which waits up to two seconds
+// for the marker file, created by the other side of a pipe once it sees
+// EOF or SIGPIPE, and then reports whether it was created.
+const waitMarker = `i=0; while [ ! -e marker ] && [ $i -lt 200 ]; do sleep 0.01; i=$((i+1)); done; [ -e marker ] && echo seen >&2`
+
+// runTestsDefaultExec are Unix tests which run without [testExecHandler],
+// as their behavior depends on [interp.DefaultExecHandler] being the only one.
+var runTestsDefaultExec = []runTest{
+	// Like a forking shell, once a simple command starts an external program,
+	// only the program holds the pipe ends and redirected files it inherits,
+	// so the other side sees EOF or SIGPIPE when the program closes them.
+	{"sh -c 'exec >/dev/null; " + waitMarker + "' | { cat; >marker; }", " #IGNORE the shell holds them until the program exits"},
+	{"sh -c 'exec >/dev/null; " + waitMarker + "' | cat | { cat; >marker; }", " #IGNORE the shell holds them until the program exits"},
+	{"{ yes; >marker; } | sh -c 'exec </dev/null; " + waitMarker + "'", "exit status 1 #IGNORE the shell holds them until the program exits"},
+	{"{ yes; >marker; } | sh -c 'exec </dev/null; " + waitMarker + "' | cat", " #IGNORE the shell holds them until the program exits"},
+	{"mkfifo f; sh -c 'exec >/dev/null; " + waitMarker + "' >f & { cat; >marker; } <f; wait", " #IGNORE the shell holds them until the program exits"},
+	{"mkfifo f; { yes; >marker; } >f & sh -c 'exec </dev/null; " + waitMarker + "' <f; wait", " #IGNORE the shell holds them until the program exits"},
+	// A compound command or function call keeps holding them for the rest of its commands.
+	{"{ sh -c 'exec >/dev/null'; echo after; } | cat", "after\n"},
+	{"{ sh -c 'exec >/dev/null'; echo after; } | cat | cat", "after\n"},
+	{"f() { sh -c 'exec >/dev/null'; echo after; }; f | cat", "after\n"},
+	{"echo foo | { sh -c 'exec </dev/null'; cat; }", "foo\n"},
+	{"{ sh -c 'exec >/dev/null'; echo after; } >f; cat f", "after\n"},
+}
+
 var runTestsWindows = []runTest{
 	{"[[ -n $PPID || $PPID -gt 0 ]]", ""}, // os.Getppid can be 0 on windows
 	{"cmd() { :; }; cmd /c 'echo foo'", ""},
@@ -6072,6 +6097,7 @@ func init() {
 		// and its file modes and syscall errors differ from Unix.
 	default: // Unix-y
 		runTests = append(runTests, runTestsUnix...)
+		runTests = append(runTests, runTestsDefaultExec...)
 	}
 	if bits.UintSize == 64 {
 		runTests = append(runTests, runTests64bit...)
@@ -6151,12 +6177,16 @@ func TestRunnerRun(t *testing.T) {
 
 			tdir := t.TempDir()
 			var cb concBuffer
-			r, err := interp.New(interp.Dir(tdir), interp.StdIO(nil, &cb, &cb),
+			opts := []interp.RunnerOption{
+				interp.Dir(tdir), interp.StdIO(nil, &cb, &cb),
 				// TODO: why does this make some tests hang?
 				// interp.Env(expand.ListEnviron(append(os.Environ(),
 				// 	"foo_NULL_BAR=foo\x00bar")...)),
-				interp.ExecHandlers(testExecHandler),
-			)
+			}
+			if !slices.Contains(runTestsDefaultExec, c) {
+				opts = append(opts, interp.ExecHandlers(testExecHandler))
+			}
+			r, err := interp.New(opts...)
 			if err != nil {
 				t.Fatal(err)
 			}
