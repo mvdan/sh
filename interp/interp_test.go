@@ -1482,6 +1482,7 @@ var runTests = []runTest{
 	{"mkdir a; set -- $(pushd a); echo $#", "2\n"},
 	{`mkdir a; cd a; [[ $(dirs) == "$PWD" ]]`, ""},
 	{`mkdir a b; pushd a >/dev/null; cd ../b; set -- $(dirs); [[ $1 == "$PWD" ]] && echo $#`, "2\n"},
+	{`old=$PWD; mkdir a; pushd a >/dev/null; [[ ${DIRSTACK[0]} == "$PWD" && ${DIRSTACK[1]} == "$old" ]]`, "exit status 1 #IGNORE DIRSTACK lists the top of the stack last"},
 	{
 		`mkdir a; pushd a >/dev/null; set -- $(dirs); [[ $1 == "$HOME" ]]`,
 		"exit status 1",
