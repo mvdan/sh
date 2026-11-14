@@ -287,7 +287,9 @@ func (p *Parser) StmtsSeq(r io.Reader) iter.Seq2[*Stmt, error] {
 	return func(yield func(*Stmt, error) bool) {
 		p.rune()
 		p.next()
-		p.stmts(yield)
+		if !p.stmts(yield) {
+			return
+		}
 		if p.err == nil {
 			// EOF immediately after heredoc word so no newline to
 			// trigger the parsing error.
@@ -307,6 +309,13 @@ type wrappedReader struct {
 	lastLine    int64
 	accumulated []*Stmt
 	yield       func([]*Stmt, error) bool
+	stopped     bool // yield returned false
+}
+
+// send calls yield, unless it already returned false.
+func (w *wrappedReader) send(stmts []*Stmt, err error) bool {
+	w.stopped = w.stopped || !w.yield(stmts, err)
+	return !w.stopped
 }
 
 func (w *wrappedReader) Read(p []byte) (n int, err error) {
@@ -316,12 +325,12 @@ func (w *wrappedReader) Read(p []byte) (n int, err error) {
 	if (w.p.r == '\n' || w.p.r == escNewl) && w.p.line > w.lastLine {
 		if w.p.Incomplete() {
 			// Incomplete statement; call back to print "> ".
-			if !w.yield(w.accumulated, w.p.err) {
+			if !w.send(w.accumulated, w.p.err) {
 				return 0, io.EOF
 			}
 		} else if len(w.accumulated) == 0 {
 			// Nothing was parsed; call back to print another "$ ".
-			if !w.yield(nil, w.p.err) {
+			if !w.send(nil, w.p.err) {
 				return 0, io.EOF
 			}
 		}
@@ -376,7 +385,7 @@ func (p *Parser) InteractiveSeq(r io.Reader) iter.Seq2[[]*Stmt, error] {
 		for stmts, err := range p.StmtsSeq(&w) {
 			w.accumulated = append(w.accumulated, stmts)
 			if err != nil {
-				if !yield(w.accumulated, err) {
+				if !w.send(w.accumulated, err) {
 					break
 				}
 				// If the caller wishes, they can continue in the presence of parse errors.
@@ -387,7 +396,7 @@ func (p *Parser) InteractiveSeq(r io.Reader) iter.Seq2[[]*Stmt, error] {
 			// so we finished fully parsing a number of statements. Call
 			// back to run the statements and print "$ ".
 			if p.tok == _Newl {
-				if !yield(w.accumulated, nil) {
+				if !w.send(w.accumulated, nil) {
 					break
 				}
 				w.accumulated = w.accumulated[:0]
@@ -1183,7 +1192,8 @@ func (p *Parser) checkLang(pos Pos, langSet LangVariant, format string, a ...any
 	})
 }
 
-func (p *Parser) stmts(yield func(*Stmt, error) bool, stops ...string) {
+// stmts reports false if yield stopped it.
+func (p *Parser) stmts(yield func(*Stmt, error) bool, stops ...string) bool {
 	defer func(old [3]string) { p.stops = old }(p.stops)
 	p.stops = [3]string{}
 	copy(p.stops[:], stops)
@@ -1228,9 +1238,10 @@ loop:
 		}
 		gotEnd = s.Semicolon.IsValid()
 		if !yield(s, p.err) {
-			break
+			return false
 		}
 	}
+	return true
 }
 
 func (p *Parser) stmtList(stops ...string) ([]*Stmt, []Comment) {

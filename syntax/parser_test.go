@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"iter"
 	"os"
 	"os/exec"
 	"reflect"
@@ -2382,6 +2383,49 @@ func TestParseStmtsSeqError(t *testing.T) {
 				t.Fatalf("Expected an error in %q, but got nil", in)
 			}
 		})
+	}
+}
+
+func TestParseSeqStopEarly(t *testing.T) {
+	t.Parallel()
+	for _, lang := range []LangVariant{LangBash, LangMirBSDKorn} {
+		for _, in := range []string{
+			"foo\nbar\n",
+			"foo; )",
+			"if true; then\n",
+			"foo 'incomp\n",
+			"cat <<EOF\n",
+			"cat <<EOF;\n",
+			"cat <<EOF;\nbody",
+			"cat <<EOF;\nbody\nEOF\n",
+		} {
+			t.Run(fmt.Sprintf("%s/%q", lang, in), func(t *testing.T) {
+				p := NewParser(Variant(lang))
+				stopAnywhere(func() iter.Seq2[*Stmt, error] {
+					return p.StmtsSeq(strings.NewReader(in))
+				})
+				stopAnywhere(func() iter.Seq2[[]*Stmt, error] {
+					return p.InteractiveSeq(strings.NewReader(in))
+				})
+			})
+		}
+	}
+}
+
+// stopAnywhere breaks out of a sequence after each of its yields in turn.
+// The runtime panics if the sequence yields again after a break.
+func stopAnywhere[V any](seq func() iter.Seq2[V, error]) {
+	total := 0
+	for range seq() {
+		total++
+	}
+	for n := 1; n <= total; n++ {
+		i := 0
+		for range seq() {
+			if i++; i == n {
+				break
+			}
+		}
 	}
 }
 
