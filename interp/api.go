@@ -270,6 +270,10 @@ type Runner struct {
 	// TODO: close a file once "exec" replaces it, like other shells do.
 	keptFiles []*stmtHold
 
+	// disabledBuiltins holds the names turned off by `enable -n`, which are
+	// then looked up as external commands like bash does.
+	disabledBuiltins map[string]bool
+
 	// Fake signal callbacks
 	callbackErr  string
 	callbackExit string
@@ -1455,6 +1459,7 @@ func (r *Runner) subshell(background bool) *Runner {
 	} else {
 		r2.writeEnv = r.writeEnv.share()
 	}
+	r2.disabledBuiltins = maps.Clone(r.disabledBuiltins)
 	r2.Vars = make(map[string]expand.Variable)
 
 	r2.dirStack = append(r2.dirBootstrap[:0], r.dirStack...)
