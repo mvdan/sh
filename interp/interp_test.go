@@ -4605,6 +4605,10 @@ done <<< 2`,
 		"i: readonly variable\nafter 1\n #JUSTERR",
 	},
 	{
+		"readonly i=0\ni=1 <<EOF; echo same\nbody\nEOF\necho after",
+		"i: readonly variable\nafter\n #JUSTERR",
+	},
+	{
 		"readonly i=0\nf() { i=1; echo in f; }\nf || echo no; echo same\necho after",
 		"i: readonly variable\nafter\n #JUSTERR",
 	},

@@ -2863,6 +2863,32 @@ func TestPosEdgeCases(t *testing.T) {
 	qt.Check(t, qt.Equals(f.Stmts[1].End().String(), "2:9"))
 }
 
+func TestStmtEndHeredoc(t *testing.T) {
+	t.Parallel()
+	// A statement ends after the bodies of its heredocs.
+	tests := []struct {
+		in   string
+		want string // as printed by [Pos.String]
+	}{
+		{"cat <<EOF\nbody\nEOF\n", "3:4"},
+		// A separator like `;` wrongly ends the statement before them.
+		{"cat <<EOF;\nbody\nEOF\n", "1:11"},
+		{"cat <<EOF &\nbody\nEOF\n", "1:12"},
+		{"cat <<EOF; echo\nbody\nEOF\n", "1:11"},
+		{"cat <<EOF;\nbody", "1:11"},
+		// Only the last redirect is wrongly considered.
+		{"cat <<EOF >out\nbody\nEOF\n", "1:15"},
+		{"cat <<EOF >out;\nbody\nEOF\n", "1:16"},
+	}
+	for _, tc := range tests {
+		t.Run(fmt.Sprintf("%q", tc.in), func(t *testing.T) {
+			f, err := NewParser().Parse(strings.NewReader(tc.in), "")
+			qt.Assert(t, qt.IsNil(err))
+			qt.Assert(t, qt.Equals(f.Stmts[0].End().String(), tc.want))
+		})
+	}
+}
+
 func TestPosAddCol(t *testing.T) {
 	t.Parallel()
 
