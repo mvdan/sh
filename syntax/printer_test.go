@@ -578,23 +578,21 @@ var printTests = []printCase{
 		"a=b \\\n\texport \\\n\tc=d",
 	},
 	samePrint("a $(x) \\\n\tb"),
-	// TODO: a substitution should not drop the indentation of the
-	// lines which follow it; see #811 and #1015.
-	{"a=$(b) \\\nc=d \\\nfoo", "a=$(b) \\\nc=d \\\n\tfoo"},
-	{"a=`b` \\\nc=d \\\nfoo", "a=$(b) \\\nc=d \\\n\tfoo"},
-	{"a=<(b) \\\nc=d \\\nfoo", "a=<(b) \\\nc=d \\\n\tfoo"},
-	{"a=${ b;} \\\nc=d \\\nfoo", "a=${ b;} \\\nc=d \\\n\tfoo"},
-	{"a=$((1 + $(b))) \\\nc=d \\\nfoo", "a=$((1 + $(b))) \\\nc=d \\\n\tfoo"},
-	{"a=$(b >c) \\\nd=e \\\nfoo", "a=$(b >c) \\\nd=e \\\n\tfoo"},
-	{"foo >$(a) \\\n2>b", "foo >$(a) \\\n2>b"},
-	{"a=($(b)\nc)", "a=($(b)\nc)"},
-	{"a=(`b`\nc)", "a=($(b)\nc)"},
-	{"a=(\"$(b)\" <(c)\nd\n$(e))", "a=(\"$(b)\" <(c)\nd\n$(e))"},
+	{"a=$(b) \\\nc=d \\\nfoo", "a=$(b) \\\n\tc=d \\\n\tfoo"},
+	{"a=`b` \\\nc=d \\\nfoo", "a=$(b) \\\n\tc=d \\\n\tfoo"},
+	{"a=<(b) \\\nc=d \\\nfoo", "a=<(b) \\\n\tc=d \\\n\tfoo"},
+	{"a=${ b;} \\\nc=d \\\nfoo", "a=${ b;} \\\n\tc=d \\\n\tfoo"},
+	{"a=$((1 + $(b))) \\\nc=d \\\nfoo", "a=$((1 + $(b))) \\\n\tc=d \\\n\tfoo"},
+	{"a=$(b >c) \\\nd=e \\\nfoo", "a=$(b >c) \\\n\td=e \\\n\tfoo"},
+	{"foo >$(a) \\\n2>b", "foo >$(a) \\\n\t2>b"},
+	{"a=($(b)\nc)", "a=($(b)\n\tc)"},
+	{"a=(`b`\nc)", "a=($(b)\n\tc)"},
+	{"a=(\"$(b)\" <(c)\nd\n$(e))", "a=(\"$(b)\" <(c)\n\td\n\t$(e))"},
 	{
 		"case a in\nb) case \"$(c)\" in\nd) e ;;\nesac ;;\nesac",
-		"case a in\nb) case \"$(c)\" in\nd) e ;;\nesac ;;\nesac",
+		"case a in\nb) case \"$(c)\" in\n\td) e ;;\n\tesac ;;\nesac",
 	},
-	{"foo $(case a in b) c ;;\nd) e ;;\nesac)", "foo $(case a in b) c ;;\nd) e ;;\nesac)"},
+	{"foo $(case a in b) c ;;\nd) e ;;\nesac)", "foo $(case a in b) c ;;\n\td) e ;;\n\tesac)"},
 	samePrint("a=(${b}\n\tc)"),
 	samePrint("a=($(b)\n)"),
 	samePrint("a=(\n\t$(b)\n\tc\n)"),
@@ -1119,10 +1117,9 @@ func TestPrintFunctionNextLine(t *testing.T) {
 			"{ foo() { bar; }; }",
 			"{\n\tfoo()\n\t{\n\t\tbar\n\t}\n}",
 		},
-		// TODO: the brace should line up with the line it starts on.
 		{
 			"a=$(foo() {\n\tbar\n})",
-			"a=$(foo()\n\t{\n\t\tbar\n\t})",
+			"a=$(foo()\n{\n\tbar\n})",
 		},
 	}
 	parser := NewParser(KeepComments(true))
@@ -1159,10 +1156,9 @@ func TestPrintBlockNextLine(t *testing.T) {
 			"function foo {\n\tbar\n}",
 			"function foo\n{\n\tbar\n}",
 		},
-		// TODO: the brace should line up with the line it starts on.
 		{
 			"{ foo() { bar; baz; }; }",
-			"{ foo()\n\t{\n\t\tbar\n\t\tbaz\n\t}; }",
+			"{ foo()\n{\n\tbar\n\tbaz\n}; }",
 		},
 		{
 			"{\n\tfoo() { bar; baz; }\n}",
@@ -1216,19 +1212,17 @@ func TestPrintBlockNextLine(t *testing.T) {
 			"a=$(while b; do\n\tc\ndone)",
 			"a=$(while b\ndo\n\tc\ndone)",
 		},
-		// TODO: "do" should line up with the line it starts on.
 		{
 			"a=$(for b in c; do\n\td\ndone)",
-			"a=$(for b in c\n\tdo\n\t\td\n\tdone)",
+			"a=$(for b in c\ndo\n\td\ndone)",
 		},
 		{
 			"a=$(for b in $(c); do\n\td\ndone)",
 			"a=$(for b in $(c)\ndo\n\td\ndone)",
 		},
-		// TODO: the brace should line up with the line it starts on.
 		{
 			"a=$(foo() {\n\tbar\n})",
-			"a=$(foo()\n\t{\n\t\tbar\n\t})",
+			"a=$(foo()\n{\n\tbar\n})",
 		},
 	}
 	parser := NewParser(KeepComments(true))

@@ -293,9 +293,9 @@ type Printer struct {
 	lastLevel uint
 	// level is the current level of indentation.
 	level uint
-	// levelIncs records which indentation level increments actually
-	// took place, to revert them once their section ends.
-	levelIncs []bool
+	// levelIncs records, for each section started by [Printer.incLevel],
+	// whether it holds an increment of level to revert once it ends.
+	levelIncs []levelInc
 
 	nestedBinary bool
 
@@ -407,6 +407,7 @@ func (p *Printer) spacedToken(s string, pos Pos) {
 
 func (p *Printer) semiOrNewl(s string, pos Pos) {
 	if p.wantsNewline(Pos{}, false) || len(p.pendingHdocs) > 0 {
+		p.dedentUnused()
 		p.newline(pos)
 		p.indent()
 	} else {
@@ -433,23 +434,50 @@ func (p *Printer) writeLit(s string) {
 	p.w.WriteString(s)
 }
 
+type levelInc struct {
+	inc      bool // holds an increment of level
+	borrowed bool // took the increment over from the parent section
+}
+
 func (p *Printer) incLevel() {
-	inc := false
+	var inc levelInc
 	if p.level <= p.lastLevel || len(p.levelIncs) == 0 {
 		p.level++
-		inc = true
-	} else if last := &p.levelIncs[len(p.levelIncs)-1]; *last {
-		*last = false
-		inc = true
+		inc.inc = true
+	} else if last := &p.levelIncs[len(p.levelIncs)-1]; last.inc {
+		// No line was indented at the current level yet,
+		// so share the increment rather than indenting twice.
+		last.inc = false
+		inc = levelInc{inc: true, borrowed: true}
 	}
 	p.levelIncs = append(p.levelIncs, inc)
 }
 
 func (p *Printer) decLevel() {
-	if p.levelIncs[len(p.levelIncs)-1] {
+	n := len(p.levelIncs)
+	inc := p.levelIncs[n-1]
+	p.levelIncs = p.levelIncs[:n-1]
+	if !inc.inc {
+		return
+	}
+	if inc.borrowed && p.lastLevel < p.level {
+		// No line was indented with the borrowed increment,
+		// as in "foo=$(bar) \", so give it back.
+		p.levelIncs[n-2].inc = true
+		return
+	}
+	p.level--
+}
+
+// dedentUnused drops the current section's increment of level if no line
+// was indented with it. Tokens such as "do", "esac", or ")" call it before
+// starting a new line, so that they line up with their compound command,
+// as with "esac" in "foo=$(case bar in baz) ;;\nesac)".
+func (p *Printer) dedentUnused() {
+	if n := len(p.levelIncs); n > 0 && p.levelIncs[n-1].inc && p.lastLevel < p.level {
+		p.levelIncs[n-1].inc = false
 		p.level--
 	}
-	p.levelIncs = p.levelIncs[:len(p.levelIncs)-1]
 }
 
 func (p *Printer) indent() {
@@ -641,6 +669,7 @@ func (p *Printer) rightParenNewline(pos Pos) bool {
 
 func (p *Printer) rightParen(pos Pos) {
 	if p.rightParenNewline(pos) {
+		p.dedentUnused()
 		p.newlines(pos)
 	}
 	p.w.WriteByte(')')
@@ -662,6 +691,7 @@ func (p *Printer) closingParen(stmts []*Stmt, closePos Pos) {
 
 func (p *Printer) semiRsrv(s string, pos Pos) {
 	if p.wantsNewline(pos, false) {
+		p.dedentUnused()
 		p.newlines(pos)
 	} else {
 		if !p.wroteSemi {
@@ -1497,6 +1527,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		block, _ := cmd.Body.Cmd.(*Block)
 		braceNextLine := block != nil && p.blockNewline(block.Stmts, block.Last, block.Rbrace)
 		if p.funcNextLine || braceNextLine {
+			p.dedentUnused()
 			p.newline(Pos{})
 			p.indent()
 			if braceNextLine {
