@@ -113,6 +113,28 @@ func TestWalk(t *testing.T) {
 	}
 }
 
+func TestWalkBraceExp(t *testing.T) {
+	t.Parallel()
+	word := &Word{Parts: []WordPart{&BraceExp{
+		Elems: []*Word{
+			{Parts: []WordPart{&Lit{Value: "a"}}},
+			{Parts: []WordPart{&Lit{Value: "b"}}},
+		},
+	}}}
+
+	var got []string
+	Walk(word, func(node Node) bool {
+		if lit, ok := node.(*Lit); ok {
+			got = append(got, lit.Value)
+		}
+		return true
+	})
+	want := []string{"a", "b"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("walked literals %q, want %q", got, want)
+	}
+}
+
 func TestWalkIfClauseComments(t *testing.T) {
 	t.Parallel()
 	// Comments aligned with "else" or "fi" are attached to IfClause.Last.
