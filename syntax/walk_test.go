@@ -33,6 +33,7 @@ func TestWalk(t *testing.T) {
 		"*syntax.Lit":          false,
 		"*syntax.SglQuoted":    false,
 		"*syntax.DblQuoted":    false,
+		"*syntax.BraceExp":     false,
 		"*syntax.CmdSubst":     false,
 		"*syntax.ParamExp":     false,
 		"*syntax.ArithmExp":    false,
@@ -85,7 +86,11 @@ func TestWalk(t *testing.T) {
 				} else {
 					seen[tstr] = true
 				}
-				switch node.(type) {
+				switch node := node.(type) {
+				case *Word:
+					// The parser never produces BraceExp nodes.
+					SplitBraces(node)
+					return true
 				case *Lit:
 					return false
 				case *Comment:
