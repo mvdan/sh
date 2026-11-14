@@ -365,7 +365,9 @@ func (r *Runner) lookupVar(name string) expand.Variable {
 		n := binary.NativeEndian.Uint32(p[:])
 		vr.Kind, vr.Str = expand.String, strconv.FormatUint(uint64(n), 10)
 	case "DIRSTACK":
-		vr.Kind, vr.List = expand.Indexed, r.dirStack
+		// Like dirs, the top of the stack comes first.
+		vr.Kind, vr.List = expand.Indexed, slices.Clone(r.dirStack)
+		slices.Reverse(vr.List)
 	case "0":
 		vr.Kind = expand.String
 		if r.filename != "" {
