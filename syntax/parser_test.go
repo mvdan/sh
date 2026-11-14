@@ -17,6 +17,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"testing/iotest"
 	"time"
 
 	"github.com/go-quicktest/qt"
@@ -2409,6 +2410,47 @@ func TestParseSeqStopEarly(t *testing.T) {
 				})
 			})
 		}
+	}
+}
+
+func TestParseInteractiveSeq(t *testing.T) {
+	t.Parallel()
+	// Each yield shows the number of statements, followed by ">" if
+	// the parser is waiting for more lines to complete a statement.
+	tests := []struct {
+		in   string
+		want []string
+	}{
+		{"", nil},
+		{"\n", []string{"0"}},
+		{"echo foo\n", []string{"1"}},
+		{"foo; bar\nbaz\n", []string{"2", "1"}},
+		{"if true\nthen :\nfi\n", []string{"0>", "0>", "1"}},
+		{"cat <<EOF\nbody\nEOF\n", []string{"0>", "0>", "1"}},
+		{"cat <<EOF;\nbody\nEOF\n", []string{"0>", "0>", "1"}},
+		// Bash runs a last line without a newline, but we drop it.
+		{"echo foo", nil},
+		{"foo\nbar", []string{"1"}},
+		// Bash ends a heredoc at EOF and runs it, but we drop it.
+		{"cat <<EOF\n", []string{"0>"}},
+		{"cat <<EOF;\n", []string{"0>"}},
+		{"cat <<EOF;\nbody\n", []string{"0>", "0>"}},
+		{"cat <<EOF;\nbody", []string{"0>"}},
+	}
+	for _, tc := range tests {
+		t.Run(fmt.Sprintf("%q", tc.in), func(t *testing.T) {
+			p := NewParser()
+			var got []string
+			for stmts, err := range p.InteractiveSeq(iotest.OneByteReader(strings.NewReader(tc.in))) {
+				qt.Assert(t, qt.IsNil(err))
+				s := fmt.Sprint(len(stmts))
+				if p.Incomplete() {
+					s += ">"
+				}
+				got = append(got, s)
+			}
+			qt.Assert(t, qt.DeepEquals(got, tc.want))
+		})
 	}
 }
 
