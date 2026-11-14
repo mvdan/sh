@@ -7425,6 +7425,58 @@ func TestRunnerSubshellReset(t *testing.T) {
 	qt.Assert(t, qt.StringContains(errOut, "nosuchcmd"))
 }
 
+func TestRunnerDirAfterReset(t *testing.T) {
+	t.Parallel()
+
+	dir1, dir2 := t.TempDir(), t.TempDir()
+	for _, path := range []string{filepath.Join(dir1, "one"), filepath.Join(dir2, "two")} {
+		qt.Assert(t, qt.IsNil(os.WriteFile(path, nil, 0o666)))
+	}
+	var b bytes.Buffer
+	r, err := interp.New(
+		interp.Env(expand.ListEnviron()),
+		interp.Dir(dir1),
+		interp.StdIO(nil, &b, &b),
+	)
+	qt.Assert(t, qt.IsNil(err))
+	file := parse(t, nil, `echo "$PWD" "$OLDPWD"; pwd; echo *; if [[ -e two ]]; then echo two exists; fi`)
+	ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
+	defer cancel()
+	run := func(r *interp.Runner) string {
+		b.Reset()
+		err := r.Run(ctx, file)
+		qt.Assert(t, qt.IsNil(err))
+		return b.String()
+	}
+	want1 := fmt.Sprintf("%s \n%s\none\n", dir1, dir1)
+	// Dir applied after a reset only changes Runner.Dir, which is used for
+	// paths like the one in [[ -e two ]], but not $PWD, pwd, nor globbing.
+	want2 := fmt.Sprintf("%s \n%s\none\ntwo exists\n", dir1, dir1)
+
+	qt.Assert(t, qt.Equals(run(r), want1))
+
+	sub := r.Subshell()
+	qt.Assert(t, qt.IsNil(interp.Dir(dir2)(sub)))
+	qt.Assert(t, qt.Equals(run(sub), want2))
+
+	// A relative path is resolved against the current directory, like cd.
+	rel, err := filepath.Rel(dir1, dir2)
+	qt.Assert(t, qt.IsNil(err))
+	// Dir resolves it against the process's directory instead.
+	qt.Assert(t, qt.ErrorMatches(interp.Dir(rel)(r), "could not stat: .*"))
+	qt.Assert(t, qt.Equals(run(r), want1))
+
+	// Reset restores the directory which the runner started with.
+	r.Reset()
+	qt.Assert(t, qt.Equals(run(r), want1))
+
+	// A readonly PWD fails without changing directory.
+	qt.Assert(t, qt.IsNil(r.Run(ctx, parse(t, nil, "readonly PWD"))))
+	// Dir changes Runner.Dir regardless.
+	qt.Assert(t, qt.IsNil(interp.Dir(dir2)(r)))
+	qt.Assert(t, qt.Equals(r.Dir, dir2))
+}
+
 func TestRunnerNonFileStdin(t *testing.T) {
 	const src = "while read a; do echo $a; GOSH_CMD=print_ok $GOSH_PROG; done"
 	skipIfUnsupported(t, src)
