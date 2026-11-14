@@ -658,6 +658,40 @@ func hasUnclosedHdoc(s *Stmt) bool {
 	return found
 }
 
+// hdocsEndBefore reports whether s is a simple command or pipeline, such as
+// `$(cat <<EOF`, whose heredocs directly follow the first operator's line
+// and end right before closing. Lines the printer adds before that operator
+// move its body alike.
+func hdocsEndBefore(s *Stmt, closing Pos) bool {
+	var op, body, end uint // lines of the first operator and body, and the last closing word
+	var visit func(s *Stmt) bool
+	visit = func(s *Stmt) bool {
+		switch cmd := s.Cmd.(type) {
+		case *BinaryCmd:
+			return visit(cmd.X) && visit(cmd.Y)
+		case nil, *CallExpr:
+		default:
+			return false // may be printed across multiple lines
+		}
+		for _, r := range s.Redirs {
+			if r.Op != Hdoc && r.Op != DashHdoc {
+				continue
+			}
+			if op == 0 {
+				op, body = r.OpPos.Line(), r.ClosePos.Line() // an empty body has no Hdoc
+				if r.Hdoc != nil {
+					body = r.Hdoc.Pos().Line()
+				}
+			}
+			end = max(end, r.ClosePos.Line())
+		}
+		return true
+	}
+	// A line break after the first operator would move its body down,
+	// as would any token between the last heredoc and the closing token.
+	return visit(s) && op+1 == body && end+1 == closing.Line()
+}
+
 // hdocBody prints a heredoc's body, ending it with a newline if it lacks one,
 // as the parser ends a heredoc at EOF or a closing backquote.
 func (p *Printer) hdocBody(r *Redirect) {
@@ -1085,9 +1119,6 @@ func (p *Printer) cmdSubst(cs *CmdSubst) {
 		} else {
 			p.wantSpace = spaceNotRequired
 		}
-		// TODO: with a closing backquote right after a heredoc's closing word,
-		// as in "`cat <<EOF\nfoo\nEOF`", we print "$(cat <<EOF" on one line,
-		// but formatting that result again puts "cat" on a new line.
 		if cs.Backquotes && len(cs.Stmts) > 0 && hasUnclosedHdoc(cs.Stmts[len(cs.Stmts)-1]) {
 			// Force a newline if the closing backquote ended a heredoc,
 			// as the heredoc's closing line will be printed before it:
@@ -1884,10 +1915,12 @@ func (p *Printer) stmtsForceNewline(stmts []*Stmt, last []Comment, closing Pos) 
 		//     { stmt; stmt; }
 		return true
 	case closing.Line() > p.line && len(stmts) > 0 &&
-		stmtsEnd(stmts, last).Line() < closing.Line():
+		stmtsEnd(stmts, last).Line() < closing.Line() &&
+		!hdocsEndBefore(stmts[0], closing):
 		// Force a newline if we find:
 		//     { stmt
 		//     }
+		// unless only its heredocs separate it from the closing token.
 		return true
 	case len(p.pendingComments) > 0 && len(stmts) > 0:
 		// Force a newline if we find:
