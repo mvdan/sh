@@ -235,22 +235,24 @@ type Stmt struct {
 
 func (s *Stmt) Pos() Pos { return s.Position }
 func (s *Stmt) End() Pos {
+	var end Pos
 	if s.Semicolon.IsValid() {
-		end := posAddCol(s.Semicolon, 1) // ';' or '&'
+		end = posAddCol(s.Semicolon, 1) // ';' or '&'
 		if s.Coprocess || s.Disown {
 			end = posAddCol(end, 1) // '|&' or '&|' or '&!'
 		}
-		return end
+	} else {
+		end = s.Position
+		if s.Negated {
+			end = posAddCol(end, 1)
+		}
+		if s.Cmd != nil {
+			end = s.Cmd.End()
+		}
 	}
-	end := s.Position
-	if s.Negated {
-		end = posAddCol(end, 1)
-	}
-	if s.Cmd != nil {
-		end = s.Cmd.End()
-	}
-	if len(s.Redirs) > 0 {
-		end = posMax(end, s.Redirs[len(s.Redirs)-1].End())
+	// Heredoc bodies follow any separator.
+	for _, r := range s.Redirs {
+		end = posMax(end, r.End())
 	}
 	return end
 }

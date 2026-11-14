@@ -1462,10 +1462,10 @@ func (r *Runner) scriptStmts(ctx context.Context, stmts []*syntax.Stmt) {
 		if !r.endDiscard() {
 			continue
 		}
-		line := stmts[i].End().Line()
-		for i+1 < len(stmts) && stmts[i+1].Pos().Line() == line {
+		// Only a separator lets the next statement start on the same line.
+		for i+1 < len(stmts) && stmts[i].Semicolon.IsValid() &&
+			stmts[i+1].Pos().Line() == stmts[i].Semicolon.Line() {
 			i++
-			line = stmts[i].End().Line()
 		}
 	}
 }
