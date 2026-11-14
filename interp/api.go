@@ -487,14 +487,14 @@ func New(opts ...RunnerOption) (*Runner, error) {
 // It can also be applied directly on an existing Runner,
 // such as interp.Params("-e")(runner) or interp.StdIO(nil, w, w)(runner).
 //
-// Note that [Env] and [Dir] only take effect the next time that the runner is
-// reset, as [Runner.Reset] derives state from them, such as the variables and
-// the value of PWD. Since running a node only resets a runner the first time
-// around, applying either option after a run requires an explicit reset.
+// Note that [Env] only takes effect the next time that the runner is reset,
+// as [Runner.Reset] derives state from it, such as the variables. Since running
+// a node only resets a runner the first time around, applying it after a run
+// requires an explicit reset.
 type RunnerOption func(*Runner) error
 
-// TODO(v4): with an options struct, [Env] and [Dir] cannot be applied after
-// a reset, where they are silently held back until the next one.
+// TODO(v4): with an options struct, [Env] cannot be applied after a reset,
+// where it is silently held back until the next one.
 
 // Env sets the interpreter's environment. If nil, a copy of the current
 // process's environment is used.
@@ -510,34 +510,52 @@ func Env(env expand.Environ) RunnerOption {
 
 // Dir sets the interpreter's working directory. If empty, the process's current
 // directory is used.
+//
+// After a reset, such as on a copy made by [Runner.Subshell], it acts like the
+// cd builtin, resolving a relative path against the current directory and
+// updating PWD and OLDPWD. [Runner.Reset] restores the initial directory.
 func Dir(path string) RunnerOption {
 	return func(r *Runner) error {
+		path := path // the option may be applied more than once
 		if path == "" {
-			path, err := os.Getwd()
-			if err != nil {
-				if runtime.GOOS == "js" {
-					// js/wasm has no working directory; virtual
-					// filesystems set Runner.Dir themselves
-					r.Dir = "/"
-					return nil
-				}
+			wd, err := os.Getwd()
+			switch {
+			case err == nil:
+				path = wd
+			case runtime.GOOS == "js":
+				// js/wasm has no working directory; virtual
+				// filesystems set Runner.Dir themselves
+				path = "/"
+			default:
 				return fmt.Errorf("could not get current dir: %w", err)
 			}
+		} else if !r.didReset {
+			var err error
+			if path, err = filepath.Abs(path); err != nil {
+				return fmt.Errorf("could not get absolute dir: %w", err)
+			}
+			info, err := os.Stat(path)
+			if err != nil {
+				return fmt.Errorf("could not stat: %w", err)
+			}
+			if !info.IsDir() {
+				return fmt.Errorf("%s is not a directory", path)
+			}
+		}
+		if !r.didReset {
 			r.Dir = path
 			return nil
 		}
-		path, err := filepath.Abs(path)
+		path, err := r.checkDir(context.Background(), path)
 		if err != nil {
-			return fmt.Errorf("could not get absolute dir: %w", err)
+			return err
 		}
-		info, err := os.Stat(path)
-		if err != nil {
-			return fmt.Errorf("could not stat: %w", err)
+		for _, name := range [...]string{"PWD", "OLDPWD"} {
+			if _, vr := r.resolveName(name); vr.ReadOnly {
+				return fmt.Errorf("%s: %w", name, errReadOnly)
+			}
 		}
-		if !info.IsDir() {
-			return fmt.Errorf("%s is not a directory", path)
-		}
-		r.Dir = path
+		r.setDir(path)
 		return nil
 	}
 }

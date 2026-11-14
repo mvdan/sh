@@ -1312,24 +1312,34 @@ func (r *Runner) readLine(ctx context.Context, raw bool, delim, nchars int) ([]b
 }
 
 func (r *Runner) changeDir(ctx context.Context, cmd, path string) uint8 {
-	if path == "" {
-		r.errf("%s: empty directory path\n", cmd)
+	apath, err := r.checkDir(ctx, path)
+	if err != nil {
+		r.errf("%s: %v\n", cmd, err)
 		return 1
+	}
+	r.setDir(apath)
+	return 0
+}
+
+// checkDir resolves path to an absolute directory which can be changed to.
+func (r *Runner) checkDir(ctx context.Context, path string) (string, error) {
+	if path == "" {
+		return "", errors.New("empty directory path")
 	}
 	apath := r.absPath(path)
-	info, err := r.stat(ctx, apath)
-	if err != nil || !info.IsDir() {
-		r.errf("%s: no such file or directory: %q\n", cmd, path)
-		return 1
+	if info, err := r.stat(ctx, apath); err != nil || !info.IsDir() {
+		return "", fmt.Errorf("no such file or directory: %q", path)
 	}
 	if r.access(ctx, apath, AccessExec) != nil {
-		r.errf("%s: permission denied: %q\n", cmd, path)
-		return 1
+		return "", fmt.Errorf("permission denied: %q", path)
 	}
-	r.Dir = apath
+	return apath, nil
+}
+
+func (r *Runner) setDir(path string) {
+	r.Dir = path
 	r.setVarString("OLDPWD", r.envGet("PWD"))
-	r.setVarString("PWD", apath)
-	return 0
+	r.setVarString("PWD", path)
 }
 
 func absPath(dir, path string) string {

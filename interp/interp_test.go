@@ -7449,9 +7449,7 @@ func TestRunnerDirAfterReset(t *testing.T) {
 		return b.String()
 	}
 	want1 := fmt.Sprintf("%s \n%s\none\n", dir1, dir1)
-	// Dir applied after a reset only changes Runner.Dir, which is used for
-	// paths like the one in [[ -e two ]], but not $PWD, pwd, nor globbing.
-	want2 := fmt.Sprintf("%s \n%s\none\ntwo exists\n", dir1, dir1)
+	want2 := fmt.Sprintf("%s %s\n%s\ntwo\ntwo exists\n", dir2, dir1, dir2)
 
 	qt.Assert(t, qt.Equals(run(r), want1))
 
@@ -7462,9 +7460,8 @@ func TestRunnerDirAfterReset(t *testing.T) {
 	// A relative path is resolved against the current directory, like cd.
 	rel, err := filepath.Rel(dir1, dir2)
 	qt.Assert(t, qt.IsNil(err))
-	// Dir resolves it against the process's directory instead.
-	qt.Assert(t, qt.ErrorMatches(interp.Dir(rel)(r), "could not stat: .*"))
-	qt.Assert(t, qt.Equals(run(r), want1))
+	qt.Assert(t, qt.IsNil(interp.Dir(rel)(r)))
+	qt.Assert(t, qt.Equals(run(r), want2))
 
 	// Reset restores the directory which the runner started with.
 	r.Reset()
@@ -7472,9 +7469,8 @@ func TestRunnerDirAfterReset(t *testing.T) {
 
 	// A readonly PWD fails without changing directory.
 	qt.Assert(t, qt.IsNil(r.Run(ctx, parse(t, nil, "readonly PWD"))))
-	// Dir changes Runner.Dir regardless.
-	qt.Assert(t, qt.IsNil(interp.Dir(dir2)(r)))
-	qt.Assert(t, qt.Equals(r.Dir, dir2))
+	qt.Assert(t, qt.ErrorMatches(interp.Dir(dir2)(r), "PWD: readonly variable"))
+	qt.Assert(t, qt.Equals(r.Dir, dir1))
 }
 
 func TestRunnerNonFileStdin(t *testing.T) {
