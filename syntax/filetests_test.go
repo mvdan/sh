@@ -5309,12 +5309,64 @@ var fileTests = []fileTestCase{
 		}}, LangBash),
 	),
 	fileTest(
-		// '#' inside [[ ]] is part of a word, not a comment.
+		// '#' in the middle of a word inside [[ ]] continues the word.
 		[]string{"[[ -n $foo#bar ]]"},
 		langFile(&TestClause{X: &UnaryTest{
 			Op: TsNempStr,
 			X:  word(litParamExp("foo"), lit("#bar")),
 		}}, LangBash|LangMirBSDKorn|LangZsh),
+	),
+	fileTest(
+		[]string{`[[ "a"#b == $(c)#d ]]`},
+		langFile(&TestClause{X: &BinaryTest{
+			Op: TsMatch,
+			X:  word(dblQuoted(lit("a")), lit("#b")),
+			Y:  word(cmdSubst(litStmt("c")), lit("#d")),
+		}}, LangBash|LangMirBSDKorn|LangZsh),
+	),
+	fileTest(
+		[]string{"[[ -n ./(../)#(.jj)(#qN/) ]]"},
+		langFile(&TestClause{X: &UnaryTest{
+			Op: TsNempStr,
+			X:  word(lit("./"), lit("(../)"), lit("#"), lit("(.jj)"), lit("(#qN/)")),
+		}}, LangZsh),
+	),
+	// '#' after a newline or an operator inside [[ ]] starts a comment.
+	// TODO(#619): print these comments in place rather than after ]].
+	fileTest(
+		[]string{"[[ a ||\n# c\nb ]]"},
+		printsAs("[[ a ||\n\n\tb ]] # c"),
+		langErr2("2:3: not a valid test operator: `c`", LangBash|LangMirBSDKorn|LangZsh),
+		flipConfirm2(LangBash|LangMirBSDKorn|LangZsh), // TODO: lexed as a word, not a comment
+	),
+	fileTest(
+		[]string{"[[ a &&#c\nb ]]"},
+		printsAs("[[ a &&\n\tb ]] #c"),
+		langErr2("2:1: not a valid test operator: `b`", LangBash|LangMirBSDKorn|LangZsh),
+		flipConfirm2(LangBash|LangMirBSDKorn|LangZsh), // TODO: lexed as a word, not a comment
+	),
+	fileTest(
+		[]string{"[[\n#c\na ]]"},
+		printsAs("[[ \n\n\ta ]] #c"),
+		langErr2("3:1: not a valid test operator: `a`", LangBash|LangMirBSDKorn|LangZsh),
+		flipConfirm2(LangBash|LangMirBSDKorn|LangZsh), // TODO: lexed as a word, not a comment
+	),
+	fileTest(
+		[]string{"[[ (#c\na)#c\n]]"},
+		printsAs("[[ (\n\ta) ]] #c\n#c"),
+		langErr2("2:1: not a valid test operator: `a`", LangBash|LangMirBSDKorn|LangZsh),
+		flipConfirm2(LangBash|LangMirBSDKorn|LangZsh), // TODO: lexed as a word, not a comment
+	),
+	fileTest(
+		[]string{"[[ a ||\n#c\nb ]] | x"},
+		printsAs("[[ a ||\n\n\tb ]] | x"), // TODO(#619): the comment is dropped
+		langErr2("3:1: not a valid test operator: `b`", LangBash|LangMirBSDKorn|LangZsh),
+		flipConfirm2(LangBash|LangMirBSDKorn|LangZsh), // TODO: lexed as a word, not a comment
+	),
+	fileTest(
+		[]string{"[[ a <#c\nb ]]"},
+		langErr2("2:1: not a valid test operator: `b`", LangBash|LangMirBSDKorn|LangZsh), // TODO: lexed as a word, not a comment
+		flipConfirm2(LangZsh), // TODO: zsh allows a newline after a binary operator
 	),
 	fileTest(
 		[]string{"[[ a =~ b ]]", "[[ a =~ b ]];"},
