@@ -463,6 +463,57 @@ var printTests = []printCase{
 		"a &&\nb |\nc |\nd",
 		"a &&\n\tb |\n\tc |\n\td",
 	},
+	samePrint("a && b && {\n\tc\n}"),
+	samePrint("a &&\n\tb |\n\tc | case x in\n\ty) z ;;\n\tesac"),
+	// As after a line break, a pipe following a split chain
+	// does not indent its own operands.
+	samePrint("a &&\n\tb && c |\n\td"),
+	// An operand following a continuation line, such as the last operand
+	// of a split chain, is wrongly not indented like that line; see #1148.
+	{
+		"a &&\nb && {\nc\n}",
+		"a &&\n\tb && {\n\tc\n}",
+	},
+	{
+		"a ||\nb || (\nc\n)",
+		"a ||\n\tb || (\n\tc\n)",
+	},
+	{
+		"a |\nb | $(\nc\n)",
+		"a |\n\tb | $(\n\tc\n)",
+	},
+	{
+		"a &&\nb && if foo; then\nbar\nfi",
+		"a &&\n\tb && if foo; then\n\tbar\nfi",
+	},
+	{
+		"a &&\nb && {\nc\n} &&\nd",
+		"a &&\n\tb && {\n\tc\n} &&\n\td",
+	},
+	{
+		"a && b |\nc && {\nd\n}",
+		"a && b |\n\tc && {\n\td\n}",
+	},
+	{
+		"[[ a &&\nb ]] && {\nc\n}",
+		"[[ a &&\n\tb ]] && {\n\tc\n}",
+	},
+	{
+		"a \\\nb && {\nc\n}",
+		"a \\\n\tb && {\n\tc\n}",
+	},
+	{
+		"a &&\nb && [[ c &&\nd ]]",
+		"a &&\n\tb && [[ c &&\n\td ]]",
+	},
+	{
+		"a &&\nb && foo \\\nbar",
+		"a &&\n\tb && foo \\\n\tbar",
+	},
+	{
+		"a &&\nb && c | {\nd &&\ne\n}",
+		"a &&\n\tb && c | {\n\td &&\n\t\te\n}",
+	},
 	{
 		"if\nfoo\nthen\nbar\nfi",
 		"if\n\tfoo\nthen\n\tbar\nfi",
@@ -1282,6 +1333,17 @@ func TestPrintBinaryNextLine(t *testing.T) {
 		{
 			"a \\\n\t&& if foo; then\nbar\nfi",
 			"a \\\n\t&& if foo; then\n\t\tbar\n\tfi",
+		},
+		samePrint("a \\\n\t&& b && c \\\n\t| d"),
+		// An operand following a continuation line, such as the last operand
+		// of a split chain, is wrongly not indented like that line; see #1148.
+		{
+			"a \\\n&& b && {\nc\n}",
+			"a \\\n\t&& b && {\n\tc\n}",
+		},
+		{
+			"a \\\n&& b && {\nc\n} \\\n&& d",
+			"a \\\n\t&& b && {\n\tc\n} \\\n\t&& d",
 		},
 		{
 			"if foo \\\n&& bar\nthen\nbar\nfi",
