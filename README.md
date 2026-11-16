@@ -32,6 +32,14 @@ quick look at its default style. For example:
 For more information, see [its manpage](cmd/shfmt/shfmt.1.scd), which can be
 viewed directly as Markdown or rendered with [scdoc].
 
+`shfmt --to-json` and `--from-json` convert between shell and a JSON syntax
+tree, also available in Go via the [typedjson package](https://pkg.go.dev/mvdan.cc/sh/v3/syntax/typedjson).
+The format is described by [schema.json](syntax/typedjson/schema.json),
+generated from the [CUE](https://cuelang.org/) schema in [schema.cue](syntax/typedjson/schema.cue),
+which is also published to the CUE Central Registry:
+
+	shfmt --to-json <script.sh | cue vet -c -d '#Node' github.com/mvdan/sh/syntax/typedjson@latest json: -
+
 Packages are available on [Alpine], [Arch], [Debian], [Docker], [Fedora], [FreeBSD],
 [Homebrew], [MacPorts], [NixOS], [OpenSUSE], [PyPI], [Scoop], [Snapcraft], [Void] and [webi].
 
