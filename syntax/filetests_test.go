@@ -5064,6 +5064,24 @@ var fileTests = []fileTestCase{
 		}),
 	),
 	fileTest(
+		[]string{"case $a in (#i)n(o|)) foo ;; (#i)(y(es|)|)) bar ;; esac"},
+		// Wrongly rejected; see #1441.
+		langErr2("1:13: case patterns must consist of words", LangZsh),
+		flipConfirm2(LangZsh),
+	),
+	fileTest(
+		[]string{"case i in (a|b)c) foo ;; (d)#) bar ;; (e)) baz ;; esac"},
+		// Wrongly rejected; see #1441.
+		langErr2("1:17: a command can only contain words and redirects; encountered `)`", LangZsh),
+		flipConfirm2(LangZsh),
+	),
+	fileTest(
+		// Not supported, unlike `(a)b)` or `(a))`.
+		[]string{"case i in (a)|b) foo ;; esac"},
+		langErr2("1:14: `|` can only immediately follow a statement", LangZsh),
+		flipConfirm2(LangZsh),
+	),
+	fileTest(
 		[]string{"foo | while read a; do b; done"},
 		langFile(&BinaryCmd{
 			Op: Pipe,
@@ -5471,6 +5489,12 @@ var fileTests = []fileTestCase{
 	fileTest(
 		[]string{`ls (#i)*.mod`},
 		langFile(call(litWord("ls"), word(lit("(#i)"), lit("*.mod"))), LangZsh),
+	),
+	fileTest(
+		[]string{`echo (y(es|)|\()`},
+		// Wrongly rejected; see #1441.
+		langErr2("1:16: a command can only contain words and redirects; encountered `)`", LangZsh),
+		flipConfirm2(LangZsh),
 	),
 	fileTest(
 		[]string{`[[ a =~ -n ]]`},
