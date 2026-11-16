@@ -3000,7 +3000,10 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 	for p.tok != _EOF && (p.tok != _LitWord || p.val != stop) {
 		ci := &CaseItem{}
 		ci.Comments, p.accComs = p.accComs, nil
-		p.got(leftParen)
+		if p.tok == leftParen {
+			ci.Lparen = p.pos
+			p.next()
+		}
 		for p.tok != _EOF {
 			if w := p.getWord(); w == nil {
 				p.curErr("case patterns must consist of words")

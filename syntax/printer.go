@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 	"text/tabwriter"
 	"unicode"
@@ -1421,15 +1422,9 @@ func (p *Printer) wordJoin(ws []*Word) {
 	}
 }
 
-// casePatternJoin reports whether it printed a leading "(".
-func (p *Printer) casePatternJoin(pats []*Word) (lparen bool) {
+func (p *Printer) casePatternJoin(pats []*Word) {
 	anyNewline := false
 	for i, w := range pats {
-		// Only valid situation for a literal 'esac' here is with a preceding left paran.
-		if i == 0 && w.Lit() == "esac" {
-			p.w.WriteString("(")
-			lparen = true
-		}
 		if i > 0 {
 			p.spacedToken("|", Pos{})
 		}
@@ -1447,7 +1442,6 @@ func (p *Printer) casePatternJoin(pats []*Word) (lparen bool) {
 	if anyNewline {
 		p.decLevel()
 	}
-	return lparen
 }
 
 func (p *Printer) elemJoin(elems []*ArrayElem, last []Comment) {
@@ -1750,6 +1744,11 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			// Apparently "case x in; esac" is invalid shell.
 			p.mustNewline = true
 		}
+		// Keep the optional opening parens only if all items use them,
+		// and drop them when minifying.
+		keepLparens := !p.minify && !slices.ContainsFunc(cmd.Items, func(ci *CaseItem) bool {
+			return !ci.Lparen.IsValid()
+		})
 		for i, ci := range cmd.Items {
 			var last []Comment
 			for i, c := range ci.Comments {
@@ -1759,9 +1758,19 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 				}
 				p.comments(c)
 			}
-			p.newlines(ci.Pos())
-			p.spacePad(ci.Pos())
-			lparen := p.casePatternJoin(ci.Patterns)
+			// A literal 'esac' pattern is only valid with a preceding left paren.
+			lparen := keepLparens || ci.Patterns[0].Lit() == "esac"
+			// Lay out the item from the "(" only if we print it.
+			pos := ci.Patterns[0].Pos()
+			if lparen {
+				pos = ci.Pos()
+			}
+			p.newlines(pos)
+			p.spacePad(pos)
+			if lparen {
+				p.w.WriteByte('(')
+			}
+			p.casePatternJoin(ci.Patterns)
 			p.w.WriteByte(')')
 			// zsh reads "(esac)foo" as a single pattern.
 			if !p.minify || lparen {

@@ -28,3 +28,4 @@ coproc foo
 # comment
 
 <()
+case i in (foo) bar ;; esac

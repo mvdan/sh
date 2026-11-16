@@ -7312,6 +7312,9 @@ func (c sanityChecker) visit(node Node) bool {
 			c.checkPos(node, node.Esac, "esac")
 		}
 	case *CaseItem:
+		if node.Lparen.IsValid() {
+			c.checkPos(node, node.Lparen, "(")
+		}
 		if node.OpPos.IsValid() {
 			c.checkPos(node, node.OpPos, node.Op.String(), "esac")
 		}

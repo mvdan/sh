@@ -395,6 +395,7 @@ _node: {
 	Type?:     "CaseItem"
 	Op?:       #CaseOperator
 	OpPos?:    #Pos
+	Lparen?:   #Pos
 	Comments?: [...#Comment]
 	Patterns?: [...#Word]
 	Stmts?:    [...#Stmt]

@@ -1166,6 +1166,22 @@ var printTests = []printCase{
 	samePrint("case $i in\n1)\n\ta\n\t;;\n(esac)\n\tb\n\t;;\nesac"),
 	samePrint("case $i in\n1)\n\ta\n\t;;\n(esac | 2)\n\tb\n\t;;\nesac"),
 	samePrint("case $i in\n1)\n\ta\n\t;;\n2 | esac)\n\tb\n\t;;\nesac"),
+	// The optional "(" before case patterns is kept only if all items use it.
+	samePrint("case $i in (1 | 2) a ;; (*) b ;; esac"),
+	samePrint("case $i in\n#c\n(1)\n\ta\n\t;;\n(esac | 2)\n\tb\n\t;;\nesac"),
+	{
+		"case $i in\n(1) a ;;\n2) b ;;\n(3) c ;;\nesac",
+		"case $i in\n1) a ;;\n2) b ;;\n3) c ;;\nesac",
+	},
+	{
+		"case $i in\n(esac) a ;;\n(2) b ;;\n3) c ;;\nesac",
+		"case $i in\n(esac) a ;;\n2) b ;;\n3) c ;;\nesac",
+	},
+	samePrint("case $i in (\\\n\t1) a ;; (2) b ;; esac"),
+	{
+		"case $i in (\\\n1) a ;; 2) b ;; esac",
+		"case $i in\n1) a ;; 2) b ;; esac",
+	},
 	samePrint(`$("foo"#bar)#bar`),
 	samePrint("${array[dash - string]}"),
 	samePrint("array[dash - string]=123"),
@@ -1427,6 +1443,10 @@ func TestPrintSwitchCaseIndent(t *testing.T) {
 		{
 			"case $i in\n1)\na\n;;\n2)\nb\n;;\nesac",
 			"case $i in\n\t1)\n\t\ta\n\t\t;;\n\t2)\n\t\tb\n\t\t;;\nesac",
+		},
+		{
+			"case $i in\n(1)\na\n;;\n(2)\nb\n;;\nesac",
+			"case $i in\n\t(1)\n\t\ta\n\t\t;;\n\t(2)\n\t\tb\n\t\t;;\nesac",
 		},
 		samePrint("case $i in\n\t#foo\nesac"),
 		samePrint("foo $(case a in b) c ;;\nesac)"),
@@ -1775,6 +1795,10 @@ func TestPrintMinify(t *testing.T) {
 		{
 			"case a in (esac) b ;; c) ;; esac",
 			"case a in (esac) b;;c)esac",
+		},
+		{
+			"case a in (b) c ;; (esac) ;; esac",
+			"case a in b)c;;(esac) esac",
 		},
 		{
 			"a && b | c",

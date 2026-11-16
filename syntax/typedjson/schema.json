@@ -543,6 +543,9 @@
                         "$ref": "#/$defs/Comment"
                     }
                 },
+                "Lparen": {
+                    "$ref": "#/$defs/Pos"
+                },
                 "Op": {
                     "$ref": "#/$defs/CaseOperator"
                 },
