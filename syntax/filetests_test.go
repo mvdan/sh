@@ -7065,6 +7065,8 @@ func (c sanityChecker) visit(node Node) bool {
 				// ended by & or |&
 			case end == '\\' && c.src[endOff+1] == '`':
 				// ended by an escaped backquote
+			case strings.HasPrefix(c.src[endOff:], "\\\n"), strings.HasPrefix(c.src[endOff:], "\\\r\n"):
+				// ended by an escaped newline
 			case end == '}' && c.lang.in(LangZsh):
 				// ended by a zsh closing brace, as in `{ foo}`
 			default:
@@ -7107,6 +7109,13 @@ func (c sanityChecker) visit(node Node) bool {
 		val := node.Value
 		posLine := node.Pos().Line()
 		endLine := node.End().Line()
+		// Trailing escaped newlines are not part of a literal,
+		// unless its value keeps them, as in quoted heredocs.
+		if pos <= end && end <= len(c.src) && !strings.HasSuffix(val, "\\\n") {
+			if span := c.src[pos:end]; strings.HasSuffix(span, "\\\n") || strings.HasSuffix(span, "\\\r\n") {
+				c.tb.Errorf("Lit %q ends with an escaped newline in %q", val, c.src)
+			}
+		}
 		switch {
 		case strings.Contains(c.src, "\\\n"), strings.Contains(c.src, "\\\r\n"):
 		case !strings.Contains(node.Value, "\n") && posLine != endLine:

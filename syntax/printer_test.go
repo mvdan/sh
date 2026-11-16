@@ -242,12 +242,11 @@ var printTests = []printCase{
 	{"a <<< \\\n\\\n\t\"b\"", "a <<< \\\n\t\"b\""},
 	samePrint("a \\\n\tb \\\n\t\"c\" \\\n\t;"),
 	samePrint("a=1 \\\n\tb=2 \\\n\tc=\"3\" \\\n\t;"),
-	// Without a space before the backslash, lines are wrongly joined; see #953.
-	{"a\\\n\tb\\\n\t\"c\"\\\n\t;", "a b \"c\" \\\n\t;"},
-	{"a=1\\\n\tb=2\\\n\tc=\"3\"\\\n\t;", "a=1 b=2 c=\"3\" \\\n\t;"},
-	{"a\\\n\tb\\\n\tc", "a b c"},
-	{"a $b\\\n\tc", "a $b c"},
-	{"if a\\\n\t; then b; fi", "if a; then b; fi"},
+	{"a\\\n\tb\\\n\t\"c\"\\\n\t;", "a \\\n\tb \\\n\t\"c\" \\\n\t;"},
+	{"a=1\\\n\tb=2\\\n\tc=\"3\"\\\n\t;", "a=1 \\\n\tb=2 \\\n\tc=\"3\" \\\n\t;"},
+	{"a\\\n\tb\\\n\tc", "a \\\n\tb \\\n\tc"},
+	{"a $b\\\n\tc", "a $b \\\n\tc"},
+	{"if a\\\n\t; then b; fi", "if a \\\n\t; then b; fi"},
 	{
 		"a=\\\nfoo\nb=\\\n\"bar\"\nc=\\\n'baz'",
 		"a=foo\nb=\"bar\"\nc='baz'",

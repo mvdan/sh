@@ -531,6 +531,12 @@ type Parser struct {
 	// position of [Parser.r], to be converted to [Parser.pos] later
 	offs, line, col int64
 
+	// escNewlPos is the position of the backslash starting the last run of
+	// escaped newlines, and escNewlEnd is the offset right after the run;
+	// see [Parser.litEnd].
+	escNewlPos Pos
+	escNewlEnd int64
+
 	pos Pos // position of tok
 
 	quote   quoteState // current lexer state
@@ -647,6 +653,7 @@ func (p *Parser) reset() {
 	p.eqlOffs = 0
 	p.bs, p.bsp = nil, 0
 	p.offs, p.line, p.col = 0, 1, 1
+	p.escNewlPos, p.escNewlEnd = Pos{}, -1
 	p.r, p.w = 0, 0
 	p.err, p.readErr, p.readEOF = nil, nil, false
 	p.quote, p.forbidNested, p.wordCont = noState, false, false
@@ -666,17 +673,41 @@ func (p *Parser) reset() {
 
 // nextPos returns the position of the next rune, [Parser.r].
 func (p *Parser) nextPos() Pos {
+	return p.newPos(p.offs+int64(p.bsp)-int64(p.w), p.col)
+}
+
+// newPos returns the position at an offset and column in the current line.
+func (p *Parser) newPos(offset, col int64) Pos {
 	// Basic protection against offset overflow;
 	// note that an offset of 0 is valid, so we leave the maximum.
-	offset := min(p.offs+int64(p.bsp)-int64(p.w), offsetMax)
-	var line, col uint
+	offset = min(offset, offsetMax)
+	var line uint
 	if p.line <= lineMax {
 		line = uint(p.line)
 	}
-	if p.col <= colMax {
-		col = uint(p.col)
+	if col > colMax {
+		col = 0
 	}
-	return NewPos(uint(offset), line, col)
+	return NewPos(uint(offset), line, uint(col))
+}
+
+// litEnd returns the end of a literal starting at pos and followed by [Parser.r],
+// or by a '}' split off it at [Parser.zshRbrace].
+// Escaped newlines between them belong to neither,
+// so that `foo\` followed by a newline ends where `foo \` does.
+func (p *Parser) litEnd(pos Pos) Pos {
+	end := p.zshRbrace
+	if !end.IsValid() {
+		end = p.nextPos()
+	}
+	// The last run of escaped newlines ends right before end, or with [Parser.r].
+	if p.escNewlEnd == int64(end.Offset()) || p.r == escNewl {
+		if pos.After(p.escNewlPos) {
+			return pos // an empty literal after the escaped newlines
+		}
+		return p.escNewlPos
+	}
+	return end
 }
 
 func (p *Parser) lit(pos Pos, val string) *Lit {
@@ -686,11 +717,7 @@ func (p *Parser) lit(pos Pos, val string) *Lit {
 	l := &p.litBatch[0]
 	p.litBatch = p.litBatch[1:]
 	l.ValuePos = pos
-	l.ValueEnd = p.nextPos()
-	if p.zshRbrace.IsValid() {
-		// The current token ends at a '}' split off it, which is the next token.
-		l.ValueEnd = p.zshRbrace
-	}
+	l.ValueEnd = p.litEnd(pos)
 	l.Value = val
 	return l
 }
@@ -2146,7 +2173,7 @@ func (p *Parser) getAssign(needEqual bool) *Assign {
 		as.Value = p.wordOne(p.lit(p.pos, p.val))
 	} else if l, ok := as.Value.Parts[len(as.Value.Parts)-1].(*Lit); ok && l.ValueEnd == p.pos {
 		l.Value += p.val
-		l.ValueEnd = p.nextPos()
+		l.ValueEnd = p.litEnd(l.ValuePos)
 	} else {
 		as.Value.Parts = append(as.Value.Parts, p.lit(p.pos, p.val))
 	}

@@ -106,14 +106,9 @@ retry:
 		case '\\':
 			if p.r == '\\' {
 			} else if p.peek() == '\n' {
-				p.bsp++
-				p.w, p.r = 1, escNewl
-				return escNewl
+				return p.escapedNewline(1, bquotes)
 			} else if p1, p2 := p.peekTwo(); p1 == '\r' && p2 == '\n' { // \\\r\n turns into \\\n
-				p.col++
-				p.bsp += 2
-				p.w, p.r = 2, escNewl
-				return escNewl
+				return p.escapedNewline(2, bquotes)
 			}
 			// TODO: why is this necessary to ensure correct position info?
 			p.readEOF = false
@@ -155,6 +150,20 @@ decodeRune:
 	}
 	p.w = w
 	return p.r
+}
+
+// escapedNewline consumes the newline of width w after the backslash just
+// read, and records where its run of escaped newlines starts and ends.
+// bquotes is the number of backslashes before it removed for backquotes.
+func (p *Parser) escapedNewline(w, bquotes int) rune {
+	if p.r != escNewl {
+		p.escNewlPos = p.newPos(p.offs+int64(p.bsp)-1-int64(bquotes), p.col-int64(bquotes))
+	}
+	p.col += int64(w - 1)
+	p.bsp += uint(w)
+	p.escNewlEnd = p.offs + int64(p.bsp)
+	p.w, p.r = w, escNewl
+	return escNewl
 }
 
 // fill reads more bytes from the input src into readBuf.
@@ -1421,6 +1430,7 @@ func (p *Parser) quotedHdocWord() *Word {
 				}
 			case escNewl:
 				p.litBs = append(p.litBs, '\\', '\n')
+				p.escNewlEnd = -1 // part of the literal, not removed
 				break runeLoop
 			}
 			r = p.rune()
