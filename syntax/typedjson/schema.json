@@ -1915,7 +1915,7 @@
         }
     },
     "type": "object",
-    "description": "Node is any syntax node, such as the root node, in the typed JSON format\nas described by the package documentation.\nEach definition matches the syntax type of the same name,\ndocumented at https://pkg.go.dev/mvdan.cc/sh/v3/syntax.\n\nFields holding zero values are omitted when encoding.\nThe Type field is required where a node's type cannot be inferred,\nand the derived Pos and End fields are ignored when decoding.",
+    "description": "Node is any syntax node, such as the root node.",
     "properties": {
         "Type": true
     },
