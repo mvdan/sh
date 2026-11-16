@@ -449,6 +449,21 @@ var printTests = []printCase{
 		"a \\\n\t&& if foo; then\nbar\nfi",
 		"a &&\n\tif foo; then\n\t\tbar\n\tfi",
 	},
+	// A pipe within a split chain does not indent its own operands,
+	// but chains within its block or subshell operands are wrongly
+	// not indented either, and its third operand is wrongly indented.
+	{
+		"a &&\nb | {\nc &&\nd\n}",
+		"a &&\n\tb | {\n\t\tc &&\n\t\td\n\t}",
+	},
+	{
+		"a &&\n(\nb &&\nc\n) | d",
+		"a &&\n\t(\n\t\tb &&\n\t\tc\n\t) | d",
+	},
+	{
+		"a &&\nb |\nc |\nd",
+		"a &&\n\tb |\n\tc |\n\t\td",
+	},
 	{
 		"if\nfoo\nthen\nbar\nfi",
 		"if\n\tfoo\nthen\n\tbar\nfi",
