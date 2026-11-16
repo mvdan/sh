@@ -63,6 +63,8 @@ jobs:
       run: go vet ./...
     - if: matrix.os == 'namespace-profile-linux' && matrix.go-version == '1.27.x'
       run: go generate ./... && git add -N . && git diff --exit-code
+    - if: matrix.os == 'namespace-profile-linux' && matrix.go-version == '1.27.x'
+      run: go tool -modfile=internal/tools/go.mod cue mod publish --dry-run v3.0.0
 
   test-linux-alpine:
     runs-on: namespace-profile-linux
