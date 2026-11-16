@@ -585,7 +585,10 @@ type Parser struct {
 	lastBquoteEsc int
 
 	rxOpenParens int
-	rxFirstPart  bool
+
+	// wordCont is set while parsing the parts of a word, when the next token
+	// may continue the word, like the '#' in $foo#bar.
+	wordCont bool
 
 	accComs []Comment
 	curComs *[]Comment
@@ -646,7 +649,7 @@ func (p *Parser) reset() {
 	p.offs, p.line, p.col = 0, 1, 1
 	p.r, p.w = 0, 0
 	p.err, p.readErr, p.readEOF = nil, nil, false
-	p.quote, p.forbidNested = noState, false
+	p.quote, p.forbidNested, p.wordCont = noState, false, false
 	p.zshBraceDepth, p.zshRbrace, p.zshSplit, p.zshKeptRbrace = 0, Pos{}, false, Pos{}
 	p.openNodes = 0
 	p.recoveredErrors = 0
@@ -741,10 +744,6 @@ const (
 	// [Parser.next] always returns [illegalTok].
 	runeByRune
 
-	// unquotedWordCont exists purely so that the '#' in $foo#bar does not
-	// get parsed as a comment; it's a tiny variation on [noState].
-	unquotedWordCont
-
 	subCmd
 	subCmdBckquo
 	// subCmdBraces is like subCmd, but for `${ stmts;}` and `${|stmts;}`,
@@ -775,7 +774,7 @@ const (
 
 	allKeepSpaces = runeByRune | paramExpRepl | dblQuotes | hdocBody |
 		hdocBodyTabs | paramExpRepl | paramExpExp | zshSubscript
-	allRegTokens = noState | unquotedWordCont | subCmd | subCmdBckquo | subCmdBraces |
+	allRegTokens = noState | subCmd | subCmdBckquo | subCmdBraces |
 		hdocWord | switchCase | arrayElems | testExpr
 	allArithmExpr = arithmExpr | arithmExprLet | arithmExprCmd |
 		paramExpArithm | paramExpSlice
@@ -786,16 +785,20 @@ type saveState struct {
 	quote         quoteState
 	buriedHdocs   int
 	zshBraceDepth int
+	wordCont      bool
 }
 
 func (p *Parser) preNested(quote quoteState) (s saveState) {
 	s.quote, s.buriedHdocs, s.zshBraceDepth = p.quote, p.buriedHdocs, p.zshBraceDepth
+	s.wordCont = p.wordCont
 	p.buriedHdocs, p.quote, p.zshBraceDepth = len(p.heredocs), quote, 0
+	p.wordCont = false
 	return s
 }
 
 func (p *Parser) postNested(s saveState) {
 	p.quote, p.buriedHdocs, p.zshBraceDepth = s.quote, s.buriedHdocs, s.zshBraceDepth
+	p.wordCont = s.wordCont
 }
 
 func unquotedWordBytes(w *Word) (buf []byte, quoted bool) {
@@ -1315,10 +1318,8 @@ func (p *Parser) getLit() *Lit {
 }
 
 func (p *Parser) wordParts(wps []WordPart) []WordPart {
-	if p.quote == noState {
-		p.quote = unquotedWordCont
-		defer func() { p.quote = noState }()
-	}
+	defer func(old bool) { p.wordCont = old }(p.wordCont)
+	p.wordCont = true
 	for {
 		p.enterNode()
 		n := p.wordPart()
@@ -3088,7 +3089,6 @@ func (p *Parser) testExprBinary(pastAndOr bool) TestExpr {
 	case TsReMatch:
 		p.checkLang(p.pos, langBashLike|LangZsh, "regex tests")
 		p.rxOpenParens = 0
-		p.rxFirstPart = true
 		// TODO(mvdan): Using nested states within a regex will break in
 		// all sorts of ways. The better fix is likely to use a stop
 		// token, like we do with heredocs.

@@ -1070,18 +1070,12 @@ var printTests = []printCase{
 	samePrint("(\n\t((foo++))\n)"),
 	samePrint("(foo && bar)"),
 	samePrint(`$foo#bar ${foo}#bar 'foo'#bar "foo"#bar`),
-	// TODO: lexed as comments, not words
-	{"`\nfoo $bar#baz\n`", "$(\n\tfoo $bar #baz\n)"},
-	{"cat <<\"EOF\"#x\nbody\nEOF#x", "cat <<\"EOF\" #x\nbody\nEOF#x\nEOF"},
+	{"`\nfoo $bar#baz\n`", "$(\n\tfoo $bar#baz\n)"},
+	samePrint("cat <<\"EOF\"#x\nbody\nEOF#x"),
 	samePrint("case $i in\n1)\n\ta\n\t;;\n(esac)\n\tb\n\t;;\nesac"),
 	samePrint("case $i in\n1)\n\ta\n\t;;\n(esac | 2)\n\tb\n\t;;\nesac"),
 	samePrint("case $i in\n1)\n\ta\n\t;;\n2 | esac)\n\tb\n\t;;\nesac"),
-	// TODO: support cases with command substitutions as well
-	// {
-	// 	"`foo`#bar",
-	// 	"$(foo)#bar",
-	// },
-	// samePrint(`$("foo"#bar)#bar`),
+	samePrint(`$("foo"#bar)#bar`),
 	samePrint("${array[dash - string]}"),
 	samePrint("array[dash - string]=123"),
 	samePrint("${arr[0,1]}"),

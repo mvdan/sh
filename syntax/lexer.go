@@ -338,7 +338,7 @@ skipSpace:
 			// If we're parsing $foo#bar, ${foo}#bar, 'foo'#bar, or "foo"#bar,
 			// #bar is a continuation of the same word, not a comment.
 			// The same applies inside [[ ]] tests, where '#' has no comment meaning.
-			if !p.spaced && (p.quote == unquotedWordCont || p.quote == testExpr) {
+			if !p.spaced && (p.wordCont || p.quote == testExpr) {
 				p.advanceLitNone(r)
 				return
 			}
@@ -427,11 +427,10 @@ skipSpace:
 	case p.quote&allParamExp != 0 && paramOps(r):
 		p.tok = p.paramToken(r)
 	case p.quote == testExprRegexp:
-		if !p.rxFirstPart && p.spaced {
+		if p.wordCont && p.spaced {
 			p.quote = testExpr
 			goto skipSpace
 		}
-		p.rxFirstPart = false
 		switch r {
 		case ';', '"', '\'', '$', '&', '>', '<', '`':
 			p.tok = p.regToken(r)

@@ -2555,13 +2555,20 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"$(foo $bar#baz)"},
-		langErr2("1:1: reached EOF without matching `$(` with `)`"),
-		flipConfirm2(langResolvedVariants), // TODO: lexed as a comment, not a word
+		langFile(cmdSubst(stmt(call(
+			litWord("foo"),
+			word(litParamExp("bar"), lit("#baz")),
+		)))),
 	),
 	fileTest(
 		[]string{"${ foo $bar#baz;}"},
-		langErr2("1:1: reached EOF without matching `${` with `}`", LangBash|LangMirBSDKorn),
-		flipConfirm2(LangBash|LangMirBSDKorn), // TODO: lexed as a comment, not a word
+		langFile(&CmdSubst{
+			Stmts: stmts(call(
+				litWord("foo"),
+				word(litParamExp("bar"), lit("#baz")),
+			)),
+			TempFile: true,
+		}, LangBash|LangMirBSDKorn),
 	),
 	fileTest(
 		[]string{"a=($foo#bar b)"},
@@ -2571,9 +2578,7 @@ var fileTests = []fileTestCase{
 				word(litParamExp("foo"), lit("#bar")),
 				litWord("b"),
 			),
-		}}}, LangMirBSDKorn),
-		langErr2("1:3: reached EOF without matching `(` with `)`", LangBash|LangZsh),
-		flipConfirm2(LangBash|LangZsh), // TODO: lexed as a comment, not a word
+		}}}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"{ foo } }; }"},
