@@ -1070,6 +1070,9 @@ var printTests = []printCase{
 	samePrint("(\n\t((foo++))\n)"),
 	samePrint("(foo && bar)"),
 	samePrint(`$foo#bar ${foo}#bar 'foo'#bar "foo"#bar`),
+	// TODO: lexed as comments, not words
+	{"`\nfoo $bar#baz\n`", "$(\n\tfoo $bar #baz\n)"},
+	{"cat <<\"EOF\"#x\nbody\nEOF#x", "cat <<\"EOF\" #x\nbody\nEOF#x\nEOF"},
 	samePrint("case $i in\n1)\n\ta\n\t;;\n(esac)\n\tb\n\t;;\nesac"),
 	samePrint("case $i in\n1)\n\ta\n\t;;\n(esac | 2)\n\tb\n\t;;\nesac"),
 	samePrint("case $i in\n1)\n\ta\n\t;;\n2 | esac)\n\tb\n\t;;\nesac"),
