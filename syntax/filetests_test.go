@@ -5065,15 +5065,32 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"case $a in (#i)n(o|)) foo ;; (#i)(y(es|)|)) bar ;; esac"},
-		// Wrongly rejected; see #1441.
-		langErr2("1:13: case patterns must consist of words", LangZsh),
-		flipConfirm2(LangZsh),
+		langFile(&CaseClause{
+			Word: word(litParamExp("a")),
+			Items: []*CaseItem{
+				{
+					Op:       Break,
+					Patterns: []*Word{word(lit("(#i)"), lit("n"), lit("(o|)"))},
+					Stmts:    litStmts("foo"),
+				},
+				{
+					Op:       Break,
+					Patterns: []*Word{word(lit("(#i)"), lit("(y(es|)|)"))},
+					Stmts:    litStmts("bar"),
+				},
+			},
+		}, LangZsh),
 	),
 	fileTest(
 		[]string{"case i in (a|b)c) foo ;; (d)#) bar ;; (e)) baz ;; esac"},
-		// Wrongly rejected; see #1441.
-		langErr2("1:17: a command can only contain words and redirects; encountered `)`", LangZsh),
-		flipConfirm2(LangZsh),
+		langFile(&CaseClause{
+			Word: litWord("i"),
+			Items: []*CaseItem{
+				{Op: Break, Patterns: []*Word{word(lit("(a|b)"), lit("c"))}, Stmts: litStmts("foo")},
+				{Op: Break, Patterns: []*Word{word(lit("(d)"), lit("#"))}, Stmts: litStmts("bar")},
+				{Op: Break, Patterns: litWords("(e)"), Stmts: litStmts("baz")},
+			},
+		}, LangZsh),
 	),
 	fileTest(
 		// Not supported, unlike `(a)b)` or `(a))`.
@@ -5492,9 +5509,7 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{`echo (y(es|)|\()`},
-		// Wrongly rejected; see #1441.
-		langErr2("1:16: a command can only contain words and redirects; encountered `)`", LangZsh),
-		flipConfirm2(LangZsh),
+		langFile(call(litWord("echo"), litWord(`(y(es|)|\()`)), LangZsh),
 	),
 	fileTest(
 		[]string{`[[ a =~ -n ]]`},

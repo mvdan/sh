@@ -1543,7 +1543,19 @@ func (p *Parser) wordPart() WordPart {
 			// for a function declaration, which the parser handles earlier.
 			pos := p.pos
 			p.pos = p.nextPos()
-			for p.newLit(p.r); p.r != runeEOF && p.r != ')'; p.rune() {
+			lparens := 1
+		groupLoop:
+			for p.newLit(p.r); p.r != runeEOF; p.rune() {
+				switch p.r {
+				case '\\':
+					p.rune() // like `\(`, which does not count
+				case '(':
+					lparens++
+				case ')':
+					if lparens--; lparens == 0 {
+						break groupLoop
+					}
+				}
 			}
 			if p.r != ')' {
 				p.tok = _EOF // we can only get here due to EOF
@@ -3000,7 +3012,8 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 	for p.tok != _EOF && (p.tok != _LitWord || p.val != stop) {
 		ci := &CaseItem{}
 		ci.Comments, p.accComs = p.accComs, nil
-		if p.tok == leftParen {
+		// A zsh glob flag like `(#i)` is part of the first pattern.
+		if p.tok == leftParen && (!p.lang.in(LangZsh) || p.r != '#') {
 			ci.Lparen = p.pos
 			p.next()
 		}
@@ -3009,6 +3022,9 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 				p.curErr("case patterns must consist of words")
 			} else {
 				ci.Patterns = append(ci.Patterns, w)
+			}
+			if p.tok == rightParen && ci.Lparen.IsValid() && p.lang.in(LangZsh) {
+				p.zshCaseGroup(ci)
 			}
 			if p.tok == rightParen {
 				break
@@ -3064,6 +3080,37 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 		items = append(items, ci)
 	}
 	return items
+}
+
+// zshCaseGroup treats the parentheses around zsh case patterns as a glob group
+// in the first pattern if more of it or `)` follows, like `(a|b)c)` or `(a))`.
+// Only literal patterns without blanks are supported, and not `(a)|b)`.
+func (p *Parser) zshCaseGroup(ci *CaseItem) {
+	if strings.ContainsRune(" \t\r\n;&|<>", p.r) || p.r == runeEOF || p.r == escNewl {
+		return // the parentheses surround the patterns
+	}
+	lits := make([]string, len(ci.Patterns))
+	end := ci.Lparen
+	for i, w := range ci.Patterns {
+		if lits[i] = w.Lit(); lits[i] == "" || w.Pos() != posAddCol(end, 1) {
+			return
+		}
+		end = w.End()
+	}
+	if p.pos != end {
+		return
+	}
+	group := &Lit{
+		ValuePos: ci.Lparen,
+		ValueEnd: posAddCol(end, 1),
+		Value:    "(" + strings.Join(lits, "|") + ")",
+	}
+	ci.Lparen = Pos{}
+	wordCont := p.wordCont
+	p.wordCont = true // like `(a)#b)`
+	p.next()
+	p.wordCont = wordCont
+	ci.Patterns = []*Word{{Parts: p.wordParts([]WordPart{group})}}
 }
 
 func (p *Parser) testClause(s *Stmt) {
