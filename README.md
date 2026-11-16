@@ -38,7 +38,8 @@ The format is described by [schema.json](syntax/typedjson/schema.json),
 generated from the [CUE](https://cuelang.org/) schema in [schema.cue](syntax/typedjson/schema.cue),
 which is also published to the CUE Central Registry:
 
-	shfmt --to-json <script.sh | cue vet -c -d '#Node' github.com/mvdan/sh/syntax/typedjson@latest json: -
+	shfmt --to-json <script.sh |
+		cue vet -c -d '#Node' github.com/mvdan/sh/syntax/typedjson@latest json: -
 
 Packages are available on [Alpine], [Arch], [Debian], [Docker], [Fedora], [FreeBSD],
 [Homebrew], [MacPorts], [NixOS], [OpenSUSE], [PyPI], [Scoop], [Snapcraft], [Void] and [webi].
