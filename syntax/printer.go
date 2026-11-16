@@ -904,6 +904,9 @@ func (p *Printer) wordParts(wps []WordPart, quoted bool) {
 			p.w.WriteString("\\\n")
 			p.line++
 		}
+		if !quoted {
+			p.advanceLine(wp.Pos().Line())
+		}
 		p.wordPart(wp, next)
 		p.advanceLine(wp.End().Line())
 	}

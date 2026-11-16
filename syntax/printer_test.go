@@ -237,10 +237,9 @@ var printTests = []printCase{
 	},
 	{"a b\\\n\"c\" d", "a b\"c\" d"},
 	{"a b\\\n$((c)) d", "a b$((c)) d"},
-	// These wrongly print the escaped newline within the next word part.
-	{"a \"b\"\\\n\"c\" d", "a \"b\"\"\\\nc\" d"},
-	{"a 'b'\\\n$((c)) d", "a 'b'$((\nc)) d"},
-	{"a <<< \\\n\\\n\t\"b\"", "a <<< \\\n\t\"\\\nb\""},
+	{"a \"b\"\\\n\"c\" d", "a \"b\"\"c\" d"},
+	{"a 'b'\\\n$((c)) d", "a 'b'$((c)) d"},
+	{"a <<< \\\n\\\n\t\"b\"", "a <<< \\\n\t\"b\""},
 	samePrint("a \\\n\tb \\\n\t\"c\" \\\n\t;"),
 	samePrint("a=1 \\\n\tb=2 \\\n\tc=\"3\" \\\n\t;"),
 	{
