@@ -1094,156 +1094,6 @@
                 "Type"
             ]
         },
-        "Node": {
-            "type": "object",
-            "description": "Node is any syntax node, such as the root node.",
-            "properties": {
-                "Type": true
-            },
-            "anyOf": [
-                {
-                    "$ref": "#/$defs/File"
-                },
-                {
-                    "$ref": "#/$defs/Comment"
-                },
-                {
-                    "$ref": "#/$defs/Stmt"
-                },
-                {
-                    "$ref": "#/$defs/Assign"
-                },
-                {
-                    "$ref": "#/$defs/Redirect"
-                },
-                {
-                    "$ref": "#/$defs/Word"
-                },
-                {
-                    "$ref": "#/$defs/Lit"
-                },
-                {
-                    "$ref": "#/$defs/SglQuoted"
-                },
-                {
-                    "$ref": "#/$defs/DblQuoted"
-                },
-                {
-                    "$ref": "#/$defs/ParamExp"
-                },
-                {
-                    "$ref": "#/$defs/CmdSubst"
-                },
-                {
-                    "$ref": "#/$defs/CallExpr"
-                },
-                {
-                    "$ref": "#/$defs/ArithmExp"
-                },
-                {
-                    "$ref": "#/$defs/ProcSubst"
-                },
-                {
-                    "$ref": "#/$defs/ExtGlob"
-                },
-                {
-                    "$ref": "#/$defs/BraceExp"
-                },
-                {
-                    "$ref": "#/$defs/ArithmCmd"
-                },
-                {
-                    "$ref": "#/$defs/BinaryCmd"
-                },
-                {
-                    "$ref": "#/$defs/IfClause"
-                },
-                {
-                    "$ref": "#/$defs/ForClause"
-                },
-                {
-                    "$ref": "#/$defs/RepeatClause"
-                },
-                {
-                    "$ref": "#/$defs/WhileClause"
-                },
-                {
-                    "$ref": "#/$defs/CaseClause"
-                },
-                {
-                    "$ref": "#/$defs/Block"
-                },
-                {
-                    "$ref": "#/$defs/TryClause"
-                },
-                {
-                    "$ref": "#/$defs/Subshell"
-                },
-                {
-                    "$ref": "#/$defs/FuncDecl"
-                },
-                {
-                    "$ref": "#/$defs/TestClause"
-                },
-                {
-                    "$ref": "#/$defs/DeclClause"
-                },
-                {
-                    "$ref": "#/$defs/LetClause"
-                },
-                {
-                    "$ref": "#/$defs/TimeClause"
-                },
-                {
-                    "$ref": "#/$defs/CoprocClause"
-                },
-                {
-                    "$ref": "#/$defs/TestDecl"
-                },
-                {
-                    "$ref": "#/$defs/UnaryArithm"
-                },
-                {
-                    "$ref": "#/$defs/BinaryArithm"
-                },
-                {
-                    "$ref": "#/$defs/ParenArithm"
-                },
-                {
-                    "$ref": "#/$defs/FlagsArithm"
-                },
-                {
-                    "$ref": "#/$defs/CallArithm"
-                },
-                {
-                    "$ref": "#/$defs/UnaryTest"
-                },
-                {
-                    "$ref": "#/$defs/BinaryTest"
-                },
-                {
-                    "$ref": "#/$defs/ParenTest"
-                },
-                {
-                    "$ref": "#/$defs/WordIter"
-                },
-                {
-                    "$ref": "#/$defs/CStyleLoop"
-                },
-                {
-                    "$ref": "#/$defs/CaseItem"
-                },
-                {
-                    "$ref": "#/$defs/ArrayExpr"
-                },
-                {
-                    "$ref": "#/$defs/ArrayElem"
-                }
-            ],
-            "required": [
-                "Type"
-            ]
-        },
         "OptState": {
             "description": "OptState is either unset, on, or off.",
             "enum": [
@@ -2065,6 +1915,151 @@
         }
     },
     "type": "object",
-    "description": "The typed JSON format as described by the package documentation.\nEach definition matches the syntax type of the same name,\ndocumented at https://pkg.go.dev/mvdan.cc/sh/v3/syntax.\n\nFields holding zero values are omitted when encoding.\nThe Type field is required where a node's type cannot be inferred,\nand the derived Pos and End fields are ignored when decoding.",
-    "$ref": "#/$defs/Node"
+    "description": "Node is any syntax node, such as the root node, in the typed JSON format\nas described by the package documentation.\nEach definition matches the syntax type of the same name,\ndocumented at https://pkg.go.dev/mvdan.cc/sh/v3/syntax.\n\nFields holding zero values are omitted when encoding.\nThe Type field is required where a node's type cannot be inferred,\nand the derived Pos and End fields are ignored when decoding.",
+    "properties": {
+        "Type": true
+    },
+    "anyOf": [
+        {
+            "$ref": "#/$defs/File"
+        },
+        {
+            "$ref": "#/$defs/Comment"
+        },
+        {
+            "$ref": "#/$defs/Stmt"
+        },
+        {
+            "$ref": "#/$defs/Assign"
+        },
+        {
+            "$ref": "#/$defs/Redirect"
+        },
+        {
+            "$ref": "#/$defs/Word"
+        },
+        {
+            "$ref": "#/$defs/Lit"
+        },
+        {
+            "$ref": "#/$defs/SglQuoted"
+        },
+        {
+            "$ref": "#/$defs/DblQuoted"
+        },
+        {
+            "$ref": "#/$defs/ParamExp"
+        },
+        {
+            "$ref": "#/$defs/CmdSubst"
+        },
+        {
+            "$ref": "#/$defs/CallExpr"
+        },
+        {
+            "$ref": "#/$defs/ArithmExp"
+        },
+        {
+            "$ref": "#/$defs/ProcSubst"
+        },
+        {
+            "$ref": "#/$defs/ExtGlob"
+        },
+        {
+            "$ref": "#/$defs/BraceExp"
+        },
+        {
+            "$ref": "#/$defs/ArithmCmd"
+        },
+        {
+            "$ref": "#/$defs/BinaryCmd"
+        },
+        {
+            "$ref": "#/$defs/IfClause"
+        },
+        {
+            "$ref": "#/$defs/ForClause"
+        },
+        {
+            "$ref": "#/$defs/RepeatClause"
+        },
+        {
+            "$ref": "#/$defs/WhileClause"
+        },
+        {
+            "$ref": "#/$defs/CaseClause"
+        },
+        {
+            "$ref": "#/$defs/Block"
+        },
+        {
+            "$ref": "#/$defs/TryClause"
+        },
+        {
+            "$ref": "#/$defs/Subshell"
+        },
+        {
+            "$ref": "#/$defs/FuncDecl"
+        },
+        {
+            "$ref": "#/$defs/TestClause"
+        },
+        {
+            "$ref": "#/$defs/DeclClause"
+        },
+        {
+            "$ref": "#/$defs/LetClause"
+        },
+        {
+            "$ref": "#/$defs/TimeClause"
+        },
+        {
+            "$ref": "#/$defs/CoprocClause"
+        },
+        {
+            "$ref": "#/$defs/TestDecl"
+        },
+        {
+            "$ref": "#/$defs/UnaryArithm"
+        },
+        {
+            "$ref": "#/$defs/BinaryArithm"
+        },
+        {
+            "$ref": "#/$defs/ParenArithm"
+        },
+        {
+            "$ref": "#/$defs/FlagsArithm"
+        },
+        {
+            "$ref": "#/$defs/CallArithm"
+        },
+        {
+            "$ref": "#/$defs/UnaryTest"
+        },
+        {
+            "$ref": "#/$defs/BinaryTest"
+        },
+        {
+            "$ref": "#/$defs/ParenTest"
+        },
+        {
+            "$ref": "#/$defs/WordIter"
+        },
+        {
+            "$ref": "#/$defs/CStyleLoop"
+        },
+        {
+            "$ref": "#/$defs/CaseItem"
+        },
+        {
+            "$ref": "#/$defs/ArrayExpr"
+        },
+        {
+            "$ref": "#/$defs/ArrayElem"
+        }
+    ],
+    "required": [
+        "Type"
+    ]
 }

@@ -1,18 +1,16 @@
 // Copyright (c) 2026, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
-// The typed JSON format as described by the package documentation.
+package typedjson
+
+// Node is any syntax node, such as the root node, in the typed JSON format
+// as described by the package documentation.
 // Each definition matches the syntax type of the same name,
 // documented at https://pkg.go.dev/mvdan.cc/sh/v3/syntax.
 //
 // Fields holding zero values are omitted when encoding.
 // The Type field is required where a node's type cannot be inferred,
 // and the derived Pos and End fields are ignored when decoding.
-package typedjson
-
-#Node
-
-// Node is any syntax node, such as the root node.
 #Node: {Type!: _} & (#File | #Comment | #Stmt | #Assign | #Redirect | #Word |
 	#Lit | #SglQuoted | #DblQuoted | #ParamExp | #CmdSubst | #CallExpr |
 	#ArithmExp | #ProcSubst | #ExtGlob | #BraceExp |

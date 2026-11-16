@@ -19,7 +19,7 @@
 // which is generated from schema.cue in this package's directory.
 package typedjson
 
-//go:generate go tool -modfile=../../internal/tools/go.mod cue export --out jsonschema -f -o schema.json schema.cue
+//go:generate go tool -modfile=../../internal/tools/go.mod cue export --out jsonschema -e "#Node" -f -o schema.json schema.cue
 
 import (
 	"encoding"

@@ -88,7 +88,9 @@ func TestSchema(t *testing.T) {
 	qt.Assert(t, qt.IsNil(err))
 	var root schema
 	qt.Assert(t, qt.IsNil(json.Unmarshal(data, &root)))
-	qt.Assert(t, qt.Equals(root.Ref, "#/$defs/Node"))
+	// The root is the Node interface.
+	qt.Assert(t, qt.IsNil(root.Defs["Node"]))
+	root.Defs["Node"] = &root
 
 	// Decoding a node with only a type gives us its Go type.
 	var nodeTypes []reflect.Type
