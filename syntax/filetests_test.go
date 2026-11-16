@@ -237,7 +237,7 @@ var fileTests = []fileTestCase{
 		langFile(litStmts("foo", "bar")),
 	),
 	fileTest(
-		[]string{"foo a b", " foo  a  b ", "foo \\\n a b", "foo \\\r\n a b"},
+		[]string{"foo a b", " foo  a  b ", "foo \\\n a b", "foo \\\r\n a b", "foo\\\n a\\\n\\\n b", "foo\\\r\n a b"},
 		langFile(litCall("foo", "a", "b")),
 	),
 	fileTest(
@@ -245,7 +245,7 @@ var fileTests = []fileTestCase{
 		langFile(litWord("foobar")),
 	),
 	fileTest(
-		[]string{"foo", "foo \\\n", "foo \\\r\n"},
+		[]string{"foo", "foo \\\n", "foo \\\r\n", "foo\\\n", "foo\\\r\n"},
 		langFile(litWord("foo")),
 	),
 	fileTest(

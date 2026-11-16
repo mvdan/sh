@@ -2863,6 +2863,61 @@ func TestPosEdgeCases(t *testing.T) {
 	qt.Check(t, qt.Equals(f.Stmts[1].End().String(), "2:9"))
 }
 
+func TestLitEndEscapedNewline(t *testing.T) {
+	t.Parallel()
+	// A literal does not include trailing escaped newlines,
+	// but it does include those followed by more of the literal.
+	tests := []struct {
+		lang     LangVariant
+		in, lit  string
+		want     string
+		wantOffs uint
+	}{
+		{LangBash, "foo \\\n\tbar", "foo", "1:4", 3},
+		{LangBash, "fo\\\no bar", "foo", "2:2", 5},
+		{LangZsh, "a\\\n[(i)b]=x", "i", "2:4", 6},
+		{LangBash, "cat <<'EOF'\nfoo\\\n", "foo\\\n", "3:1", 17},
+		{LangBash, "cat <<EOF\n\\\n$foo\nEOF", "", "3:1", 12},
+		// These wrongly include part or all of the trailing escaped newlines; see #953.
+		{LangBash, "foo\\\n\tbar", "foo", "2:1", 5},
+		{LangBash, "foo\\\r\n\tbar", "foo", "2:2", 6},
+		{LangBash, "foo\\\n\\\n\tbar", "foo", "3:1", 7},
+		{LangBash, "foo\\\n", "foo", "2:1", 5},
+		{LangBash, "foo\\\n$bar", "foo", "2:1", 5},
+		{LangBash, "foo\\\n\"bar\"", "foo", "2:1", 5},
+		{LangBash, "echo $foo\\\n\tbar", "foo", "2:1", 11},
+		{LangBash, "a=b\\\n\tc", "b", "2:1", 5},
+		{LangBash, "echo \"foo\\\nbar\"", "foo", "1:10", 10},
+		{LangBash, "`echo foo\\\\\n bar`", "foo", "2:1", 12},
+		{LangZsh, "{ foo\\\n}", "foo", "2:1", 7},
+		{LangZsh, "a=b}\\\n\techo", "b}", "2:1", 6},
+		{LangZsh, "{ let x=1\\\n}", "1", "2:1", 11},
+		{LangZsh, "${(\\\n)a}", "", "2:1", 5},
+	}
+	for _, tc := range tests {
+		t.Run("", func(t *testing.T) {
+			for _, r := range []io.Reader{
+				strings.NewReader(tc.in),
+				iotest.OneByteReader(strings.NewReader(tc.in)),
+			} {
+				f, err := NewParser(Variant(tc.lang)).Parse(r, "")
+				qt.Assert(t, qt.IsNil(err))
+				Walk(f, sanityChecker{tb: t, src: tc.in, lang: tc.lang}.visit)
+				var lit *Lit
+				Walk(f, func(node Node) bool {
+					if l, ok := node.(*Lit); ok && l.Value == tc.lit {
+						lit = l
+					}
+					return lit == nil
+				})
+				qt.Assert(t, qt.IsNotNil(lit))
+				qt.Check(t, qt.Equals(lit.End().String(), tc.want))
+				qt.Check(t, qt.Equals(lit.End().Offset(), tc.wantOffs))
+			}
+		})
+	}
+}
+
 func TestStmtEndHeredoc(t *testing.T) {
 	t.Parallel()
 	// A statement ends after the bodies of its heredocs,
