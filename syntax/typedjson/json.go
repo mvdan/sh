@@ -17,6 +17,8 @@
 //
 // The format is described by the JSON Schema in schema.json,
 // which is generated from schema.cue in this package's directory.
+// CUE users can import the latter as "github.com/mvdan/sh/syntax/typedjson@v3"
+// from the CUE Central Registry, with definitions such as #File and #Node.
 package typedjson
 
 //go:generate go tool -modfile=../../internal/tools/go.mod cue export --out jsonschema -e "#Node" -f -o schema.json schema.cue

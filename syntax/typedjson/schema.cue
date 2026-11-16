@@ -1,6 +1,9 @@
 // Copyright (c) 2026, Daniel Martí <mvdan@mvdan.cc>
 // See LICENSE for licensing information
 
+// Package typedjson describes the typed JSON format of the Go package
+// mvdan.cc/sh/v3/syntax/typedjson, and can be imported in CUE as
+// "github.com/mvdan/sh/syntax/typedjson@v3".
 package typedjson
 
 // Node is any syntax node, such as the root node, in the typed JSON format

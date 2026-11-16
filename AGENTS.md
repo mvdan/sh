@@ -109,6 +109,17 @@ New entries go at the top of `CHANGELOG.md`, as `## [X.Y.Z] - YYYY-MM-DD`.
 - Add a lead paragraph only for things which don't fit a bullet: dropped Go
   versions, breaking changes, or a theme for the release.
 
+## CUE Module
+
+Each release, backports included, is also published as the CUE module
+`github.com/mvdan/sh@v3` with the same version, so that CUE users can import
+schemas like `github.com/mvdan/sh/syntax/typedjson@v3`. After pushing the tag,
+publish from a checkout of it, once logged in via `cue login`:
+
+```bash
+go tool -modfile=internal/tools/go.mod cue mod publish vX.Y.Z
+```
+
 ## Backport Releases
 
 A patch release like `v3.14.1` is a `release-vX.Y` branch cut from the
