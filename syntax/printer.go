@@ -1646,50 +1646,56 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		}
 		p.doBlock(countLine, doPos, cmd.Do, cmd.DoLast, cmd.DonePos)
 	case *BinaryCmd:
+		// Only binary operands continue a chain which is already indented,
+		// so that chains within other operands such as blocks are indented.
+		// Every operand gets the flag right before it is printed,
+		// so it needs no resetting.
+		nested := p.nestedBinary
+		_, xBinary := cmd.X.Cmd.(*BinaryCmd)
+		_, yBinary := cmd.Y.Cmd.(*BinaryCmd)
+		p.nestedBinary = nested && xBinary
 		p.stmt(cmd.X)
+		coms := cmd.Y.Comments
+		var indent bool
 		if p.minify || p.singleLine || cmd.Y.Pos().Line() <= p.line {
-			// leave p.nestedBinary untouched
 			p.spacedToken(cmd.Op.String(), cmd.OpPos)
-			p.advanceLine(cmd.Y.Pos().Line())
-			p.comments(cmd.Y.Comments...)
-			p.stmt(cmd.Y)
-			break
-		}
-		indent := !p.nestedBinary
-		if indent {
-			p.incLevel()
-		}
-		// Only the comments before cmd.Y go on the lines before it;
-		// any inside it, such as in a multi-line test, are printed with it.
-		lead, inner := splitComments(cmd.Y.Comments, cmd.Y.Pos())
-		if p.binNextLine {
-			if len(p.pendingHdocs) == 0 {
-				p.bslashNewl()
+		} else {
+			indent = !nested
+			if indent {
+				p.incLevel()
 			}
-			p.spacedToken(cmd.Op.String(), cmd.OpPos)
-			if len(lead) > 0 {
-				p.wantSpace = spaceNotRequired
-				p.newline(cmd.Y.Pos())
-				p.indent()
+			// Only the comments before cmd.Y go on the lines before it;
+			// any inside it, such as in a multi-line test, are printed with it.
+			var lead []Comment
+			lead, coms = splitComments(coms, cmd.Y.Pos())
+			if p.binNextLine {
+				if len(p.pendingHdocs) == 0 {
+					p.bslashNewl()
+				}
+				p.spacedToken(cmd.Op.String(), cmd.OpPos)
+				if len(lead) > 0 {
+					p.wantSpace = spaceNotRequired
+					p.newline(cmd.Y.Pos())
+					p.indent()
+					p.comments(lead...)
+					p.newline(Pos{})
+					p.indent()
+				}
+			} else {
+				p.spacedToken(cmd.Op.String(), cmd.OpPos)
+				p.advanceLine(cmd.OpPos.Line())
 				p.comments(lead...)
 				p.newline(Pos{})
 				p.indent()
 			}
-		} else {
-			p.spacedToken(cmd.Op.String(), cmd.OpPos)
-			p.advanceLine(cmd.OpPos.Line())
-			p.comments(lead...)
-			p.newline(Pos{})
-			p.indent()
 		}
 		p.advanceLine(cmd.Y.Pos().Line())
-		p.comments(inner...)
-		_, p.nestedBinary = cmd.Y.Cmd.(*BinaryCmd)
+		p.comments(coms...)
+		p.nestedBinary = (nested || indent) && yBinary
 		p.stmt(cmd.Y)
 		if indent {
 			p.decLevel()
 		}
-		p.nestedBinary = false
 	case *FuncDecl:
 		if cmd.RsrvWord {
 			p.spacedString("function", Pos{})
