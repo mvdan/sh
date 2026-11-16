@@ -1659,6 +1659,12 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		var indent bool
 		if p.minify || p.singleLine || cmd.Y.Pos().Line() <= p.line {
 			p.spacedToken(cmd.Op.String(), cmd.OpPos)
+			// If X ended on a continuation line, such as the last operand
+			// of a split chain, indent Y as if it followed a line break.
+			indent = p.lastLevel > p.level
+			if indent {
+				p.incLevel()
+			}
 		} else {
 			indent = !nested
 			if indent {

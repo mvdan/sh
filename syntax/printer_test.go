@@ -469,50 +469,50 @@ var printTests = []printCase{
 	// does not indent its own operands.
 	samePrint("a &&\n\tb && c |\n\td"),
 	// An operand following a continuation line, such as the last operand
-	// of a split chain, is wrongly not indented like that line; see #1148.
+	// of a split chain, is indented like that line.
 	{
 		"a &&\nb && {\nc\n}",
-		"a &&\n\tb && {\n\tc\n}",
+		"a &&\n\tb && {\n\t\tc\n\t}",
 	},
 	{
 		"a ||\nb || (\nc\n)",
-		"a ||\n\tb || (\n\tc\n)",
+		"a ||\n\tb || (\n\t\tc\n\t)",
 	},
 	{
 		"a |\nb | $(\nc\n)",
-		"a |\n\tb | $(\n\tc\n)",
+		"a |\n\tb | $(\n\t\tc\n\t)",
 	},
 	{
 		"a &&\nb && if foo; then\nbar\nfi",
-		"a &&\n\tb && if foo; then\n\tbar\nfi",
+		"a &&\n\tb && if foo; then\n\t\tbar\n\tfi",
 	},
 	{
 		"a &&\nb && {\nc\n} &&\nd",
-		"a &&\n\tb && {\n\tc\n} &&\n\td",
+		"a &&\n\tb && {\n\t\tc\n\t} &&\n\td",
 	},
 	{
 		"a && b |\nc && {\nd\n}",
-		"a && b |\n\tc && {\n\td\n}",
+		"a && b |\n\tc && {\n\t\td\n\t}",
 	},
 	{
 		"[[ a &&\nb ]] && {\nc\n}",
-		"[[ a &&\n\tb ]] && {\n\tc\n}",
+		"[[ a &&\n\tb ]] && {\n\t\tc\n\t}",
 	},
 	{
 		"a \\\nb && {\nc\n}",
-		"a \\\n\tb && {\n\tc\n}",
+		"a \\\n\tb && {\n\t\tc\n\t}",
 	},
 	{
 		"a &&\nb && [[ c &&\nd ]]",
-		"a &&\n\tb && [[ c &&\n\td ]]",
+		"a &&\n\tb && [[ c &&\n\t\td ]]",
 	},
 	{
 		"a &&\nb && foo \\\nbar",
-		"a &&\n\tb && foo \\\n\tbar",
+		"a &&\n\tb && foo \\\n\t\tbar",
 	},
 	{
 		"a &&\nb && c | {\nd &&\ne\n}",
-		"a &&\n\tb && c | {\n\td &&\n\t\te\n}",
+		"a &&\n\tb && c | {\n\t\td &&\n\t\t\te\n\t}",
 	},
 	{
 		"if\nfoo\nthen\nbar\nfi",
@@ -1336,14 +1336,14 @@ func TestPrintBinaryNextLine(t *testing.T) {
 		},
 		samePrint("a \\\n\t&& b && c \\\n\t| d"),
 		// An operand following a continuation line, such as the last operand
-		// of a split chain, is wrongly not indented like that line; see #1148.
+		// of a split chain, is indented like that line.
 		{
 			"a \\\n&& b && {\nc\n}",
-			"a \\\n\t&& b && {\n\tc\n}",
+			"a \\\n\t&& b && {\n\t\tc\n\t}",
 		},
 		{
 			"a \\\n&& b && {\nc\n} \\\n&& d",
-			"a \\\n\t&& b && {\n\tc\n} \\\n\t&& d",
+			"a \\\n\t&& b && {\n\t\tc\n\t} \\\n\t&& d",
 		},
 		{
 			"if foo \\\n&& bar\nthen\nbar\nfi",
