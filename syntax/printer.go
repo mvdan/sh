@@ -1316,45 +1316,56 @@ func (p *Printer) arithmExprRecurse(expr ArithmExpr, compact, spacePlusMinus boo
 	}
 }
 
-func (p *Printer) testExpr(expr TestExpr) {
+// testExpr prints a test expression,
+// where coms holds the comments inside the test yet to be printed.
+func (p *Printer) testExpr(expr TestExpr, coms *[]Comment) {
 	// Multi-line test expressions don't need to escape newlines.
 	if expr.Pos().Line() > p.line {
-		p.newlines(expr.Pos())
+		p.testNewlines(expr.Pos(), coms)
 		p.spacePad(expr.Pos())
 	} else if p.wantSpace == spaceRequired {
 		p.space()
 	}
-	p.testExprSameLine(expr)
+	p.testExprSameLine(expr, coms)
 }
 
-func (p *Printer) testExprSameLine(expr TestExpr) {
+// testNewlines is like [Printer.newlines],
+// first printing the comments in coms which come before pos.
+func (p *Printer) testNewlines(pos Pos, coms *[]Comment) {
+	var before []Comment
+	before, *coms = splitComments(*coms, pos)
+	p.comments(before...)
+	p.newlines(pos)
+}
+
+func (p *Printer) testExprSameLine(expr TestExpr, coms *[]Comment) {
 	p.advanceLine(expr.Pos().Line())
 	switch expr := expr.(type) {
 	case *Word:
 		p.word(expr)
 	case *BinaryTest:
-		p.testExprSameLine(expr.X)
+		p.testExprSameLine(expr.X, coms)
 		switch expr.Op {
 		case AndTest, OrTest:
 			if p.binNextLine && p.wantsNewline(expr.Y.Pos(), false) {
 				// No need to escape the newlines here.
-				p.newlines(expr.Y.Pos())
+				p.testNewlines(expr.Y.Pos(), coms)
 			} else {
 				p.space()
 			}
 			p.w.WriteString(expr.Op.String())
 			p.wantSpace = spaceRequired
-			p.testExpr(expr.Y)
+			p.testExpr(expr.Y, coms)
 		default:
 			p.space()
 			p.w.WriteString(expr.Op.String())
 			p.space()
-			p.testExprSameLine(expr.Y)
+			p.testExprSameLine(expr.Y, coms)
 		}
 	case *UnaryTest:
 		p.w.WriteString(expr.Op.String())
 		p.space()
-		p.testExprSameLine(expr.X)
+		p.testExprSameLine(expr.X, coms)
 	case *ParenTest:
 		p.w.WriteByte('(')
 		if startsWithLparen(expr.X) {
@@ -1362,10 +1373,19 @@ func (p *Printer) testExprSameLine(expr TestExpr) {
 		} else {
 			p.wantSpace = spaceNotRequired
 		}
-		p.testExpr(expr.X)
+		p.testExpr(expr.X, coms)
 		p.w.WriteByte(')')
 	}
 	p.advanceLine(expr.End().Line())
+}
+
+// splitComments splits coms, sorted by position, at pos.
+func splitComments(coms []Comment, pos Pos) (before, after []Comment) {
+	i := 0
+	for i < len(coms) && pos.After(coms[i].Pos()) {
+		i++
+	}
+	return coms[:i:i], coms[i:]
 }
 
 func (p *Printer) word(w *Word) {
@@ -1628,6 +1648,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			// leave p.nestedBinary untouched
 			p.spacedToken(cmd.Op.String(), cmd.OpPos)
 			p.advanceLine(cmd.Y.Pos().Line())
+			p.comments(cmd.Y.Comments...)
 			p.stmt(cmd.Y)
 			break
 		}
@@ -1635,27 +1656,31 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		if indent {
 			p.incLevel()
 		}
+		// Only the comments before cmd.Y go on the lines before it;
+		// any inside it, such as in a multi-line test, are printed with it.
+		lead, inner := splitComments(cmd.Y.Comments, cmd.Y.Pos())
 		if p.binNextLine {
 			if len(p.pendingHdocs) == 0 {
 				p.bslashNewl()
 			}
 			p.spacedToken(cmd.Op.String(), cmd.OpPos)
-			if len(cmd.Y.Comments) > 0 {
+			if len(lead) > 0 {
 				p.wantSpace = spaceNotRequired
 				p.newline(cmd.Y.Pos())
 				p.indent()
-				p.comments(cmd.Y.Comments...)
+				p.comments(lead...)
 				p.newline(Pos{})
 				p.indent()
 			}
 		} else {
 			p.spacedToken(cmd.Op.String(), cmd.OpPos)
 			p.advanceLine(cmd.OpPos.Line())
-			p.comments(cmd.Y.Comments...)
+			p.comments(lead...)
 			p.newline(Pos{})
 			p.indent()
 		}
 		p.advanceLine(cmd.Y.Pos().Line())
+		p.comments(inner...)
 		_, p.nestedBinary = cmd.Y.Cmd.(*BinaryCmd)
 		p.stmt(cmd.Y)
 		if indent {
@@ -1767,10 +1792,22 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		p.arithmExpr(cmd.X, false, false)
 		p.w.WriteString("))")
 	case *TestClause:
-		p.w.WriteString("[[ ")
+		p.w.WriteString("[[")
+		p.wantSpace = spaceRequired
+		// Hold back the comments inside the test, so that each is printed
+		// at the line break after it rather than at the first one,
+		// which may be inside a command substitution.
+		before, coms := splitComments(p.pendingComments, cmd.Left)
+		coms, after := splitComments(coms, cmd.Right)
+		p.pendingComments = append(before, after...)
 		p.incLevel()
-		p.testExpr(cmd.X)
+		p.testExpr(cmd.X, &coms)
 		p.decLevel()
+		if len(coms) > 0 {
+			// Comments right before "]]" must end their line.
+			p.comments(coms...)
+			p.newlines(cmd.Right)
+		}
 		p.spacedString("]]", cmd.Right)
 	case *DeclClause:
 		if len(cmd.Assigns) > 0 {

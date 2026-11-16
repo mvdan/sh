@@ -5332,10 +5332,9 @@ var fileTests = []fileTestCase{
 		}}, LangZsh),
 	),
 	// '#' after a newline or an operator inside [[ ]] starts a comment.
-	// TODO(#619): print these comments in place rather than after ]].
 	fileTest(
 		[]string{"[[ a ||\n# c\nb ]]"},
-		printsAs("[[ a ||\n\n\tb ]] # c"),
+		printsAs("[[ a ||\n\t# c\n\tb ]]"),
 		langFile(&TestClause{X: &BinaryTest{
 			Op: OrTest,
 			X:  litWord("a"),
@@ -5344,7 +5343,7 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"[[ a &&#c\nb ]]"},
-		printsAs("[[ a &&\n\tb ]] #c"),
+		printsAs("[[ a && #c\n\tb ]]"),
 		langFile(&TestClause{X: &BinaryTest{
 			Op: AndTest,
 			X:  litWord("a"),
@@ -5353,17 +5352,17 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"[[\n#c\na ]]"},
-		printsAs("[[ \n\n\ta ]] #c"),
+		printsAs("[[\n\t#c\n\ta ]]"),
 		langFile(&TestClause{X: litWord("a")}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"[[ (#c\na)#c\n]]"},
-		printsAs("[[ (\n\ta) ]] #c\n#c"),
+		printsAs("[[ ( #c\n\ta) #c\n]]"),
 		langFile(&TestClause{X: parenTest(litWord("a"))}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{"[[ a ||\n#c\nb ]] | x"},
-		printsAs("[[ a ||\n\n\tb ]] | x"), // TODO(#619): the comment is dropped
+		printsAs("[[ a ||\n\t#c\n\tb ]] | x"),
 		langFile(&BinaryCmd{
 			Op: Pipe,
 			X: stmt(&TestClause{X: &BinaryTest{

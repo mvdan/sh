@@ -602,18 +602,17 @@ var printTests = []printCase{
 		"[[ a\n]] # comment",
 		"[[ a ]] # comment",
 	},
-	// TODO(#619): print these comments in place rather than after ]].
 	{
 		"[[ a ]] &&\n# 1\n[[ b && $(c) == d ||\n# 2\ne || f ||\n# 3\ng ]]",
-		"[[ a ]] &&\n\t# 1\n\t[[ b && $(c) == d ||\n\n\t\te || f ||\n\n\t\tg ]] # 2\n# 3",
+		"[[ a ]] &&\n\t# 1\n\t[[ b && $(c) == d ||\n\t\t# 2\n\t\te || f ||\n\t\t# 3\n\t\tg ]]",
 	},
 	{
 		"x && [[ a ||\n#c\nb ]]",
-		"x && [[ a ||\n\n\tb ]] #c",
+		"x && [[ a ||\n\t#c\n\tb ]]",
 	},
 	{
 		"[[ a ||\n# c\n$(b) ]]",
-		"[[ a ||\n\n\t$( # c\n\t\tb\n\t) ]]",
+		"[[ a ||\n\t# c\n\t$(b) ]]",
 	},
 	{
 		"((a\n)) && b",
@@ -971,7 +970,7 @@ var printTests = []printCase{
 	samePrint("for i in; do echo $i; done"),
 	{
 		"x && for i in a # c\ndo :; done",
-		"x && for i in a; do :; done", // TODO: keep the comment
+		"x && for i in a; do # c\n\t:\ndone",
 	},
 	{
 		"for foo in a b # inline\ndo\n\tbar\ndone",

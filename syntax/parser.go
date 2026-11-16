@@ -786,6 +786,7 @@ type saveState struct {
 	buriedHdocs   int
 	zshBraceDepth int
 	wordCont      bool
+	accComs       []Comment
 }
 
 func (p *Parser) preNested(quote quoteState) (s saveState) {
@@ -793,12 +794,14 @@ func (p *Parser) preNested(quote quoteState) (s saveState) {
 	s.wordCont = p.wordCont
 	p.buriedHdocs, p.quote, p.zshBraceDepth = len(p.heredocs), quote, 0
 	p.wordCont = false
+	s.accComs, p.accComs = p.accComs, nil
 	return s
 }
 
 func (p *Parser) postNested(s saveState) {
 	p.quote, p.buriedHdocs, p.zshBraceDepth = s.quote, s.buriedHdocs, s.zshBraceDepth
 	p.wordCont = s.wordCont
+	p.accComs = append(s.accComs, p.accComs...)
 }
 
 func unquotedWordBytes(w *Word) (buf []byte, quoted bool) {
@@ -3035,6 +3038,10 @@ func (p *Parser) testClause(s *Stmt) {
 		p.followErrExp(tc.Left, dblLeftBrack)
 	}
 	tc.Right = p.pos
+	// Like the comments in a for clause's header,
+	// the comments inside the test belong to its statement.
+	s.Comments = append(s.Comments, p.accComs...)
+	p.accComs = nil
 	if _, ok := p.gotRsrv("]]"); !ok {
 		p.matchingErr(tc.Left, dblLeftBrack, dblRightBrack)
 	}
