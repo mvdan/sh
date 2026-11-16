@@ -136,9 +136,10 @@ predictable. Some aspects of the format can be configured via printer flags.
 	paths are separated by a newline or a null character if -f=0.
 
 *--to-json*
-	Print syntax tree to stdout as a typed JSON, described by the JSON Schema
-	in syntax/typedjson/schema.json from the source of the same shfmt version,
-	available at <https://github.com/mvdan/sh>.
+	Print syntax tree to stdout as a typed JSON. Its format is described by
+	syntax/typedjson/schema.json in the source of the same shfmt version at
+	<https://github.com/mvdan/sh>, generated from a CUE schema which is also
+	published to the CUE Central Registry.
 
 *--from-json*
 	Read syntax tree from stdin as a typed JSON.
