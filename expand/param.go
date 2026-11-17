@@ -131,12 +131,41 @@ func namesExp(pe *syntax.ParamExp) bool {
 	return pe.Excl && (pe.Names != 0 || listIndex(pe.Index))
 }
 
+// unsupportedParam reports whether an expansion uses syntax
+// which only other language variants parse, such as zsh's.
+func unsupportedParam(pe *syntax.ParamExp) bool {
+	switch {
+	case pe.Param == nil, len(pe.Subscripts) > 0: // ${} or ${a[1][2]}
+		return true
+	case pe.Flags != nil, len(pe.Modifiers) > 0: // ${(U)a} or ${a:h}
+		return true
+	case pe.Short && pe.Index != nil && pe.Dollar.IsValid(): // $a[1], unlike a[1] in arithmetic
+		return true
+	case pe.Short && pe.Length: // $#a
+		return true
+	case pe.Width, pe.IsSet: // ${%a} or ${+a}
+		return true
+	case pe.Split != syntax.OptUnset, pe.GlobSubst != syntax.OptUnset,
+		pe.RcExpand != syntax.OptUnset: // ${=a}, ${~a}, or ${^a}
+		return true
+	}
+	if pe.Exp != nil {
+		switch pe.Exp.Op {
+		case syntax.MatchEmpty, syntax.ArrayExclude, syntax.ArrayIntersect: // ${a:#x}, ${a:|b}, or ${a:*b}
+			return true
+		case syntax.OtherParamOps: // ${a@#}
+			return pe.Exp.Word != nil && pe.Exp.Word.Lit() == "#"
+		}
+	}
+	return false
+}
+
 // resolveParam finds the parameter which an expansion refers to. For an
 // indirect expansion like ${!n}, that is the parameter named by the value
 // of n, which may be a list like @ or a subscripted name like a[1], so
 // that any operators apply to that parameter.
 func (e *expander) resolveParam(pe *syntax.ParamExp) (param, error) {
-	if pe.Param == nil || len(pe.Subscripts) > 0 { // e.g. zsh's ${} or ${a[1][2]}
+	if unsupportedParam(pe) {
 		return param{}, fmt.Errorf("unsupported")
 	}
 	p := e.lookupParam(pe, pe.Param.Value, pe.Index)
@@ -265,7 +294,7 @@ func overridingUnset(pe *syntax.ParamExp) bool {
 // an empty string. An element like ${a[i]} is replaced in p by its value,
 // so that its subscript is not evaluated again.
 func (e *expander) operandWord(pe *syntax.ParamExp, p *param) (*syntax.Word, bool, error) {
-	if pe.Exp == nil || pe.Length || pe.Width || pe.IsSet || namesExp(pe) {
+	if pe.Exp == nil || pe.Length || namesExp(pe) {
 		return nil, false, nil
 	}
 	switch pe.Exp.Op {
@@ -385,10 +414,6 @@ func (e *expander) paramExpResolved(pe *syntax.ParamExp, p param, quoted bool) (
 			strs = []string{"0"}
 		}
 		return join(strs)
-	case pe.Width:
-		return "", fmt.Errorf("unsupported")
-	case pe.IsSet:
-		return "", fmt.Errorf("unsupported")
 	case pe.Slice != nil:
 		if !isList {
 			// The offset and length are in characters, not bytes.
@@ -585,8 +610,6 @@ func paramOp(op string, p param, str string, set bool) (string, error) {
 		default:
 			return fmt.Sprintf("declare -%s %s=%s", flags, p.name, quoted), nil
 		}
-	case "#": // mksh's hash of the value
-		return "", fmt.Errorf("unsupported")
 	}
 	panic(fmt.Sprintf("unexpected @%s param expansion", op))
 }
