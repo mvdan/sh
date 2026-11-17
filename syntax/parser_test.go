@@ -1531,6 +1531,10 @@ var errorCases = []errorCase{
 		langErr("1:12: case patterns must consist of words"),
 	),
 	errCase(
+		"case i in (",
+		langErr("1:11: case patterns must consist of words"),
+	),
+	errCase(
 		"case i {",
 		langErr("1:1: `case i {` is a mksh feature; tried parsing as LANG"),
 		langErr("1:1: `case` statement must end with `}`", LangMirBSDKorn),
@@ -3155,6 +3159,10 @@ func TestParseRecoverErrors(t *testing.T) {
 		{
 			src:         `(one > ; two | ); { three`,
 			wantMissing: 3,
+		},
+		{
+			src:         "case x in (",
+			wantMissing: 2,
 		},
 		{
 			src:     "badsyntax)",

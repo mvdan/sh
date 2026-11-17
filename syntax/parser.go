@@ -3014,6 +3014,12 @@ func (p *Parser) caseItems(stop string) (items []*CaseItem) {
 				p.curErr("case patterns must be separated with %#q", or)
 			}
 		}
+		if len(ci.Patterns) == 0 { // reached EOF right after "("
+			if !p.recoverError() {
+				p.curErr("case patterns must consist of words")
+			}
+			ci.Patterns = append(ci.Patterns, p.wordOne(&Lit{ValuePos: recoveredPos}))
+		}
 		old := p.preNested(switchCase)
 		p.next()
 		ci.Stmts, ci.Last = p.stmtList(stop)
