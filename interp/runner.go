@@ -960,6 +960,10 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		}
 		r.setFunc(cm.Name.Value, cm.Body)
 	case *syntax.ArithmCmd:
+		if cm.Unsigned { // mksh's ((# expr))
+			r.unsupported()
+			break
+		}
 		n, _ := r.arithm(cm.X)
 		r.exit.oneIf(n == 0)
 	case *syntax.LetClause:

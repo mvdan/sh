@@ -887,11 +887,11 @@ func (e *expander) wordField(wps []syntax.WordPart, ql quoteLevel, assign bool) 
 			}
 			field = append(field, fieldPart{val: val})
 		case *syntax.ArithmExp:
-			n, err := e.arithmExp(wp.X)
+			val, err := e.arithmExpansion(wp)
 			if err != nil {
 				return nil, err
 			}
-			field = append(field, fieldPart{val: strconv.Itoa(n)})
+			field = append(field, fieldPart{val: val})
 		case *syntax.ProcSubst:
 			path, err := e.procSubst(wp)
 			if err != nil {
@@ -915,6 +915,17 @@ func (e *expander) procSubst(ps *syntax.ProcSubst) (string, error) {
 		return "", UnexpectedProcessError{Node: ps}
 	}
 	return e.ProcSubst(ps)
+}
+
+func (e *expander) arithmExpansion(ae *syntax.ArithmExp) (string, error) {
+	if ae.Unsigned { // mksh's $((# expr))
+		return "", internal.Fatalf("unsupported")
+	}
+	n, err := e.arithmExp(ae.X)
+	if err != nil {
+		return "", err
+	}
+	return strconv.Itoa(n), nil
 }
 
 func (e *expander) cmdSubst(cs *syntax.CmdSubst) (string, error) {
@@ -1106,11 +1117,11 @@ func (e *expander) wordFields(wps []syntax.WordPart) ([][]fieldPart, error) {
 				return nil, errTooManyFields
 			}
 		case *syntax.ArithmExp:
-			n, err := e.arithmExp(wp.X)
+			val, err := e.arithmExpansion(wp)
 			if err != nil {
 				return nil, err
 			}
-			curField = append(curField, fieldPart{val: strconv.Itoa(n)})
+			curField = append(curField, fieldPart{val: val})
 		case *syntax.ProcSubst:
 			path, err := e.procSubst(wp)
 			if err != nil {

@@ -6262,6 +6262,8 @@ func TestRunnerUnsupported(t *testing.T) {
 		{syntax.LangMirBSDKorn, "echo ${%a}", "unsupported\n"},
 		{syntax.LangMirBSDKorn, "set -u; echo ${%a}", "unsupported\n"},
 		{syntax.LangMirBSDKorn, "set -u; echo ${a@#}", "unsupported\n"},
+		{syntax.LangMirBSDKorn, "echo $((# -1))", "unsupported\nexit status 1"},
+		{syntax.LangMirBSDKorn, "((# -1 > 0)) && echo unsigned", "unsupported\nexit status 1"},
 		{syntax.LangMirBSDKorn, "echo co |& echo after", "unsupported\nafter\n"},
 		{syntax.LangMirBSDKorn, "case a in a) echo 1 ;| a) echo 2 ;; esac", "unsupported\nexit status 1"},
 	}
