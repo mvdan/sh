@@ -31,8 +31,8 @@ cd x && go test ./...                  # separate module; tests the released v3,
 The codebase follows a pipeline: **parse → expand → interpret/format**.
 
 - **`syntax/`** — Core package. Lexer (`lexer.go`), parser (`parser.go`), AST nodes (`nodes.go`), printer (`printer.go`), and walker (`walk.go`). All dialects are handled via `LangVariant`. `syntax/typedjson` encodes the AST as JSON, described by `schema.cue`, which must follow any node changes; `TestSchema` checks the generated `schema.json`. Tools like `cue` are tracked in the `internal/tools` module.
-- **`expand/`** — Parameter, brace, tilde, and arithmetic expansion, plus globbing via `Config.ReadDir2`.
-- **`interp/`** — Runner that executes a `*syntax.File`. Builtins in `builtin.go`. Handlers (Exec, Call, Open, ReadDir2, Stat, Access, ProcSubst) let callers customize I/O and process execution.
+- **`expand/`** — Parameter, brace, tilde, and arithmetic expansion with Bash semantics, plus globbing via `Config.ReadDir2`.
+- **`interp/`** — Runner that executes a `*syntax.File` with Bash semantics. Builtins in `builtin.go`. Handlers (Exec, Call, Open, ReadDir2, Stat, Access, ProcSubst) let callers customize I/O and process execution.
 - **`pattern/`** — Shell pattern matching, including extended globs.
 - **`shell/`** — High-level helpers with Bash semantics: `Fields`, `Expand`, `Split`, `Join`, `Match`, `Glob`.
 - **`internal/`** — Shared helpers: the extended pattern matcher, sparse arrays, and `TestMainSetup`.
@@ -53,6 +53,12 @@ release, so fixing a divergence is fine even when it changes what existing
 scripts or callers observe, particularly when the old behavior was
 undocumented or broken in other ways. Such a change still gets a commit body
 citing what Bash does, and a note in the release notes.
+
+`interp` and `expand` only implement Bash, which programs parsed as
+`LangPOSIX` also follow. Other variants like zsh and mksh are not supported
+unless an API takes a `syntax.LangVariant` to select them. Rather than
+implementing syntax which only those variants parse, such as zsh's
+multi-name for loops, report it as unsupported; see `TestRunnerUnsupported`.
 
 Bash features which are niche or undocumented don't need to be implemented,
 particularly when they would take a lot of code or slow down common cases.

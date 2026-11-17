@@ -4,6 +4,7 @@
 // Package interp implements an interpreter to execute shell programs
 // parsed by the [syntax] package as either [syntax.LangBash]
 // or [syntax.LangPOSIX], behaving like Bash as a result.
+// Other language variants, such as [syntax.LangZsh], are not supported.
 // Output may differ from Bash in style or cosmetic choices, like `declare -p`.
 //
 // Scripts run without a system shell, so they work on any platform including Windows.
