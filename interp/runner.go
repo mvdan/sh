@@ -351,6 +351,12 @@ func (r *Runner) errf(format string, a ...any) {
 	fmt.Fprintf(r.stderr, format, a...)
 }
 
+// unsupported reports syntax which only other language variants support.
+func (r *Runner) unsupported() {
+	r.errf("unsupported\n")
+	r.exit.code = 1
+}
+
 func (r *Runner) stop(ctx context.Context) bool {
 	// Some traps trigger on exit, so we do want those to run.
 	if r.exit.discarding || !r.handlingTrap && (r.exit.returning || r.exit.exiting) {
@@ -387,12 +393,13 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 	r.stmtDepth++
 	defer func() { r.stmtDepth-- }()
 	r.exit = exitStatus{}
-	if st.Background || st.Disown {
+	if st.Disown || st.Coprocess { // zsh's &| or &!, or mksh's |&
+		r.unsupported()
+	} else if st.Background {
 		r2 := r.bgSubshell()
 		r2.bgJobs = new(sync.WaitGroup)
 		st2 := *st
 		st2.Background = false
-		st2.Disown = false
 		r2.bgDropHolds = true
 		bg := r.newBgProc()
 		parent, stopAfter := ctx, func() bool { return false }
@@ -406,7 +413,7 @@ func (r *Runner) stmt(ctx context.Context, st *syntax.Stmt) {
 			stopAfter = context.AfterFunc(r.jobsCtx, func() { cancel(killSignal(1)) })
 			r2.jobsCtx = nil // nested jobs follow the job which started them
 		}
-		bg.stmt, bg.cancel, bg.hidden = &st2, cancel, st.Disown
+		bg.stmt, bg.cancel = &st2, cancel
 		bg.num = 1
 		for _, prev := range slices.Backward(r.bgProcs) {
 			if !prev.procSubst {
@@ -845,8 +852,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		switch y := cm.Loop.(type) {
 		case *syntax.WordIter:
 			if y.Name == nil { // e.g. zsh's multi-name for loops
-				r.errf("unsupported\n")
-				r.exit.code = 1
+				r.unsupported()
 				break
 			}
 			name := y.Name.Value
@@ -946,12 +952,10 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 		}
 	case *syntax.RepeatClause: // only with zsh
-		r.errf("unsupported\n")
-		r.exit.code = 1
+		r.unsupported()
 	case *syntax.FuncDecl:
 		if cm.Name == nil { // e.g. zsh's anonymous or multi-name functions
-			r.errf("unsupported\n")
-			r.exit.code = 1
+			r.unsupported()
 			break
 		}
 		r.setFunc(cm.Name.Value, cm.Body)
@@ -975,6 +979,12 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 		}
 		r.exit.oneIf(val == 0)
 	case *syntax.CaseClause:
+		if slices.ContainsFunc(cm.Items, func(ci *syntax.CaseItem) bool {
+			return ci.Op == syntax.ResumeKorn // mksh's and zsh's ;|
+		}) {
+			r.unsupported()
+			break
+		}
 		trace.string("case ")
 		trace.expr(cm.Word)
 		trace.string(" in")
@@ -991,7 +1001,7 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			switch ci.Op {
 			case syntax.Fallthrough: // ";&" runs the next item unconditionally
 				runNext = true
-			case syntax.Resume, syntax.ResumeKorn: // ";;&" and ";|" resume matching
+			case syntax.Resume: // ";;&" resumes matching
 				runNext = false
 			default: // ";;" or the last item stop
 				return

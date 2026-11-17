@@ -6246,7 +6246,11 @@ func TestRunnerUnsupported(t *testing.T) {
 		{syntax.LangZsh, "for a b in 1 2; do echo $a $b; done", "unsupported\nexit status 1"},
 		{syntax.LangZsh, "repeat 2 do echo x; done", "unsupported\nexit status 1"},
 		{syntax.LangZsh, "cat =(echo hi)", "unsupported\n"},
+		{syntax.LangZsh, "echo x &|", "unsupported\nexit status 1"},
+		{syntax.LangZsh, "echo x &!", "unsupported\nexit status 1"},
 		{syntax.LangMirBSDKorn, "echo ${%a}", "unsupported\n"},
+		{syntax.LangMirBSDKorn, "echo co |& echo after", "unsupported\nafter\n"},
+		{syntax.LangMirBSDKorn, "case a in a) echo 1 ;| a) echo 2 ;; esac", "unsupported\nexit status 1"},
 	}
 	for _, tc := range tests {
 		t.Run("", func(t *testing.T) {
