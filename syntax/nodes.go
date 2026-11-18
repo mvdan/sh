@@ -162,8 +162,10 @@ func (p Pos) String() string {
 //
 // Recovered positions, as reported by [Pos.IsRecovered], are not considered valid
 // given that they don't contain position information.
+// Positions whose line or column overflowed are still valid, as they keep their offset.
 func (p Pos) IsValid() bool {
-	return p.offs <= offsetMax && p.lineCol != 0
+	// An offset of 0 is always line 1 and column 1, so only the zero Pos is missing.
+	return p.offs <= offsetMax && p != Pos{}
 }
 
 var recoveredPos = Pos{offs: offsetRecovered}

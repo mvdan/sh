@@ -247,10 +247,9 @@ func TestPrintPosOverflow(t *testing.T) {
 		lang     LangVariant
 		in, want string
 	}{
-		// These positions are wrongly treated as missing.
-		{LangBash, "a; b", "?:?: statements must be separated by &, ; or a newline"},
-		{LangBash, "for i in a b; do foo; done", "for i; do foo; done"},
-		{LangBash, "if a; then b; elif c; then d; fi", "if a; then b; else d; fi"},
+		{LangBash, "a; b", "a; b"},
+		{LangBash, "for i in a b; do foo; done", "for i in a b; do foo; done"},
+		{LangBash, "if a; then b; elif c; then d; fi", "if a; then b; elif c; then d; fi"},
 	}
 	for _, test := range tests {
 		t.Run("", func(t *testing.T) {
