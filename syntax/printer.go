@@ -1324,21 +1324,40 @@ func (p *Printer) arithmExprRecurse(expr ArithmExpr, compact, spacePlusMinus boo
 // where coms holds the comments inside the test yet to be printed.
 func (p *Printer) testExpr(expr TestExpr, coms *[]Comment) {
 	// Multi-line test expressions don't need to escape newlines.
-	if expr.Pos().Line() > p.line {
-		p.testNewlines(expr.Pos(), coms)
-		p.spacePad(expr.Pos())
-	} else if p.wantSpace == spaceRequired {
-		p.space()
-	}
+	p.heldSeparate(expr.Pos(), coms)
 	p.testExprSameLine(expr, coms)
 }
 
-// testNewlines is like [Printer.newlines],
-// first printing the comments in coms which come before pos.
-func (p *Printer) testNewlines(pos Pos, coms *[]Comment) {
-	var before []Comment
-	before, *coms = splitComments(*coms, pos)
-	p.comments(before...)
+// holdComments holds back the pending comments between left and right,
+// so that each is printed at the line break after it rather than at the first one,
+// which may be inside a command substitution.
+// The caller adds the comments after right back once it has printed right.
+func (p *Printer) holdComments(left, right Pos) (held, after []Comment) {
+	before, held := splitComments(p.pendingComments, left)
+	held, after = splitComments(held, right)
+	p.pendingComments = before
+	return held, after
+}
+
+// heldSeparate separates the next item at pos from what was printed so far,
+// printing the held back comments in coms, if any, if pos is on a later line.
+func (p *Printer) heldSeparate(pos Pos, coms *[]Comment) {
+	if pos.Line() > p.line {
+		p.heldNewlines(pos, coms)
+		p.spacePad(pos)
+	} else if p.wantSpace == spaceRequired {
+		p.space()
+	}
+}
+
+// heldNewlines is like [Printer.newlines],
+// first printing the held back comments in coms which come before pos.
+func (p *Printer) heldNewlines(pos Pos, coms *[]Comment) {
+	if coms != nil {
+		var before []Comment
+		before, *coms = splitComments(*coms, pos)
+		p.comments(before...)
+	}
 	p.newlines(pos)
 }
 
@@ -1353,7 +1372,7 @@ func (p *Printer) testExprSameLine(expr TestExpr, coms *[]Comment) {
 		case AndTest, OrTest:
 			if p.binNextLine && p.wantsNewline(expr.Y.Pos(), false) {
 				// No need to escape the newlines here.
-				p.testNewlines(expr.Y.Pos(), coms)
+				p.heldNewlines(expr.Y.Pos(), coms)
 			} else {
 				p.space()
 			}
@@ -1456,12 +1475,7 @@ func (p *Printer) elemJoin(elems []*ArrayElem, last []Comment) {
 			p.comments(c)
 		}
 		// Multi-line array expressions don't need to escape newlines.
-		if el.Pos().Line() > p.line {
-			p.newlines(el.Pos())
-			p.spacePad(el.Pos())
-		} else if p.wantSpace == spaceRequired {
-			p.space()
-		}
+		p.heldSeparate(el.Pos(), nil)
 		if p.wroteIndex(el.Index) {
 			p.w.WriteByte('=')
 		}
@@ -1470,11 +1484,17 @@ func (p *Printer) elemJoin(elems []*ArrayElem, last []Comment) {
 		}
 		p.comments(left...)
 	}
-	if len(last) > 0 {
-		p.comments(last...)
+	p.closingComments(last)
+	p.decLevel()
+}
+
+// closingComments prints the comments in a multi-line list before its closing token,
+// indented like the list's elements.
+func (p *Printer) closingComments(coms []Comment) {
+	if len(coms) > 0 {
+		p.comments(coms...)
 		p.flushComments()
 	}
-	p.decLevel()
 }
 
 func (p *Printer) stmt(s *Stmt) {
@@ -1818,12 +1838,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 	case *TestClause:
 		p.w.WriteString("[[")
 		p.wantSpace = spaceRequired
-		// Hold back the comments inside the test, so that each is printed
-		// at the line break after it rather than at the first one,
-		// which may be inside a command substitution.
-		before, coms := splitComments(p.pendingComments, cmd.Left)
-		coms, after := splitComments(coms, cmd.Right)
-		p.pendingComments = append(before, after...)
+		coms, after := p.holdComments(cmd.Left, cmd.Right)
 		p.incLevel()
 		p.testExpr(cmd.X, &coms)
 		p.decLevel()
@@ -1833,6 +1848,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 			p.newlines(cmd.Right)
 		}
 		p.spacedString("]]", cmd.Right)
+		p.pendingComments = append(p.pendingComments, after...)
 	case *DeclClause:
 		if len(cmd.Assigns) > 0 {
 			p.assigns(cmd.Assigns)
