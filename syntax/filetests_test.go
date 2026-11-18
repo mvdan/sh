@@ -867,6 +867,12 @@ var fileTests = []fileTestCase{
 		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
+		[]string{"select i in 1 2 3; { echo $i; }"},
+		langErr2("1:1: `select foo [in words]` must be followed by `do`", LangBash|LangMirBSDKorn),
+		flipConfirm2(LangBash|LangMirBSDKorn), // bash and mksh accept braces like for loops
+		printsAs("select i in 1 2 3; do echo $i; done"),
+	),
+	fileTest(
 		[]string{"select foo bar"},
 		langErr2("1:1: `select` loops are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
 		flipConfirm2(LangPOSIX), // dash runs it as a command
