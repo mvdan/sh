@@ -161,6 +161,8 @@ _node: {
 	DoPos?:    #Pos
 	DonePos?:  #Pos
 	Until?:    bool
+	Braces?:   bool
+	Short?:    bool
 	Cond?:     [...#Stmt]
 	CondLast?: [...#Comment]
 	Do?:       [...#Stmt]
@@ -174,7 +176,9 @@ _node: {
 	DoPos?:   #Pos
 	DonePos?: #Pos
 	Select?:  bool
+	Foreach?: bool
 	Braces?:  bool
+	Short?:   bool
 	Loop?:    #Loop
 	Do?:      [...#Stmt]
 	DoLast?:  [...#Comment]
@@ -187,6 +191,7 @@ _node: {
 	DoPos?:     #Pos
 	DonePos?:   #Pos
 	Braces?:    bool
+	Short?:     bool
 	Count?:     #Word
 	Do?:        [...#Stmt]
 	DoLast?:    [...#Comment]
@@ -194,11 +199,13 @@ _node: {
 
 #WordIter: {
 	_node
-	Type?:  "WordIter"
-	Name?:  #Lit
-	Names?: [...#Lit]
-	InPos?: #Pos
-	Items?: [...#Word]
+	Type?:   "WordIter"
+	Name?:   #Lit
+	Names?:  [...#Lit]
+	InPos?:  #Pos
+	Lparen?: #Pos
+	Rparen?: #Pos
+	Items?:  [...#Word]
 }
 
 #CStyleLoop: {

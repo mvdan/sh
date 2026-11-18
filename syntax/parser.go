@@ -604,6 +604,11 @@ type Parser struct {
 	// An array, unlike a slice, does not make the stop words escape.
 	stops [3]string
 
+	// unsepEnds is set before parsing a statement list which ends at
+	// a statement not followed by a separator, like zsh's loop conditions.
+	// The list consumes it, so that nested lists do not see it.
+	unsepEnds bool
+
 	// lineCom is the position of the comment which ended the logical line
 	// of the token before the current one, if any. Such a comment may be
 	// on a later line when it follows escaped newlines.
@@ -1239,10 +1244,15 @@ func (p *Parser) stmts(yield func(*Stmt, error) bool, stops ...string) bool {
 	defer func(old [3]string) { p.stops = old }(p.stops)
 	p.stops = [3]string{}
 	copy(p.stops[:], stops)
+	unsepEnds := p.unsepEnds
+	p.unsepEnds = false
 	gotEnd := true
 loop:
 	for p.tok != _EOF {
 		newLine := p.got(_Newl)
+		if !newLine && !gotEnd && unsepEnds {
+			break
+		}
 		switch p.tok {
 		case _LitWord:
 			for _, stop := range stops {
@@ -2480,12 +2490,20 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 		case "if":
 			p.ifClause(s)
 		case "while", "until":
-			p.whileClause(s, p.val == "until")
+			p.whileClause(s)
 		case "for":
 			p.forClause(s)
+		case "foreach":
+			if p.lang.in(LangZsh) {
+				p.forClause(s)
+			}
 		case "repeat":
 			if p.lang.in(LangZsh) {
 				p.repeatClause(s)
+			}
+		case "end":
+			if p.lang.in(LangZsh) {
+				p.curErr("%#q can only be used to end a `foreach`", p.val)
 			}
 		case "case":
 			p.caseClause(s)
@@ -2836,47 +2854,31 @@ func (p *Parser) ifClause(s *Stmt) {
 	s.Cmd = rootIf
 }
 
-func (p *Parser) whileClause(s *Stmt, until bool) {
-	wc := &WhileClause{WhilePos: p.pos, Until: until}
-	rsrv := "while"
-	rsrvCond := "while <cond>"
-	if wc.Until {
-		rsrv = "until"
-		rsrvCond = "until <cond>"
-	}
+// whileClause parses a while or until loop.
+func (p *Parser) whileClause(s *Stmt) {
+	rsrv := p.val
+	wc := &WhileClause{WhilePos: p.pos, Until: rsrv == "until"}
 	p.next()
+	// A zsh loop condition ends at a statement not followed by a separator,
+	// so that the body can follow as in `while ((x)) { body }`.
+	p.unsepEnds = p.lang.in(LangZsh)
 	wc.Cond, wc.CondLast = p.followStmts(rsrv, wc.WhilePos, "do")
-	wc.DoPos = p.followRsrv(wc.WhilePos, rsrvCond, "do")
-	wc.Do, wc.DoLast = p.followStmts("do", wc.DoPos, "done")
-	wc.DonePos = p.stmtEnd(wc, rsrv, "done")
+	p.unsepEnds = false // followStmts may return without parsing a list
+	var end string
+	wc.DoPos, end, wc.Do, wc.DoLast, wc.DonePos = p.loopBody(s, wc, rsrv)
+	wc.Braces, wc.Short = end == "}", end == ""
 	s.Cmd = wc
 }
 
-// forClause parses a for or select loop.
+// forClause parses a for, foreach, or select loop.
 func (p *Parser) forClause(s *Stmt) {
 	rsrv := p.val
 	fc := &ForClause{ForPos: p.pos, Select: rsrv == "select"}
 	p.next()
 	fc.Loop = p.loop(rsrv, fc.ForPos)
-
-	start, end := "do", "done"
-	if pos, ok := p.gotRsrv("{"); ok {
-		p.checkLang(pos, langBashLike|LangMirBSDKorn, "%s loops with braces", rsrv)
-		fc.DoPos = pos
-		fc.Braces = true
-		start, end = "{", "}"
-	} else {
-		header := "for foo [in words]"
-		if fc.Select {
-			header = "select foo [in words]"
-		}
-		fc.DoPos = p.followRsrv(fc.ForPos, header, start)
-	}
-
-	s.Comments = append(s.Comments, p.accComs...)
-	p.accComs = nil
-	fc.Do, fc.DoLast = p.followStmts(start, fc.DoPos, end)
-	fc.DonePos = p.stmtEnd(fc, rsrv, end)
+	var end string
+	fc.DoPos, end, fc.Do, fc.DoLast, fc.DonePos = p.loopBody(s, fc, rsrv)
+	fc.Braces, fc.Foreach, fc.Short = end == "}", end == "end", end == ""
 	s.Cmd = fc
 }
 
@@ -2884,40 +2886,63 @@ func (p *Parser) repeatClause(s *Stmt) {
 	rc := &RepeatClause{RepeatPos: p.pos}
 	p.next()
 	rc.Count = p.followWordTok("repeat", rc.RepeatPos)
-	for p.got(semicolon) || p.got(_Newl) {
-	}
+	var end string
+	rc.DoPos, end, rc.Do, rc.DoLast, rc.DonePos = p.loopBody(s, rc, "repeat")
+	rc.Braces, rc.Short = end == "}", end == ""
+	s.Cmd = rc
+}
 
-	start, end := "do", "done"
+// loopBody parses the body of the loop n, as `do list done` or `{ list }`.
+// With [LangZsh], it can also be `list end` in a foreach loop,
+// or a single statement in the short form, for which it returns an empty end.
+func (p *Parser) loopBody(s *Stmt, n Node, rsrv string) (doPos Pos, end string, body []*Stmt, last []Comment, donePos Pos) {
+	// Comments left over from the header go before the body,
+	// including those between zsh's parenthesized words.
+	s.Comments, p.accComs = append(s.Comments, p.accComs...), nil
+	if p.lang.in(LangZsh) {
+		for p.got(semicolon) || p.got(_Newl) {
+		}
+	}
+	start := "do"
+	end = "done"
 	if pos, ok := p.gotRsrv("{"); ok {
-		rc.DoPos = pos
-		rc.Braces = true
+		p.checkLang(pos, langBashLike|LangMirBSDKorn|LangZsh, "%s loops with braces", rsrv)
+		doPos = pos
 		start, end = "{", "}"
 	} else if pos, ok := p.gotRsrv("do"); ok {
-		rc.DoPos = pos
+		doPos = pos
+	} else if !p.lang.in(LangZsh) {
+		header := rsrv + " foo [in words]"
+		if _, ok := n.(*WhileClause); ok {
+			header = rsrv + " <cond>"
+		}
+		doPos = p.followRsrv(n.Pos(), header, "do")
+	} else if rsrv == "foreach" {
+		start, end = "foreach", "end"
+	} else {
+		end = ""
 	}
 	switch {
-	case rc.DoPos.IsValid():
-		s.Comments = append(s.Comments, p.accComs...)
-		p.accComs = nil
-		rc.Do, rc.DoLast = p.followStmts(start, rc.DoPos, end)
-		rc.DonePos = p.stmtEnd(rc, "repeat", end)
+	case end != "":
+		body, last = p.followStmts(start, doPos, end)
+		donePos = p.stmtEnd(n, rsrv, end)
 	case p.tok == _LitWord && slices.Contains(p.stops[:], p.val):
 		// The short form, allowed by zsh's SHORT_LOOPS option, which is on by default.
 		// Like zsh, allow an empty body, such as before the enclosing list's closing word.
 		// Any comments are left for the enclosing list.
 	default:
-		body := p.getStmt(false, false, true)
+		stmt := p.getStmt(false, false, true)
 		switch {
-		case body != nil:
+		case stmt != nil:
 			// Comments before the body go before the implied `do`, as with the long form.
-			s.Comments, body.Comments = append(s.Comments, body.Comments...), nil
-			rc.Do = []*Stmt{body}
+			s.Comments, stmt.Comments = append(s.Comments, stmt.Comments...), nil
+			body = []*Stmt{stmt}
 		case p.tok == and || p.tok == andPipe || p.tok == andBang:
 			// Unlike `|` or `&&`, zsh does not allow backgrounding an empty body.
 			p.invalidStmtStart()
 		}
 	}
-	s.Cmd = rc
+	return doPos, end, body, last, donePos
 }
 
 func (p *Parser) loop(ftok string, fpos Pos) Loop {
@@ -2952,7 +2977,7 @@ func (p *Parser) wordIter(ftok string, fpos Pos) *WordIter {
 	if wi.Name = p.getLit(); wi.Name == nil {
 		p.followErr(fpos, ftok, noQuote("a literal"))
 	}
-	for ftok == "for" && p.tok == _LitWord && ValidName(p.val) && !isKeyword(p.val, p.lang, true) {
+	for ftok != "select" && p.tok == _LitWord && ValidName(p.val) && !isKeyword(p.val, p.lang, true) {
 		if wi.Names == nil {
 			p.checkLang(fpos, LangZsh, "multi-name for loops")
 			wi.Names = []*Lit{wi.Name}
@@ -2964,23 +2989,51 @@ func (p *Parser) wordIter(ftok string, fpos Pos) *WordIter {
 		p.got(_Newl)
 		return wi
 	}
-	p.got(_Newl)
+	newLine := p.got(_Newl)
+	zsh := p.lang.in(LangZsh)
 	if pos, ok := p.gotRsrv("in"); ok {
 		wi.InPos = pos
 		for !p.stopToken() {
-			if w := p.getWord(); w == nil {
-				p.curErr("word list can only contain words")
-			} else {
-				wi.Items = append(wi.Items, w)
+			p.wordIterItem(wi)
+		}
+		semi := p.got(semicolon)
+		newl := p.got(_Newl)
+		if zsh && !semi && !newl && !p.recoverError() {
+			// Without the separator, zsh would not know where the words end.
+			p.followErr(fpos, ftok+" foo in words", noQuote("`;` or a newline"))
+		}
+	} else if zsh && !newLine && p.tok == leftParen && p.r != ')' {
+		// Zsh's alternate form, where newlines and semicolons may separate the words.
+		wi.Lparen = p.pos
+		p.next()
+		for p.tok != rightParen && p.tok != _EOF {
+			if !p.got(_Newl) && !p.got(semicolon) {
+				p.wordIterItem(wi)
 			}
 		}
-		p.got(semicolon)
-		p.got(_Newl)
-	} else if p.tok == _LitWord && p.val == "do" {
+		wi.Rparen = p.matched(wi.Lparen, leftParen, rightParen)
 	} else {
-		p.followErr(fpos, ftok+" foo", noQuote("`in`, `do`, `;`, or a newline"))
+		do := p.tok == _LitWord && p.val == "do"
+		// With zsh, the body can also follow in braces or in the short form,
+		// like `for i\n echo $i` or `for i () echo $i` with an anonymous function.
+		zshBody := zsh && (newLine || p.tok == leftParen || (p.tok == _LitWord && p.val == "{"))
+		if !do && !zshBody {
+			want := "`in`, `do`, `;`, or a newline"
+			if zsh {
+				want = "`in`, `(`, `do`, `{`, `;`, or a newline"
+			}
+			p.followErr(fpos, ftok+" foo", noQuote(want))
+		}
 	}
 	return wi
+}
+
+func (p *Parser) wordIterItem(wi *WordIter) {
+	if w := p.getWord(); w == nil {
+		p.curErr("word list can only contain words")
+	} else {
+		wi.Items = append(wi.Items, w)
+	}
 }
 
 func (p *Parser) caseClause(s *Stmt) {

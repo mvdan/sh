@@ -1185,7 +1185,25 @@ func (p *Printer) loop(loop Loop) {
 				p.writeLit(name.Value)
 			}
 		}
-		if loop.InPos.IsValid() {
+		switch {
+		case loop.Lparen.IsValid():
+			p.spacedString(" (", Pos{})
+			p.wantSpace = spaceNotRequired
+			coms, after := p.holdComments(loop.Lparen, loop.Rparen)
+			p.incLevel()
+			for _, w := range loop.Items {
+				// Like in arrays, newlines between the words need no escaping.
+				p.heldSeparate(w.Pos(), &coms)
+				p.word(w)
+			}
+			p.closingComments(coms)
+			p.decLevel()
+			if len(loop.Items) == 0 && !p.rightParenNewline(loop.Rparen) {
+				p.space() // `()` would be an anonymous function
+			}
+			p.rightParen(loop.Rparen)
+			p.pendingComments = append(p.pendingComments, after...)
+		case loop.InPos.IsValid():
 			p.spacedString(" in", Pos{})
 			p.wordJoin(loop.Items)
 		}
@@ -1639,7 +1657,7 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		}
 		condLine := p.line
 		p.nestedStmts(cmd.Cond, cmd.CondLast, Pos{})
-		p.doBlock(condLine, cmd.DoPos, cmd.Do, cmd.DoLast, cmd.DonePos)
+		p.doBlock(condLine, cmd.Short, cmd.DoPos, cmd.Do, cmd.DoLast, cmd.DonePos)
 	case *ForClause:
 		if cmd.Select {
 			p.w.WriteString("select ")
@@ -1648,17 +1666,12 @@ func (p *Printer) command(cmd Command, redirs []*Redirect) (startRedirs int) {
 		}
 		loopLine := p.line
 		p.loop(cmd.Loop)
-		p.doBlock(loopLine, cmd.DoPos, cmd.Do, cmd.DoLast, cmd.DonePos)
+		p.doBlock(loopLine, cmd.Short, cmd.DoPos, cmd.Do, cmd.DoLast, cmd.DonePos)
 	case *RepeatClause:
 		p.w.WriteString("repeat ")
 		countLine := p.line
 		p.word(cmd.Count)
-		doPos := cmd.DoPos
-		if !doPos.IsValid() && len(cmd.Do) > 0 {
-			// The short form has no `do`, so place it right before the body.
-			doPos = cmd.Do[0].Pos()
-		}
-		p.doBlock(countLine, doPos, cmd.Do, cmd.DoLast, cmd.DonePos)
+		p.doBlock(countLine, cmd.Short, cmd.DoPos, cmd.Do, cmd.DoLast, cmd.DonePos)
 	case *BinaryCmd:
 		// Only binary operands continue a chain which is already indented,
 		// so that chains within other operands such as blocks are indented.
@@ -2071,9 +2084,15 @@ func (p *Printer) keepBlockNewline(startLine uint, pos Pos) bool {
 
 // doBlock prints the body of a loop whose header started at startLine,
 // as `do` and `done` with the statements nested between them.
-func (p *Printer) doBlock(startLine uint, doPos Pos, do []*Stmt, last []Comment, donePos Pos) {
+func (p *Printer) doBlock(startLine uint, short bool, doPos Pos, do []*Stmt, last []Comment, donePos Pos) {
+	// Zsh's forms without `do` must not keep it on its own line,
+	// so that they all print alike after a multi-line header.
 	if p.blockNewline(do, last, donePos) || p.keepBlockNewline(startLine, doPos) {
 		p.wantNewline = true
+	}
+	if short && len(do) > 0 {
+		// Place the missing `do` right before the body.
+		doPos = do[0].Pos()
 	}
 	p.semiOrNewl("do", doPos)
 	p.nestedStmts(do, last, donePos)

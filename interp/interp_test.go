@@ -6255,6 +6255,11 @@ func TestRunnerUnsupported(t *testing.T) {
 		{syntax.LangZsh, "() { echo $1; } a b", "unsupported\nexit status 1"},
 		{syntax.LangZsh, "function f g { echo multi; }", "unsupported\nexit status 1"},
 		{syntax.LangZsh, "for a b in 1 2; do echo $a $b; done", "unsupported\nexit status 1"},
+		{syntax.LangZsh, "for i (a b); do echo $i; done", "unsupported\nexit status 1"},
+		{syntax.LangZsh, "foreach i (a b); echo $i; end", "unsupported\nexit status 1"},
+		{syntax.LangZsh, "select i in a b; echo $i", "unsupported\nexit status 1"},
+		{syntax.LangZsh, "while ((0)) { echo x; }", "unsupported\nexit status 1"},
+		{syntax.LangZsh, "until ((1)) echo x", "unsupported\nexit status 1"},
 		{syntax.LangZsh, "repeat 2 do echo x; done", "unsupported\nexit status 1"},
 		{syntax.LangZsh, "cat =(echo hi)", "unsupported\n"},
 		{syntax.LangZsh, "echo x &|", "unsupported\nexit status 1"},
@@ -6959,6 +6964,30 @@ func TestRunnerAltNodes(t *testing.T) {
 				in, want, got)
 		}
 	}
+}
+
+func TestRunnerLoopsWithoutPositions(t *testing.T) {
+	t.Parallel()
+
+	// Programs built by hand may not set the positions of `do` and `done`.
+	file := parse(t, nil, "for i in a b; do echo $i; done; while true; do echo c; break; done")
+	syntax.Walk(file, func(node syntax.Node) bool {
+		switch node := node.(type) {
+		case *syntax.ForClause:
+			node.DoPos, node.DonePos = syntax.Pos{}, syntax.Pos{}
+		case *syntax.WhileClause:
+			node.DoPos, node.DonePos = syntax.Pos{}, syntax.Pos{}
+		}
+		return true
+	})
+	var cb concBuffer
+	r, _ := interp.New(interp.StdIO(nil, &cb, &cb))
+	ctx, cancel := context.WithTimeout(t.Context(), runnerRunTimeout)
+	defer cancel()
+	if err := r.Run(ctx, file); err != nil {
+		cb.WriteString(err.Error())
+	}
+	qt.Assert(t, qt.Equals(cb.String(), "a\nb\nc\n"))
 }
 
 func TestRunnerDir(t *testing.T) {

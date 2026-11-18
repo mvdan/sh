@@ -88,8 +88,9 @@ coproc foo
 # comment
 `},
 		// FlagsArithm, CallArithm, multiple subscripts, multi-name for loops,
-		// anonymous functions with arguments, TryClause, and RepeatClause only appear with zsh.
-		{syntax.LangZsh, "echo ${a[(r)foo]} ${a[1][(r)b]} $((abs(-1)))\nfor a b in x y; do foo; done\n() { echo $1; } a b\n{ foo; } always { bar; }\nrepeat 3 do foo; done\n"},
+		// anonymous functions with arguments, TryClause, RepeatClause, and the alternate
+		// loop forms only appear with zsh.
+		{syntax.LangZsh, "echo ${a[(r)foo]} ${a[1][(r)b]} $((abs(-1)))\nfor a b in x y; do foo; done\n() { echo $1; } a b\n{ foo; } always { bar; }\nrepeat 3 do foo; done\nforeach i (x y) foo; end\nwhile ((x)) { foo }\n"},
 		// TestDecl only appears with bats.
 		{syntax.LangBats, "@test \"name\" {\n\tfoo\n}\n"},
 	}

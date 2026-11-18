@@ -250,6 +250,9 @@ func TestPrintPosOverflow(t *testing.T) {
 		{LangBash, "a; b", "a; b"},
 		{LangBash, "for i in a b; do foo; done", "for i in a b; do foo; done"},
 		{LangBash, "if a; then b; elif c; then d; fi", "if a; then b; elif c; then d; fi"},
+		{LangZsh, "for i (a b) foo", "for i (a b); do foo; done"},
+		{LangZsh, "while ((x)) { foo }", "while ((x)); do foo; done"},
+		{LangZsh, "foreach i (a b) foo; end", "for i (a b); do foo; done"},
 	}
 	for _, test := range tests {
 		t.Run("", func(t *testing.T) {
@@ -1061,12 +1064,12 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"while",
-		langErr("1:1: `while` must be followed by a statement list"),
-		langErr("1:1: `while <cond>` must be followed by `do`", LangZsh|LangMirBSDKorn),
+		langErr("1:1: `while` must be followed by a statement list", LangPOSIX|LangBash|LangBats),
+		langErr("1:1: `while <cond>` must be followed by `do`", LangMirBSDKorn),
 	),
 	errCase(
 		"while true;",
-		langErr("1:1: `while <cond>` must be followed by `do`"),
+		langErr("1:1: `while <cond>` must be followed by `do`", LangPOSIX|LangBash|LangMirBSDKorn|LangBats),
 	),
 	errCase(
 		"while true; do bar",
@@ -1078,12 +1081,12 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"until",
-		langErr("1:1: `until` must be followed by a statement list"),
-		langErr("1:1: `until <cond>` must be followed by `do`", LangZsh|LangMirBSDKorn),
+		langErr("1:1: `until` must be followed by a statement list", LangPOSIX|LangBash|LangBats),
+		langErr("1:1: `until <cond>` must be followed by `do`", LangMirBSDKorn),
 	),
 	errCase(
 		"until true;",
-		langErr("1:1: `until <cond>` must be followed by `do`"),
+		langErr("1:1: `until <cond>` must be followed by `do`", LangPOSIX|LangBash|LangMirBSDKorn|LangBats),
 	),
 	errCase(
 		"until true; do bar",
@@ -1099,19 +1102,26 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"for i",
-		langErr("1:1: `for foo` must be followed by `in`, `do`, `;`, or a newline"),
+		langErr("1:1: `for foo` must be followed by `in`, `do`, `;`, or a newline", LangPOSIX|LangBash|LangMirBSDKorn|LangBats),
+		langErr("1:1: `for foo` must be followed by `in`, `(`, `do`, `{`, `;`, or a newline", LangZsh),
 	),
 	errCase(
 		"for i in;",
-		langErr("1:1: `for foo [in words]` must be followed by `do`"),
+		langErr("1:1: `for foo [in words]` must be followed by `do`", LangPOSIX|LangBash|LangMirBSDKorn|LangBats),
 	),
 	errCase(
 		"for i in 1 2 3;",
-		langErr("1:1: `for foo [in words]` must be followed by `do`"),
+		langErr("1:1: `for foo [in words]` must be followed by `do`", LangPOSIX|LangBash|LangMirBSDKorn|LangBats),
 	),
 	errCase(
 		"for i in 1 2 &",
-		langErr("1:1: `for foo [in words]` must be followed by `do`"),
+		langErr("1:1: `for foo [in words]` must be followed by `do`", LangPOSIX|LangBash|LangMirBSDKorn|LangBats),
+		langErr("1:1: `for foo in words` must be followed by `;` or a newline", LangZsh),
+	),
+	errCase(
+		"for i in 1 2",
+		langErr("1:1: `for foo [in words]` must be followed by `do`", LangPOSIX|LangBash|LangMirBSDKorn|LangBats),
+		langErr("1:1: `for foo in words` must be followed by `;` or a newline", LangZsh),
 	),
 	errCase(
 		"for i in 1 2 (",
@@ -1124,7 +1134,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"for i in 1 2 3; echo $i;",
-		langErr("1:1: `for foo [in words]` must be followed by `do`"),
+		langErr("1:1: `for foo [in words]` must be followed by `do`", LangPOSIX|LangBash|LangMirBSDKorn|LangBats),
 	),
 	errCase(
 		"for 'i' in 1 2 3; do echo $i; done",
@@ -1132,7 +1142,8 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"for in 1 2 3; do echo $i; done",
-		langErr("1:1: `for foo` must be followed by `in`, `do`, `;`, or a newline"),
+		langErr("1:1: `for foo` must be followed by `in`, `do`, `;`, or a newline", LangPOSIX|LangBash|LangMirBSDKorn|LangBats),
+		langErr("1:1: `for foo` must be followed by `in`, `(`, `do`, `{`, `;`, or a newline", LangZsh),
 	),
 	errCase(
 		"select",
@@ -1140,15 +1151,16 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"select i",
-		langErr("1:1: `select foo` must be followed by `in`, `do`, `;`, or a newline", LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `select foo` must be followed by `in`, `do`, `;`, or a newline", LangBash|LangMirBSDKorn),
+		langErr("1:1: `select foo` must be followed by `in`, `(`, `do`, `{`, `;`, or a newline", LangZsh),
 	),
 	errCase(
 		"select i in;",
-		langErr("1:1: `select foo [in words]` must be followed by `do`", LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `select foo [in words]` must be followed by `do`", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"select i in 1 2 3;",
-		langErr("1:1: `select foo [in words]` must be followed by `do`", LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `select foo [in words]` must be followed by `do`", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"select i in 1 2 3; do echo $i;",
@@ -1156,7 +1168,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"select i in 1 2 3; echo $i;",
-		langErr("1:1: `select foo [in words]` must be followed by `do`", LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `select foo [in words]` must be followed by `do`", LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"select 'i' in 1 2 3; do echo $i; done",
@@ -1164,16 +1176,17 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"select in 1 2 3; do echo $i; done",
-		langErr("1:1: `select foo` must be followed by `in`, `do`, `;`, or a newline", LangBash|LangMirBSDKorn|LangZsh),
+		langErr("1:1: `select foo` must be followed by `in`, `do`, `;`, or a newline", LangBash|LangMirBSDKorn),
+		langErr("1:1: `select foo` must be followed by `in`, `(`, `do`, `{`, `;`, or a newline", LangZsh),
 	),
 	errCase(
 		"for a repeat in 1 2; do echo $a; done",
-		langErr("1:1: `for foo` must be followed by `in`, `do`, `;`, or a newline", LangZsh),
+		langErr("1:1: `for foo` must be followed by `in`, `(`, `do`, `{`, `;`, or a newline", LangZsh),
 		langErr("1:1: multi-name for loops are a zsh feature; tried parsing as LANG", LangPOSIX|LangBash|LangMirBSDKorn),
 	),
 	errCase(
 		"for a typeset in 1 2; do echo $a; done",
-		langErr("1:1: `for foo` must be followed by `in`, `do`, `;`, or a newline", LangZsh),
+		langErr("1:1: `for foo` must be followed by `in`, `(`, `do`, `{`, `;`, or a newline", LangZsh),
 		langErr("1:1: multi-name for loops are a zsh feature; tried parsing as LANG", LangPOSIX|LangBash|LangMirBSDKorn),
 	),
 	errCase(
@@ -1187,6 +1200,51 @@ var errorCases = []errorCase{
 	errCase(
 		"{ repeat 3 else }",
 		langErr("1:12: `else` can only be used in an `if`", LangZsh),
+	),
+	errCase(
+		"end",
+		langErr("1:1: `end` can only be used to end a `foreach`", LangZsh),
+	),
+	errCase(
+		"foreach i (a) foo; end; end",
+		langErr("1:25: `end` can only be used to end a `foreach`", LangZsh),
+	),
+	errCase(
+		"for i (a b) foo",
+		langErr("1:1: `for foo` must be followed by `in`, `do`, `;`, or a newline", LangPOSIX|LangBash|LangMirBSDKorn|LangBats),
+	),
+	errCase(
+		"while (a) b",
+		langErr("1:11: statements must be separated by &, ; or a newline", LangPOSIX|LangBash|LangMirBSDKorn|LangBats),
+	),
+	errCase(
+		"while (a) { b; }",
+		langErr("1:11: statements must be separated by &, ; or a newline", LangPOSIX|LangBash|LangMirBSDKorn|LangBats),
+		flipConfirm(LangMirBSDKorn), // undocumented; mksh only means to allow it in for loops
+	),
+	errCase(
+		"for i (a b",
+		langErr("1:7: reached EOF without matching `(` with `)`", LangZsh),
+	),
+	errCase(
+		"for i (a | b) foo",
+		langErr("1:10: word list can only contain words", LangZsh),
+	),
+	errCase(
+		"for i (a b) & foo",
+		langErr("1:13: `&` can only immediately follow a statement", LangZsh),
+	),
+	errCase(
+		"foreach i (a b) foo",
+		langErr("1:1: `foreach` statement must end with `end`", LangZsh),
+	),
+	errCase(
+		"foreach i (a b) foo; done",
+		langErr("1:22: `done` can only be used to end a loop", LangZsh),
+	),
+	errCase(
+		"while ((x)) { foo",
+		langErr("1:1: `while` statement must end with `}`", LangZsh),
 	),
 	errCase(
 		"repeat 3 foo; done",
@@ -2201,7 +2259,7 @@ var errorCases = []errorCase{
 	),
 	errCase(
 		"for i in 1 2 3; { echo; }",
-		langErr("1:17: for loops with braces are a bash/mksh feature; tried parsing as LANG", LangPOSIX),
+		langErr("1:17: for loops with braces are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
 	),
 	errCase(
 		"echo !(a)",
@@ -3082,6 +3140,22 @@ func TestNodeEndPos(t *testing.T) {
 	f, err = p.Parse(strings.NewReader("repeat 3; do foo"), "")
 	qt.Assert(t, qt.IsNil(err))
 	qt.Check(t, qt.IsTrue(f.Stmts[0].Cmd.(*RepeatClause).End().IsRecovered()))
+
+	// So do the short forms of zsh's other loops.
+	for _, tc := range []struct {
+		src  string
+		want uint
+	}{
+		{"for i (a b) foo", 15},
+		{"for i (a b)", 11},
+		{"foreach i (a b) foo; end", 24},
+		{"while ((x))", 11},
+		{"while", 5},
+	} {
+		f, err = p.Parse(strings.NewReader(tc.src), "")
+		qt.Assert(t, qt.IsNil(err))
+		qt.Check(t, qt.Equals(f.Stmts[0].Cmd.End().Offset(), tc.want), qt.Commentf("%q", tc.src))
+	}
 }
 
 func TestParseRecoverErrors(t *testing.T) {
@@ -3151,6 +3225,16 @@ func TestParseRecoverErrors(t *testing.T) {
 		},
 		{
 			src:         "repeat 3; do foo",
+			lang:        LangZsh,
+			wantMissing: 1,
+		},
+		{
+			src:         "foreach i (a b) foo",
+			lang:        LangZsh,
+			wantMissing: 1,
+		},
+		{
+			src:         "for i (a b",
 			lang:        LangZsh,
 			wantMissing: 1,
 		},

@@ -587,7 +587,7 @@ var fileTests = []fileTestCase{
 		langFile(&ForClause{
 			Loop: &WordIter{Name: lit("i")},
 			Do:   litStmts("foo"),
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{
@@ -603,7 +603,7 @@ var fileTests = []fileTestCase{
 				litWord("echo"),
 				word(litParamExp("i")),
 			)),
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
 		[]string{
@@ -646,6 +646,205 @@ var fileTests = []fileTestCase{
 			Do: litStmts("foo"),
 		}, LangZsh),
 		langErr2("1:1: multi-name for loops are a zsh feature; tried parsing as LANG", LangPOSIX|LangBash|LangMirBSDKorn),
+	),
+	fileTest(
+		[]string{
+			"for i (a b); do foo; done",
+			"for i (a b) do foo; done",
+			"for i (a\nb); do foo; done",
+			"for i (a;b); do foo; done",
+			"for i (a b) { foo }",
+			"for i (a b) foo",
+			"foreach i (a b) foo; end",
+			"foreach i (a b); do foo; done",
+		},
+		langFile(&ForClause{
+			Loop: &WordIter{Name: lit("i"), Items: litWords("a", "b")},
+			Do:   litStmts("foo"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{
+			"for i in a b; do foo; done",
+			"for i in a b; foo",
+			"for i in a b\nfoo",
+			"foreach i in a b; foo; end",
+		},
+		langFile(&ForClause{
+			Loop: &WordIter{Name: lit("i"), Items: litWords("a", "b")},
+			Do:   litStmts("foo"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{
+			"for i; do bar; done",
+			"for i\nbar",
+			"for i { bar }",
+			"foreach i; bar; end",
+		},
+		langFile(&ForClause{
+			Loop: &WordIter{Name: lit("i")},
+			Do:   litStmts("bar"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"for a b (1 2 3 4); do foo; done", "for a b (1 2 3 4) foo"},
+		langFile(&ForClause{
+			Loop: &WordIter{Names: lits("a", "b"), Items: litWords("1", "2", "3", "4")},
+			Do:   litStmts("foo"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"for i ( ); do foo; done", "for i ( ) foo"},
+		langFile(&ForClause{
+			Loop: &WordIter{Name: lit("i")},
+			Do:   litStmts("foo"),
+		}, LangZsh),
+	),
+	fileTest(
+		// Like zsh, `()` starts an anonymous function as the body.
+		[]string{"for i; do () foo; done", "for i () foo"},
+		langFile(&ForClause{
+			Loop: &WordIter{Name: lit("i")},
+			Do:   stmts(&FuncDecl{Parens: true, Body: litStmt("foo")}),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"for i (a); do foo | bar; done", "for i (a) foo | bar"},
+		langFile(&ForClause{
+			Loop: &WordIter{Name: lit("i"), Items: litWords("a")},
+			Do: stmts(&BinaryCmd{
+				Op: Pipe,
+				X:  litStmt("foo"),
+				Y:  litStmt("bar"),
+			}),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"for i (a); do foo; done &\nbar", "for i (a) foo & bar"},
+		langFile([]*Stmt{
+			{
+				Cmd: &ForClause{
+					Loop: &WordIter{Name: lit("i"), Items: litWords("a")},
+					Do:   litStmts("foo"),
+				},
+				Background: true,
+			},
+			litStmt("bar"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"for i (a); do; done", "for i (a)", "foreach i (a) end"},
+		langFile(&ForClause{
+			Loop: &WordIter{Name: lit("i"), Items: litWords("a")},
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"for i (a); do; done && foo", "for i (a) && foo"},
+		langFile(&BinaryCmd{
+			Op: AndStmt,
+			X: stmt(&ForClause{
+				Loop: &WordIter{Name: lit("i"), Items: litWords("a")},
+			}),
+			Y: litStmt("foo"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"{ for i (a); do; done; }", "{ for i (a) }"},
+		langFile(block(stmt(&ForClause{
+			Loop: &WordIter{Name: lit("i"), Items: litWords("a")},
+		})), LangZsh),
+	),
+	fileTest(
+		[]string{"for i (a); do for j (b); do foo; done; done", "for i (a) for j (b) foo"},
+		langFile(&ForClause{
+			Loop: &WordIter{Name: lit("i"), Items: litWords("a")},
+			Do: stmts(&ForClause{
+				Loop: &WordIter{Name: lit("j"), Items: litWords("b")},
+				Do:   litStmts("foo"),
+			}),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"for ((i = 0; ; )); do foo; done", "for ((i = 0;;)) foo", "for ((i = 0;;)) { foo }"},
+		langFile(&ForClause{
+			Loop: &CStyleLoop{
+				Init: &BinaryArithm{
+					Op: Assgn,
+					X:  litWord("i"),
+					Y:  litWord("0"),
+				},
+			},
+			Do: litStmts("foo"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"while ((x)); do foo; done", "while ((x)) do foo; done", "while ((x)) { foo }", "while ((x)) foo"},
+		langFile(&WhileClause{
+			Cond: stmts(arithmCmd(litWord("x"))),
+			Do:   litStmts("foo"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"until [[ x ]]; do foo; done", "until [[ x ]] { foo }", "until [[ x ]] foo"},
+		langFile(&WhileClause{
+			Until: true,
+			Cond:  stmts(&TestClause{X: litWord("x")}),
+			Do:    litStmts("foo"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"while (a); do b; done", "while (a) { b }", "while (a) b"},
+		langFile(&WhileClause{
+			Cond: stmts(subshell(litStmt("a"))),
+			Do:   litStmts("b"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"while { a; }; do b; done", "while { a } b"},
+		langFile(&WhileClause{
+			Cond: stmts(block(litStmt("a"))),
+			Do:   litStmts("b"),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"while a && (b); do c; done", "while a && (b) c"},
+		langFile(&WhileClause{
+			Cond: stmts(&BinaryCmd{
+				Op: AndStmt,
+				X:  litStmt("a"),
+				Y:  stmt(subshell(litStmt("b"))),
+			}),
+			Do: litStmts("c"),
+		}, LangZsh),
+	),
+	fileTest(
+		// A separator continues the condition, so a block after it is part of it.
+		[]string{"while (a); { b; }; do; done", "while (a); { b }"},
+		langFile(&WhileClause{
+			Cond: stmts(subshell(litStmt("a")), block(litStmt("b"))),
+		}, LangZsh),
+		printsAs("while\n\t(a)\n\t{ b; }\ndo; done"),
+	),
+	fileTest(
+		[]string{"while (a); do; done", "while (a)"},
+		langFile(&WhileClause{
+			Cond: stmts(subshell(litStmt("a"))),
+		}, LangZsh),
+	),
+	fileTest(
+		[]string{"select i (a b); do foo; done", "select i (a b) foo", "select i in a b; foo"},
+		langFile(&ForClause{
+			Select: true,
+			Loop:   &WordIter{Name: lit("i"), Items: litWords("a", "b")},
+			Do:     litStmts("foo"),
+		}, LangZsh),
+	),
+	fileTest(
+		// Only a reserved word with zsh.
+		[]string{"foreach i x"},
+		langFile(litCall("foreach", "i", "x")),
+		langSkip(LangZsh),
 	),
 	fileTest(
 		[]string{
@@ -878,7 +1077,7 @@ var fileTests = []fileTestCase{
 				litWord("echo"),
 				word(litParamExp("i")),
 			)),
-		}, LangBash|LangMirBSDKorn),
+		}, LangBash|LangMirBSDKorn|LangZsh),
 		printsAs("select i in 1 2 3; do echo $i; done"),
 	),
 	fileTest(
@@ -2788,7 +2987,7 @@ var fileTests = []fileTestCase{
 			Loop: &WordIter{Name: lit("i"), Items: litWords("a}")},
 			Do:   litStmts("true"),
 		}),
-		langErr2("1:1: `for foo [in words]` must be followed by `do`", LangZsh),
+		langErr2("1:1: `for foo in words` must be followed by `;` or a newline", LangZsh),
 	),
 	fileTest(
 		[]string{"case i in a}) true ;; esac"},
@@ -7042,6 +7241,27 @@ type sanityChecker struct {
 	lang LangVariant
 }
 
+// checkLoopBody checks the positions of a loop body according to its form.
+func (c sanityChecker) checkLoopBody(node Node, braces, foreach, short bool, doPos, donePos Pos) {
+	switch {
+	case short:
+		if braces || foreach || doPos.IsValid() || donePos.IsValid() {
+			c.tb.Errorf("short %T has a closing word or valid DoPos or DonePos", node)
+		}
+	case braces:
+		c.checkPos(node, doPos, "{")
+		c.checkPos(node, donePos, "}")
+	case foreach:
+		if doPos.IsValid() {
+			c.tb.Errorf("foreach %T has a valid DoPos", node)
+		}
+		c.checkPos(node, donePos, "end")
+	default:
+		c.checkPos(node, doPos, "do")
+		c.checkPos(node, donePos, "done")
+	}
+}
+
 func (c sanityChecker) checkPos(node Node, pos Pos, strs ...string) {
 	if !pos.IsValid() {
 		c.tb.Fatalf("invalid Pos in %T", node)
@@ -7211,39 +7431,33 @@ func (c sanityChecker) visit(node Node) bool {
 			rsrv = "until"
 		}
 		c.checkPos(node, node.WhilePos, rsrv)
-		c.checkPos(node, node.DoPos, "do")
-		c.checkPos(node, node.DonePos, "done")
+		c.checkLoopBody(node, node.Braces, false, node.Short, node.DoPos, node.DonePos)
+		// Zero out Braces and Short, to not duplicate all the test cases.
+		node.Braces, node.Short = false, false
 	case *ForClause:
-		if node.Select {
+		switch {
+		case node.Select:
 			c.checkPos(node, node.ForPos, "select")
-		} else {
+		case node.Foreach:
+			c.checkPos(node, node.ForPos, "foreach")
+		default:
 			c.checkPos(node, node.ForPos, "for")
 		}
-		if node.Braces {
-			c.checkPos(node, node.DoPos, "{")
-			c.checkPos(node, node.DonePos, "}")
-			// Zero out Braces, to not duplicate all the test cases.
-			// The printer ignores the field anyway.
-			node.Braces = false
-		} else {
-			c.checkPos(node, node.DoPos, "do")
-			c.checkPos(node, node.DonePos, "done")
-		}
+		c.checkLoopBody(node, node.Braces, node.Foreach, node.Short, node.DoPos, node.DonePos)
+		// Zero out Braces, Foreach, and Short, to not duplicate all the test cases.
+		node.Braces, node.Foreach, node.Short = false, false, false
 	case *RepeatClause:
 		c.checkPos(node, node.RepeatPos, "repeat")
-		if node.Braces {
-			c.checkPos(node, node.DoPos, "{")
-			c.checkPos(node, node.DonePos, "}")
-			// Zero out Braces, to not duplicate all the test cases.
-			// The printer ignores the field anyway.
-			node.Braces = false
-		} else if node.DoPos.IsValid() {
-			c.checkPos(node, node.DoPos, "do")
-			c.checkPos(node, node.DonePos, "done")
-		}
+		c.checkLoopBody(node, node.Braces, false, node.Short, node.DoPos, node.DonePos)
+		// Zero out Braces and Short, to not duplicate all the test cases.
+		node.Braces, node.Short = false, false
 	case *WordIter:
 		if node.InPos.IsValid() {
 			c.checkPos(node, node.InPos, "in")
+		}
+		if node.Lparen.IsValid() {
+			c.checkPos(node, node.Lparen, "(")
+			c.checkPos(node, node.Rparen, ")")
 		}
 	case *CStyleLoop:
 		c.checkPos(node, node.Lparen, "((")

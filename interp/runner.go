@@ -832,6 +832,10 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 		}
 	case *syntax.WhileClause:
+		if cm.Braces || cm.Short { // zsh's alternate forms
+			r.unsupported()
+			break
+		}
 		for !r.stop(ctx) {
 			oldNoErrExit := r.noErrExit
 			r.noErrExit = true
@@ -849,9 +853,13 @@ func (r *Runner) cmd(ctx context.Context, cm syntax.Command) {
 			}
 		}
 	case *syntax.ForClause:
+		if cm.Foreach || cm.Short { // zsh's alternate forms
+			r.unsupported()
+			break
+		}
 		switch y := cm.Loop.(type) {
 		case *syntax.WordIter:
-			if y.Name == nil { // e.g. zsh's multi-name for loops
+			if y.Name == nil || y.Lparen.IsValid() { // e.g. zsh's multi-name for loops, or for i (words)
 				r.unsupported()
 				break
 			}

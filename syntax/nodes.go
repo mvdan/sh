@@ -449,6 +449,8 @@ func (c *IfClause) End() Pos { return posAddCol(c.FiPos, 2) }
 type WhileClause struct {
 	WhilePos, DoPos, DonePos Pos
 	Until                    bool
+	Braces                   bool // zsh's form with { } instead of do/done
+	Short                    bool // zsh's form with a single statement and no do/done
 
 	Cond     []*Stmt
 	CondLast []Comment
@@ -457,14 +459,41 @@ type WhileClause struct {
 }
 
 func (w *WhileClause) Pos() Pos { return w.WhilePos }
-func (w *WhileClause) End() Pos { return posAddCol(w.DonePos, 4) }
+func (w *WhileClause) End() Pos {
+	if end, ok := loopEnd(w.Braces, false, w.Short, w.DonePos, w.Do); ok {
+		return end
+	}
+	if len(w.Cond) > 0 {
+		return w.Cond[len(w.Cond)-1].End()
+	}
+	return posAddCol(w.WhilePos, len("while")) // as long as "until"
+}
+
+// loopEnd returns the end of a loop body closed at donePos by `done`, `}`, or `end`,
+// or at its last statement in the short form, reporting false if it has none.
+func loopEnd(braces, foreach, short bool, donePos Pos, do []*Stmt) (Pos, bool) {
+	switch {
+	case short:
+		if len(do) > 0 {
+			return do[len(do)-1].End(), true
+		}
+		return Pos{}, false
+	case braces:
+		return posAddCol(donePos, len("}")), true
+	case foreach:
+		return posAddCol(donePos, len("end")), true
+	}
+	return posAddCol(donePos, len("done")), true
+}
 
 // ForClause represents a for or a select clause. The latter is only present in
-// Bash.
+// Bash, mksh, and zsh.
 type ForClause struct {
 	ForPos, DoPos, DonePos Pos
 	Select                 bool
-	Braces                 bool // deprecated form with { } instead of do/done
+	Foreach                bool // zsh's form `foreach name (words) list end`
+	Braces                 bool // form with { } instead of do/done
+	Short                  bool // zsh's form with a single statement and no do/done
 	Loop                   Loop
 
 	Do     []*Stmt
@@ -473,24 +502,21 @@ type ForClause struct {
 
 func (f *ForClause) Pos() Pos { return f.ForPos }
 func (f *ForClause) End() Pos {
-	if f.Braces {
-		return posAddCol(f.DonePos, len("}"))
+	if end, ok := loopEnd(f.Braces, f.Foreach, f.Short, f.DonePos, f.Do); ok {
+		return end
 	}
-	return posAddCol(f.DonePos, len("done"))
+	return f.Loop.End()
 }
 
 // RepeatClause represents a zsh repeat loop, like `repeat word do list done`,
 // which runs the list as many times as the word evaluates to arithmetically.
-//
-// In the short form `repeat word sublist`, DoPos and DonePos are invalid
-// positions, and Do holds the single statement, if any.
-//
 // Unlike [ForClause], it has no [Loop].
 //
 // This node will only appear with [LangZsh].
 type RepeatClause struct {
 	RepeatPos, DoPos, DonePos Pos
-	Braces                    bool // alternate form with { } instead of do/done
+	Braces                    bool // form with { } instead of do/done
+	Short                     bool // form with a single statement and no do/done
 
 	Count *Word
 
@@ -500,13 +526,8 @@ type RepeatClause struct {
 
 func (r *RepeatClause) Pos() Pos { return r.RepeatPos }
 func (r *RepeatClause) End() Pos {
-	switch {
-	case r.Braces:
-		return posAddCol(r.DonePos, len("}"))
-	case r.DoPos.IsValid():
-		return posAddCol(r.DonePos, len("done"))
-	case len(r.Do) > 0:
-		return r.Do[len(r.Do)-1].End()
+	if end, ok := loopEnd(r.Braces, false, r.Short, r.DonePos, r.Do); ok {
+		return end
 	}
 	return r.Count.End()
 }
@@ -521,8 +542,8 @@ func (*WordIter) loopNode()   {}
 func (*CStyleLoop) loopNode() {}
 
 // WordIter represents the iteration of a variable over a series of words in a
-// for clause. If InPos is an invalid position, the "in" token was missing, so
-// the iteration is over the shell's positional parameters.
+// for clause. Without "in" or parentheses, the iteration is over the shell's
+// positional parameters.
 type WordIter struct {
 	// TODO(v4): join these, even if it's mildly annoying to non-Zsh users.
 
@@ -530,7 +551,9 @@ type WordIter struct {
 	Name  *Lit
 	Names []*Lit // When iterating with many names with [LangZsh].
 
-	InPos Pos // position of "in"
+	InPos          Pos // position of "in"
+	Lparen, Rparen Pos // in zsh's form `for name (words)`, without "in"
+
 	Items []*Word
 }
 
@@ -542,6 +565,9 @@ func (w *WordIter) Pos() Pos {
 }
 
 func (w *WordIter) End() Pos {
+	if w.Lparen.IsValid() {
+		return posAddCol(w.Rparen, 1)
+	}
 	if len(w.Items) > 0 {
 		return wordLastEnd(w.Items)
 	}

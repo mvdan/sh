@@ -910,6 +910,9 @@
                 "ForPos": {
                     "$ref": "#/$defs/Pos"
                 },
+                "Foreach": {
+                    "type": "boolean"
+                },
                 "Loop": {
                     "$ref": "#/$defs/Loop"
                 },
@@ -917,6 +920,9 @@
                     "$ref": "#/$defs/Pos"
                 },
                 "Select": {
+                    "type": "boolean"
+                },
+                "Short": {
                     "type": "boolean"
                 },
                 "Type": {
@@ -1423,6 +1429,9 @@
                 "RepeatPos": {
                     "$ref": "#/$defs/Pos"
                 },
+                "Short": {
+                    "type": "boolean"
+                },
                 "Type": {
                     "const": "RepeatClause"
                 }
@@ -1777,6 +1786,9 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
+                "Braces": {
+                    "type": "boolean"
+                },
                 "Cond": {
                     "type": "array",
                     "items": {
@@ -1812,6 +1824,9 @@
                 },
                 "Pos": {
                     "$ref": "#/$defs/Pos"
+                },
+                "Short": {
+                    "type": "boolean"
                 },
                 "Type": {
                     "const": "WhileClause"
@@ -1861,6 +1876,9 @@
                         "$ref": "#/$defs/Word"
                     }
                 },
+                "Lparen": {
+                    "$ref": "#/$defs/Pos"
+                },
                 "Name": {
                     "$ref": "#/$defs/Lit"
                 },
@@ -1871,6 +1889,9 @@
                     }
                 },
                 "Pos": {
+                    "$ref": "#/$defs/Pos"
+                },
+                "Rparen": {
                     "$ref": "#/$defs/Pos"
                 },
                 "Type": {
