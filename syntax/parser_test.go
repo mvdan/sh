@@ -238,6 +238,37 @@ func TestParsePosOverflow(t *testing.T) {
 	}
 }
 
+func TestPrintPosOverflow(t *testing.T) {
+	t.Parallel()
+
+	// Both the line and the column overflow, so positions only have an offset.
+	prefix := strings.Repeat("\n", lineMax) + strings.Repeat(" ", colMax)
+	tests := []struct {
+		lang     LangVariant
+		in, want string
+	}{
+		// These positions are wrongly treated as missing.
+		{LangBash, "a; b", "?:?: statements must be separated by &, ; or a newline"},
+		{LangBash, "for i in a b; do foo; done", "for i; do foo; done"},
+		{LangBash, "if a; then b; elif c; then d; fi", "if a; then b; else d; fi"},
+	}
+	for _, test := range tests {
+		t.Run("", func(t *testing.T) {
+			t.Parallel()
+
+			f, err := NewParser(Variant(test.lang)).Parse(strings.NewReader(prefix+test.in), "")
+			got := ""
+			if err != nil {
+				got = err.Error()
+			} else {
+				got, err = strPrint(NewPrinter(SingleLine(true)), f)
+				qt.Assert(t, qt.IsNil(err))
+			}
+			qt.Assert(t, qt.Equals(strings.TrimSpace(got), test.want))
+		})
+	}
+}
+
 func TestParseNestingLimit(t *testing.T) {
 	t.Parallel()
 
