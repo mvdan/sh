@@ -868,8 +868,17 @@ var fileTests = []fileTestCase{
 	),
 	fileTest(
 		[]string{"select i in 1 2 3; { echo $i; }"},
-		langErr2("1:1: `select foo [in words]` must be followed by `do`", LangBash|LangMirBSDKorn),
-		flipConfirm2(LangBash|LangMirBSDKorn), // bash and mksh accept braces like for loops
+		langFile(&ForClause{
+			Select: true,
+			Loop: &WordIter{
+				Name:  lit("i"),
+				Items: litWords("1", "2", "3"),
+			},
+			Do: stmts(call(
+				litWord("echo"),
+				word(litParamExp("i")),
+			)),
+		}, LangBash|LangMirBSDKorn),
 		printsAs("select i in 1 2 3; do echo $i; done"),
 	),
 	fileTest(

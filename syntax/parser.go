@@ -2546,7 +2546,7 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 			}
 		case "select":
 			if p.lang.in(langBashLike | LangMirBSDKorn | LangZsh) {
-				p.selectClause(s)
+				p.forClause(s)
 			} else {
 				rsrvFeature = "`select` loops"
 			}
@@ -2852,25 +2852,31 @@ func (p *Parser) whileClause(s *Stmt, until bool) {
 	s.Cmd = wc
 }
 
+// forClause parses a for or select loop.
 func (p *Parser) forClause(s *Stmt) {
-	fc := &ForClause{ForPos: p.pos}
+	rsrv := p.val
+	fc := &ForClause{ForPos: p.pos, Select: rsrv == "select"}
 	p.next()
-	fc.Loop = p.loop(fc.ForPos)
+	fc.Loop = p.loop(rsrv, fc.ForPos)
 
 	start, end := "do", "done"
 	if pos, ok := p.gotRsrv("{"); ok {
-		p.checkLang(pos, langBashLike|LangMirBSDKorn, "for loops with braces")
+		p.checkLang(pos, langBashLike|LangMirBSDKorn, "%s loops with braces", rsrv)
 		fc.DoPos = pos
 		fc.Braces = true
 		start, end = "{", "}"
 	} else {
-		fc.DoPos = p.followRsrv(fc.ForPos, "for foo [in words]", start)
+		header := "for foo [in words]"
+		if fc.Select {
+			header = "select foo [in words]"
+		}
+		fc.DoPos = p.followRsrv(fc.ForPos, header, start)
 	}
 
 	s.Comments = append(s.Comments, p.accComs...)
 	p.accComs = nil
 	fc.Do, fc.DoLast = p.followStmts(start, fc.DoPos, end)
-	fc.DonePos = p.stmtEnd(fc, "for", end)
+	fc.DonePos = p.stmtEnd(fc, rsrv, end)
 	s.Cmd = fc
 }
 
@@ -2914,7 +2920,10 @@ func (p *Parser) repeatClause(s *Stmt) {
 	s.Cmd = rc
 }
 
-func (p *Parser) loop(fpos Pos) Loop {
+func (p *Parser) loop(ftok string, fpos Pos) Loop {
+	if ftok != "for" {
+		return p.wordIter(ftok, fpos)
+	}
 	switch p.tok {
 	case leftParen, dblLeftParen:
 		p.checkLang(p.pos, langBashLike|LangZsh, "c-style fors")
@@ -2935,7 +2944,7 @@ func (p *Parser) loop(fpos Pos) Loop {
 		p.got(_Newl)
 		return cl
 	}
-	return p.wordIter("for", fpos)
+	return p.wordIter(ftok, fpos)
 }
 
 func (p *Parser) wordIter(ftok string, fpos Pos) *WordIter {
@@ -2972,16 +2981,6 @@ func (p *Parser) wordIter(ftok string, fpos Pos) *WordIter {
 		p.followErr(fpos, ftok+" foo", noQuote("`in`, `do`, `;`, or a newline"))
 	}
 	return wi
-}
-
-func (p *Parser) selectClause(s *Stmt) {
-	fc := &ForClause{ForPos: p.pos, Select: true}
-	p.next()
-	fc.Loop = p.wordIter("select", fc.ForPos)
-	fc.DoPos = p.followRsrv(fc.ForPos, "select foo [in words]", "do")
-	fc.Do, fc.DoLast = p.followStmts("do", fc.DoPos, "done")
-	fc.DonePos = p.stmtEnd(fc, "select", "done")
-	s.Cmd = fc
 }
 
 func (p *Parser) caseClause(s *Stmt) {
