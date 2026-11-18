@@ -109,6 +109,16 @@ Nodes:
 - `ParamExp`: replace the mutually exclusive booleans `Excl`, `Length`,
   `Width`, and `IsSet` with a single operator token; consider joining `Repl`,
   `Exp`, and `Slice` into a single expansion field or type.
+- More generally, replace runs of mutually exclusive booleans with a single
+  enumeration field, so that invalid combinations cannot be represented and a
+  new form does not need yet another field. The loops have the most: their
+  keyword (`for`, `select`, or `foreach` in `ForClause`, and `while` or
+  `until` in `WhileClause`) and the form of their body (`do` and `done`,
+  braces, `end`, or zsh's short form, shared by `ForClause`, `WhileClause`,
+  and `RepeatClause`, perhaps in a struct holding the body too). This also
+  tells a `foreach` loop with a `do` body apart from a `for` loop, which v3
+  cannot. Others are `Stmt.Background`, `Coprocess`, and `Disown`, as well
+  as `CmdSubst.Backquotes`, `TempFile`, and `ReplyVar`.
 - Subscripts become words in every dialect. Zsh and Bash both expand a
   subscript like a string and only evaluate it as arithmetic at run time when
   the array is indexed, so v3 already parses Zsh subscripts as words (#1233).
