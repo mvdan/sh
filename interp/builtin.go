@@ -188,6 +188,8 @@ dispatch:
 	case "fg", "bg":
 		// Like a non-interactive Bash, as nothing is ever stopped.
 		return failf(1, "%s: no job control\n", name)
+	case "enable":
+		return r.runEnable(args)
 	case "times":
 		// js/wasm has no per-process CPU accounting at all, so report zeros
 		// in bash's format — shell user/sys, then children user/sys — rather

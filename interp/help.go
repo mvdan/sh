@@ -103,8 +103,8 @@ var helpTable = map[string]builtinHelp{
 // stars them the way bash stars disabled builtins.
 var helpUnsupported = map[string]bool{
 	"bind": true, "caller": true, "compgen": true, "complete": true,
-	"compopt": true, "enable": true, "fc": true, "history": true,
-	"logout": true, "newgrp": true, "suspend": true, "ulimit": true,
+	"compopt": true, "fc": true, "history": true, "logout": true,
+	"newgrp": true, "suspend": true, "ulimit": true,
 }
 
 // helpMatch returns the documented names matching a bash-style pattern. An
