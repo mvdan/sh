@@ -2185,6 +2185,84 @@ func (p *Parser) hasValidIdent() bool {
 	return p.r == '[' // a[i]=x
 }
 
+// peekFuncParens reports whether the current word starting with '[' is a
+// bash-style literal function name followed by '(', such as `bar[bar]()`.
+func (p *Parser) peekFuncParens() bool {
+	off := 0
+	depth := 1
+	for {
+		idx := int(p.bsp) + off
+		if idx >= len(p.bs) {
+			if p.fill() == 0 {
+				return false
+			}
+			idx = int(p.bsp) + off
+			if idx >= len(p.bs) {
+				return false
+			}
+		}
+		switch p.bs[idx] {
+		case '[':
+			depth++
+		case ']':
+			if depth > 0 {
+				depth--
+			}
+		case ' ', '\t':
+			if depth > 0 {
+				return false
+			}
+			off++
+			goto skipSpaces
+		case '(':
+			return depth == 0
+		case '\n', '\r', ';', '&', '|', '<', '>', ')', '=', '"', '\'', '`', '$':
+			return false
+		}
+		off++
+	}
+skipSpaces:
+	for {
+		idx := int(p.bsp) + off
+		if idx >= len(p.bs) {
+			if p.fill() == 0 {
+				return false
+			}
+			idx = int(p.bsp) + off
+			if idx >= len(p.bs) {
+				return false
+			}
+		}
+		switch p.bs[idx] {
+		case ' ', '\t':
+			off++
+		case '(':
+			return true
+		default:
+			return false
+		}
+	}
+}
+
+func (p *Parser) funcLit(w *Word) *Lit {
+	if len(w.Parts) == 0 {
+		return nil
+	}
+	var sb strings.Builder
+	for _, part := range w.Parts {
+		lit, ok := part.(*Lit)
+		if !ok {
+			return nil
+		}
+		sb.WriteString(lit.Value)
+	}
+	return &Lit{
+		ValuePos: w.Parts[0].Pos(),
+		ValueEnd: w.Parts[len(w.Parts)-1].End(),
+		Value:    sb.String(),
+	}
+}
+
 func (p *Parser) getAssign(needEqual bool) *Assign {
 	as := p.assign(needEqual)
 	if as == nil || as.Naked || as.Array != nil || !p.zshSplit {
@@ -2612,12 +2690,19 @@ func (p *Parser) gotStmtPipe(s *Stmt, binCmd bool) *Stmt {
 		if p.gotBlock(s) {
 			break
 		}
-		if p.hasValidIdent() {
+		if p.hasValidIdent() && !(p.eqlOffs <= 0 && p.lang.in(langBashLike) && p.peekFuncParens()) {
 			p.callExpr(s, nil, true)
 			break
 		}
 		w := p.wordAnyNumber()
 		if p.got(leftParen) {
+			if p.lang.in(langBashLike) {
+				if name := p.funcLit(w); name != nil {
+					p.follow(name.ValuePos, "foo(", rightParen)
+					p.funcDecl(s, name.ValuePos, false, true, name)
+					break
+				}
+			}
 			p.posErr(w.Pos(), "invalid func name")
 		}
 		p.callExpr(s, w, false)
@@ -3416,8 +3501,20 @@ func (p *Parser) bashFuncDecl(s *Stmt) {
 	fpos := p.pos
 	p.next()
 	names := make([]*Lit, 0, 1)
-	for p.tok == _LitWord && p.val != "{" {
-		names = append(names, p.lit(p.pos, p.val))
+	for (p.tok == _LitWord || (p.tok == _Lit && p.r == '[' && p.lang.in(langBashLike))) && p.val != "{" {
+		lit := p.lit(p.pos, p.val)
+		for p.tok == _Lit && p.r == '[' {
+			p.next()
+			if !p.tok.isLit() {
+				break
+			}
+			lit.Value += p.val
+			lit.ValueEnd = p.litEnd(lit.ValuePos)
+		}
+		if p.tok == _Lit {
+			break
+		}
+		names = append(names, lit)
 		p.next()
 	}
 	hasParens := p.got(leftParen)

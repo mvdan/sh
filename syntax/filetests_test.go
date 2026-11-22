@@ -1338,6 +1338,31 @@ var fileTests = []fileTestCase{
 		}, LangBash|LangMirBSDKorn|LangZsh),
 	),
 	fileTest(
+		[]string{"function foo[foo] {\n\ta\n}", "function foo[foo] { a; }"},
+		langFile(&FuncDecl{
+			RsrvWord: true,
+			Name:     lit("foo[foo]"),
+			Body:     stmt(block(litStmt("a"))),
+		}, LangBash),
+	),
+	fileTest(
+		[]string{"bar[bar]() {\n\ta\n}", "bar[bar]() { a; }"},
+		langFile(&FuncDecl{
+			Parens: true,
+			Name:   lit("bar[bar]"),
+			Body:   stmt(block(litStmt("a"))),
+		}, LangBash),
+	),
+	fileTest(
+		[]string{"function bar[bar]() {\n\ta\n}", "function bar[bar]() { a; }"},
+		langFile(&FuncDecl{
+			RsrvWord: true,
+			Parens:   true,
+			Name:     lit("bar[bar]"),
+			Body:     stmt(block(litStmt("a"))),
+		}, LangBash),
+	),
+	fileTest(
 		[]string{"function foo\n{\n\ta\n}"},
 		langErr2("1:1: `function` declarations are a bash/mksh/zsh feature; tried parsing as LANG", LangPOSIX),
 		flipConfirm2(LangPOSIX), // dash runs it as a command and a block
