@@ -246,8 +246,9 @@ Parser and printer API:
 Handlers:
 
 - Pass `HandlerContext` as an explicit parameter instead of hiding it in the
-  `context.Context` (#440), and remove `HandlerCtx`. Keep the operation
-  parameters separate from the interpreter state, so signatures look like
+  `context.Context` (#440), and remove `HandlerCtx` and `WithHandlerContext`.
+  Keep the operation parameters separate from the interpreter state,
+  so signatures look like
   `func(ctx context.Context, hc HandlerContext, args []string) error`.
 - Join `CallHandler` and `ExecHandlers`: now that middlewares can call `next`
   with changed arguments, the only thing `CallHandler` adds is seeing builtins
