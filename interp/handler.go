@@ -37,6 +37,30 @@ func HandlerCtx(ctx context.Context) HandlerContext {
 	return hc
 }
 
+// WithHandlerContext returns a copy of ctx which stores hc,
+// to be retrieved via [HandlerCtx].
+// It allows a middleware to change the environment, directory, or streams
+// seen by the next handler, by passing it a modified copy of [HandlerCtx]:
+//
+//	hc := interp.HandlerCtx(ctx)
+//	hc.Stdout = &buf
+//	return next(interp.WithHandlerContext(ctx, hc), args)
+//
+// Only the handlers called with the returned context see the change;
+// the [Runner]'s own state is unaffected, and so is [HandlerContext.Builtin].
+//
+// The internal state of the [Runner] is carried over from the handler context
+// already stored in ctx, if any. Without one, such as when testing a handler,
+// the default handlers in this package must not be called with the result.
+//
+// TODO(v4): remove once [HandlerContext] is an explicit handler parameter; see #440.
+func WithHandlerContext(ctx context.Context, hc HandlerContext) context.Context {
+	if prev, ok := ctx.Value(handlerCtxKey{}).(HandlerContext); ok {
+		hc.runner, hc.kind = prev.runner, prev.kind
+	}
+	return context.WithValue(ctx, handlerCtxKey{}, hc)
+}
+
 type handlerCtxKey struct{}
 
 type handlerKind int

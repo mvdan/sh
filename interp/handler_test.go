@@ -28,6 +28,49 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
+func TestWithHandlerContext(t *testing.T) {
+	t.Parallel()
+	// Without a Runner, such as when testing a handler directly.
+	stdin := strings.NewReader("in")
+	want := interp.HandlerContext{
+		Dir:            "/some/dir",
+		Stdin:          stdin,
+		LastExitStatus: 42,
+	}
+	got := interp.HandlerCtx(interp.WithHandlerContext(t.Context(), want))
+	qt.Assert(t, qt.Equals(got.Dir, want.Dir))
+	qt.Assert(t, qt.IsTrue(got.Stdin == stdin))
+	qt.Assert(t, qt.Equals(got.LastExitStatus, want.LastExitStatus))
+}
+
+// execCaptureStdout runs the next handler with its standard output captured,
+// then prints it quoted.
+func execCaptureStdout(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+	return func(ctx context.Context, args []string) error {
+		hc := interp.HandlerCtx(ctx)
+		orig := hc.Stdout
+		var buf bytes.Buffer
+		hc.Stdout = &buf
+		err := next(interp.WithHandlerContext(ctx, hc), args)
+		fmt.Fprintf(orig, "captured: %q\n", buf.String())
+		return err
+	}
+}
+
+// execFreshContext runs the next handler with a [interp.HandlerContext]
+// built from scratch, which still carries the Runner's internal state.
+func execFreshContext(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
+	return func(ctx context.Context, args []string) error {
+		hc := interp.HandlerCtx(ctx)
+		return next(interp.WithHandlerContext(ctx, interp.HandlerContext{
+			Env:    hc.Env,
+			Dir:    hc.Dir,
+			Stdout: hc.Stdout,
+			Stderr: hc.Stderr,
+		}), args)
+	}
+}
+
 func blocklistOneExec(name string) func(interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 	return func(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 		return func(ctx context.Context, args []string) error {
@@ -311,6 +354,22 @@ var modCases = []struct {
 		src: "{ malicious; true; } & { malicious; true; } & wait",
 		// Note that "wait" with no arguments always succeeds.
 		want: "",
+	},
+	{
+		name: "ExecCaptureStdout",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execCaptureStdout),
+		},
+		src:  "GOSH_CMD=print_ok $GOSH_PROG; echo builtin",
+		want: "captured: \"exec ok\\n\"\nbuiltin\n",
+	},
+	{
+		name: "ExecFreshContext",
+		opts: []interp.RunnerOption{
+			interp.ExecHandlers(execFreshContext),
+		},
+		src:  "GOSH_CMD=print_ok $GOSH_PROG",
+		want: "exec ok\n",
 	},
 	{
 		name: "ExecPrintWouldExec",
