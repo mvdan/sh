@@ -28,6 +28,20 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
+func TestWithHandlerContext(t *testing.T) {
+	t.Parallel()
+	stdin := strings.NewReader("in")
+	want := interp.HandlerContext{
+		Dir:            "/tmp",
+		Stdin:          stdin,
+		LastExitStatus: 42,
+	}
+	got := interp.HandlerCtx(interp.WithHandlerContext(t.Context(), want))
+	qt.Assert(t, qt.Equals(got.Dir, want.Dir))
+	qt.Assert(t, qt.IsTrue(got.Stdin == stdin))
+	qt.Assert(t, qt.Equals(got.LastExitStatus, want.LastExitStatus))
+}
+
 func blocklistOneExec(name string) func(interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 	return func(next interp.ExecHandlerFunc) interp.ExecHandlerFunc {
 		return func(ctx context.Context, args []string) error {

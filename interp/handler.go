@@ -37,6 +37,13 @@ func HandlerCtx(ctx context.Context) HandlerContext {
 	return hc
 }
 
+// WithHandlerContext returns a copy of ctx with hc stored as its handler
+// context, so a handler can replace the environment, directory, or streams
+// used by a nested command.
+func WithHandlerContext(ctx context.Context, hc HandlerContext) context.Context {
+	return context.WithValue(ctx, handlerCtxKey{}, hc)
+}
+
 type handlerCtxKey struct{}
 
 type handlerKind int
