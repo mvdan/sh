@@ -1,3 +1,6 @@
+// Copyright (c) 2025, Andrey Nering <andrey@nering.com.br>
+// See LICENSE for licensing information
+
 package coreutils
 
 import (
@@ -6,11 +9,10 @@ import (
 	"mvdan.cc/sh/v3/interp"
 )
 
-// Error wraps any error returned from the core utilities.
-// It unwraps to an exit status of 1 so that a failing command results in
-// a regular non-zero exit status rather than a fatal error.
+// Error wraps an error returned from a core utility, carrying its exit status.
 type Error struct {
-	err error
+	err    error
+	status int
 }
 
 var (
@@ -18,10 +20,14 @@ var (
 	_ interface{ Unwrap() []error } = &Error{}
 )
 
+func utilityError(err error, status int) error {
+	return &Error{err: err, status: status}
+}
+
 func (err *Error) Error() string {
 	return fmt.Sprintf("coreutils: %v", err.err)
 }
 
 func (err *Error) Unwrap() []error {
-	return []error{err.err, interp.NewExitStatus(1)}
+	return []error{err.err, interp.NewExitStatus(uint8(err.status))}
 }
