@@ -1,5 +1,66 @@
 # Changelog
 
+## [3.15.0] - 2026-11-??
+
+This release brings the interpreter much closer to Bash and hardens it
+against untrusted scripts, so that it fails gracefully rather than
+crashing or exhausting memory.
+
+Note that, like Bash, the last command of a pipeline now runs in a subshell,
+so `cmd | read x` no longer sets `x` unless the `lastpipe` option is set.
+
+- **cmd/shfmt**
+  - Add `-bl, --block-next-line` and `block_next_line` to place `{`, `then`, and `do` on their own lines - #721
+  - Support a fallback EditorConfig file at `$XDG_CONFIG_HOME/shfmt/editorconfig`, and accept `case_indent` and `language_dialect` as properties - #1402
+- **syntax**
+  - Add `BlockNextLine`, deprecating `FunctionNextLine` - #721
+  - Add `Redirect.ClosePos`, and end heredocs at EOF like Bash, dash, and Zsh - #1428
+  - Support prefix assignments on declaration builtins via `DeclClause.Assigns` - #1327
+  - Keep optional case pattern parentheses if all items use them, via `CaseItem.Lparen` - #1194
+  - Follow Bash's algorithm in `SplitBraces`, and track positions via `BraceExp.Lbrace` and `BraceExp.Rbrace` - #1435
+  - Apply `BinaryNextLine` to binary test and arithmetic expressions - #813
+  - Keep `then` and `do` on their own line after multi-line conditions - #1210
+  - Keep trailing control-flow commands like `main "$@"; exit $?` on the same line - #564, #679
+  - Don't escape newlines within arithmetic commands and expansions - #1169
+  - Fix several bugs with comments, such as within `[[ ]]` or after escaped newlines - #619, #844, #1290, #1447, #1449
+  - Fix several bugs with heredocs, such as within substitutions or with quoted delimiters - #1131, #1282, #1446
+  - Fix several bugs with indentation, spacing, and semicolons - #811, #953, #1015, #1148, #1445, #1457
+  - Reject `[[`, `select`, and `function` with `LangPOSIX` - #1092
+  - Fix panics in `StmtsSeq`, `InteractiveSeq`, `Walk`, and with heredocs in backquotes, and limit nesting to 10000 levels to avoid stack overflows - #1448, #1458, #1459
+  - Zsh: add `TryClause`, `RepeatClause`, `CallArithm`, `WordIter.Names`, `FuncDecl.Args`, and `ParamExp.Subscripts` - #1211, #1294, #1297, #1335, #1361, #1438
+  - Zsh: support alternate loop forms, blocks like `{echo foo}`, glob groups in case patterns, and subscripts as words - #1203, #1233, #1295, #1342, #1441
+- **syntax/typedjson**
+  - Add a JSON Schema for the format, also published as a CUE module - #967
+- **shell**
+  - Add `Split` to split a command line into words without expanding them, and `Join` to quote words back into one
+  - Add `Match` to match a string against a pattern like `case` and `[[ ]]` do
+  - Add `Glob` to expand patterns over an `fs.FS` like Bash, with `**` and brace expansion
+- **interp**
+  - Add `Runner.WaitBackground` to wait for all background jobs - #1431
+  - Add `BackgroundContext` so that background jobs can outlive each `Run` call - #1440
+  - Add `ProcSubstHandler` to customize process substitutions
+  - Add `Exit` and `Fatal` so that exec handlers can exit the shell
+  - Add `WithHandlerContext` to call the interpreter back from handlers
+  - Implement the `jobs`, `kill`, `disown`, and `umask` builtins minimally, and expand `$!` to a real PID where possible - #1401, #1411, #1440
+  - Support `read -d`, `-n`, and `-N`, `shopt -q`, and the `lastpipe` option - #551
+  - Run the last command of a pipeline in a subshell like Bash
+  - Scope, assign, declare, and list variables like Bash, keeping their export attribute - #1423
+  - Recover from variable and expansion errors by abandoning the line like Bash
+  - Quote each command field separately with `xtrace` - #753
+  - Close pipe ends and redirections once a program starts, and keep them open for background jobs - #1142, #1432
+  - Make `Dir` after a reset change directory like `cd` - #1125
+  - Fix a number of panics and crashes, limiting nested calls, sourced files, and `eval` to 1000 levels
+- **expand**
+  - Add `AssignValue` to expand tildes after colons in assignments - #1451
+  - Limit expansions and variables to 16MiB and a million fields, and avoid runaway globstar walks - #1434
+  - Don't modify the given `Config`, fixing races between concurrent calls
+  - Expand arithmetic, lists, indirections, `${var@op}`, and anchored replacements like Bash - #1081, #1442
+  - Decode `$'\cX'` control-character escapes - #1450
+  - Resolve a virtual filesystem's Unix paths as such on Windows - #1433
+  - Fix more Bash divergences with quoting, tildes, `set -u`, `read`, and brace expansion
+- **pattern**
+  - Avoid excessive time and stack use with malformed patterns
+
 ## [3.14.1] - 2026-09-06
 
 - **syntax**
@@ -905,6 +966,7 @@ module in v3.
 
 Initial release.
 
+[3.15.0]: https://github.com/mvdan/sh/releases/tag/v3.15.0
 [3.14.1]: https://github.com/mvdan/sh/releases/tag/v3.14.1
 [3.14.0]: https://github.com/mvdan/sh/releases/tag/v3.14.0
 [3.13.1]: https://github.com/mvdan/sh/releases/tag/v3.13.1
