@@ -3412,13 +3412,28 @@ func (p *Parser) letClause(s *Stmt) {
 	s.Cmd = lc
 }
 
+// funcNameLit parses a function name, joining bracket glob characters such as
+// the "[abc]" in "foo[abc]" which the lexer reports as a separate literal.
+// Bash accepts those characters in function names declared with "function".
+func (p *Parser) funcNameLit() *Lit {
+	pos := p.pos
+	val := p.val
+	end := p.litEnd(pos)
+	p.next()
+	for (p.tok == _LitWord || p.tok == _Lit) && !p.spaced && strings.HasPrefix(p.val, "[") {
+		val += p.val
+		end = p.litEnd(p.pos)
+		p.next()
+	}
+	return &Lit{ValuePos: pos, ValueEnd: end, Value: val}
+}
+
 func (p *Parser) bashFuncDecl(s *Stmt) {
 	fpos := p.pos
 	p.next()
 	names := make([]*Lit, 0, 1)
-	for p.tok == _LitWord && p.val != "{" {
-		names = append(names, p.lit(p.pos, p.val))
-		p.next()
+	for p.tok.isLit() && p.val != "{" {
+		names = append(names, p.funcNameLit())
 	}
 	hasParens := p.got(leftParen)
 	switch len(names) {
