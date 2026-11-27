@@ -35,6 +35,10 @@ func TestShebang(t *testing.T) {
 			want: "dash",
 		},
 		{
+			in:   []byte("#!/usr/bin/env -S zsh -f"),
+			want: "zsh",
+		},
+		{
 			in:   []byte("#!/bin/zsh"),
 			want: "zsh",
 		},
