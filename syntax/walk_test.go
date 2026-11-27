@@ -138,6 +138,25 @@ func TestWalkIfClauseComments(t *testing.T) {
 	}
 }
 
+func TestWalkCaseItemComments(t *testing.T) {
+	t.Parallel()
+	in := "case x in\n  a) : ;; # inline\n  # standalone\nb) : ;;\nesac\n"
+	prog, err := NewParser(KeepComments(true)).Parse(strings.NewReader(in), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var comments []string
+	for node := range Preorder(prog) {
+		if c, ok := node.(*Comment); ok {
+			comments = append(comments, c.Text)
+		}
+	}
+	want := []string{" inline", " standalone"}
+	if !slices.Equal(comments, want) {
+		t.Fatalf("walked comments %q, want %q", comments, want)
+	}
+}
+
 func TestPreorder(t *testing.T) {
 	t.Parallel()
 	in := "echo ${foo:-bar}; { baz >f; } # comment"

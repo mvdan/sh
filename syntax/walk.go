@@ -152,13 +152,20 @@ func Walk(node Node, f func(Node) bool) {
 		walkList(node.Items, f)
 		walkComments(node.Last, f)
 	case *CaseItem:
-		for _, c := range node.Comments {
+		var trailingComments []*Comment
+		for i := range node.Comments {
+			c := &node.Comments[i]
 			if c.Pos().After(node.Pos()) {
-				defer Walk(&c, f)
-				break
+				trailingComments = append(trailingComments, c)
+				continue
 			}
-			Walk(&c, f)
+			Walk(c, f)
 		}
+		defer func() {
+			for _, c := range trailingComments {
+				Walk(c, f)
+			}
+		}()
 		walkList(node.Patterns, f)
 		walkList(node.Stmts, f)
 		walkComments(node.Last, f)
